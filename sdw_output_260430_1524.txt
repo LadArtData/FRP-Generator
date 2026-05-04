@@ -1,0 +1,21 @@
+Session altered.
+
+Elapsed: 00:00:00.002
+
+
+No data found
+
+
+CREDENTIAL_NAME        USERNAME COMMENTS                                                                              ENABLED 
+---------------------- -------- ------------------------------------------------------------------------------------- ------- 
+OCI$RESOURCE_PRINCIPAL ADMIN    {"comments":"Created resource principal credential via DBMS_CLOUD.create_credential"} TRUE    
+
+
+Elapsed: 00:00:00.026
+1 rows selected.
+
+
+No data found
+
+
+No data found

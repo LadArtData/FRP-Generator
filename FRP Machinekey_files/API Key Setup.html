@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<!-- saved from url=(0312)https://35eb5f72-e1ae-4876-ac0e-dcf704fb6cb4.claudeusercontent.com/v1/design/projects/35eb5f72-e1ae-4876-ac0e-dcf704fb6cb4/serve/API%20Key%20Setup.html?t=64aa6ff6c4087587600f02d1885273884a8205d2f81e6f116fe54602615147ce.842a0d5e-a741-457d-b26e-abec5b95ef4f.dd4e5d87-0725-4823-a9ea-10b0e8a384f1.1777571061&srcmap=1 -->
+<html data-src-ver="c84efe6e" lang="en" data-om-id="c84efe6e:0"><head data-om-id="c84efe6e:1"><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<style data-omelette-injected="">html,body{background:transparent}</style><script data-omelette-injected="">(()=>{var j=["https://claude.ai","https://preview.claude.ai","https://eap-omelette.claude.ai"];var x=true;var S=30000;var f=3000;document.addEventListener("DOMContentLoaded",()=>{const H=window.Babel;const G="om-src-id";if(H&&H.registerPlugin&&!(H.availablePlugins&&H.availablePlugins[G])){H.registerPlugin(G,({types:Y})=>({visitor:{JSXOpeningElement(U,Q){const J=U.node;if(J.name&&J.name.type==="JSXMemberExpression")return;for(let V=0;V<J.attributes.length;V++){const L=J.attributes[V];if(L.type==="JSXAttribute"&&L.name&&L.name.name==="data-om-id")return}const W=Q.file&&Q.file.opts&&Q.file.opts.filename||"?";const Z=J.loc&&J.loc.start;const z=`jsx:${W}:${J.start??0}:${Z?Z.line:0}:${Z?Z.column+1:0}`;J.attributes.push(Y.jsxAttribute(Y.jsxIdentifier("data-om-id"),Y.stringLiteral(z)))}}}))}const k="om-text-extract";let A=false;if(x&&H&&H.registerPlugin&&!(H.availablePlugins&&H.availablePlugins[k])){const Y=window.React;if(Y&&Y.useSyncExternalStore&&Y.createElement){A=true;const U={};const Q=new Set;let J=0;window.__omTextO=U;window.__omTextSet=(z)=>{for(const V in z){const L=z[V];if(L==null)delete U[V];else U[V]=L}J++;Q.forEach((V)=>V())};const W=(z)=>{Q.add(z);return()=>Q.delete(z)};const Z=()=>J;window.__OmT=function z(V){Y.useSyncExternalStore(W,Z,Z);return Y.createElement("span",{"data-om-text":V.i,className:"__om-t"},V.i in U?U[V.i]:V.children)};H.registerPlugin(k,({types:z})=>{const V={style:1,script:1,noscript:1,textarea:1,title:1,option:1,text:1,tspan:1,textPath:1};const L={placeholder:1,alt:1,title:1,label:1,"aria-label":1,"aria-description":1,"aria-placeholder":1};const _=($,C)=>z.logicalExpression("??",z.memberExpression(z.logicalExpression("||",z.memberExpression(z.identifier("window"),z.identifier("__omTextO")),z.objectExpression([])),z.stringLiteral($),true),C);const E=($)=>$.file&&$.file.opts&&$.file.opts.filename||"?";const B=($)=>$.file&&$.file.code||"";const b=($,C)=>{const X=(F)=>F&&F.start!=null&&F.end!=null&&(F.type==="StringLiteral"||F.type==="TemplateLiteral"&&F.expressions.length===0)?[F.start,F.end]:null;const N=X(C);if(N)return N;if(C&&C.type==="Identifier"){const F=$.scope.getBinding(C.name);if(F&&F.constant&&F.path.node.type==="VariableDeclarator"){return X(F.path.node.init)}}return null};const m=($,C,X)=>{const N=$.node;let F=false;const w=(K,q)=>{F=true;return z.jsxElement(z.jsxOpeningElement(z.jsxIdentifier("__OmT"),[z.jsxAttribute(z.jsxIdentifier("i"),z.stringLiteral(K))],false),z.jsxClosingElement(z.jsxIdentifier("__OmT")),[q],false)};const D=N.children.map((K)=>{if(K.type==="JSXText"){if(K.start==null||K.end==null)return K;const q=X.slice(K.start,K.end);const M=q.length-q.trimStart().length;const R=q.length-q.trimEnd().length;if(M+R>=q.length)return K;return w(`txt:${C}:${K.start+M}:${K.end-R}`,K)}if(K.type==="JSXExpressionContainer"){const q=b($,K.expression);if(q)return w(`str:${C}:${q[0]}:${q[1]}`,K)}return K});if(F)N.children=D};return{visitor:{JSXOpeningElement($,C){const X=$.node;const N=E(C);const F={};for(let w=0;w<X.attributes.length;w++){const D=X.attributes[w];if(D.type!=="JSXAttribute"||!D.name)continue;const K=D.name.name;if(!L[K])continue;if(!D.value||D.value.type!=="StringLiteral")continue;if(D.value.start==null||D.value.end==null)continue;const q=`txt:${N}:${D.value.start}:${D.value.end}`;F[K]=q;D.value=z.jsxExpressionContainer(_(q,z.stringLiteral(D.value.value)))}if(Object.keys(F).length){X.attributes.push(z.jsxAttribute(z.jsxIdentifier("data-om-text-attrs"),z.stringLiteral(JSON.stringify(F))))}},JSXElement($,C){const X=$.node.openingElement;const N=X&&X.name&&X.name.name;if(N==="__OmT")return;if(typeof N==="string"&&V[N])return;m($,E(C),B(C))},JSXFragment($,C){m($,E(C),B(C))}}}})}}const u=A?["transform-react-jsx-source",G,k]:["transform-react-jsx-source",G];document.querySelectorAll('script[type="text/babel"],script[type="text/jsx"]').forEach((Y,U)=>{const Q=Y.getAttribute("data-plugins")||"";const J=u.filter((W)=>Q.indexOf(W)<0);if(J.length){Y.setAttribute("data-plugins",Q?`${Q},${J.join(",")}`:J.join(","))}if(!Y.hasAttribute("data-filename")){Y.setAttribute("data-filename",Y.getAttribute("src")||`inline-${U}`)}})});var y=window.parent;if(y&&y!==window){const H=(Q,J)=>{try{y.postMessage({__omelette_log:true,type:Q,data:J},"*")}catch{}};["log","warn","error"].forEach((Q)=>{const J=console[Q];console[Q]=(...W)=>{const Z=W.map((z)=>{try{return typeof z==="object"?JSON.stringify(z):String(z)}catch{try{return String(z)}catch{return"[unstringifiable]"}}}).join(" ");H(Q,Z);J.apply(console,W)}});window.addEventListener("error",(Q)=>{const J=Q.target;if(J&&J!==window&&J.tagName){const W=J.src||J.href||"";H("resource_error",`${J.tagName} failed to load: ${W}`)}else{H("error",`${Q.message||"Unknown error"} at ${Q.filename||"?"}:${Q.lineno||0}:${Q.colno||0}`)}},true);window.addEventListener("unhandledrejection",(Q)=>{const J=Q.reason;const W=J instanceof Error?`${J.message} ${J.stack}`:String(J);H("error",`Unhandled rejection: ${W}`)});const G=()=>{try{y.postMessage({type:"omelette:height",height:document.documentElement.scrollHeight},"*")}catch{}};if(document.readyState==="complete")G();else window.addEventListener("load",G);if(window.ResizeObserver)new ResizeObserver(G).observe(document.documentElement);const k={};let A=0;window.claude={complete(Q){return new Promise((J,W)=>{if(!j.length){W(new Error("claude.complete: no parent origin"));return}const Z=`c${++A}`;const z=()=>setTimeout(()=>{delete k[Z];W(new Error(`claude.complete: no data for ${S/1000}s`))},S);const V=z();k[Z]={resolve:J,reject:W,text:"",t:V,arm:z};try{for(const L of j){y.postMessage({__om_api:true,id:Z,body:Q},L)}}catch(L){clearTimeout(V);delete k[Z];W(L)}})}};const u={};let Y=0;window.omelette={writeFile:(Q,J)=>new Promise((W,Z)=>{if(!j.length){W();return}const z=`f${++Y}`;const V=setTimeout(()=>{delete u[z];W()},f);u[z]={resolve:W,reject:Z,t:V};try{for(const L of j){y.postMessage({__om_file:true,id:z,op:"write",path:Q,content:J},L)}}catch{clearTimeout(V);delete u[z];W()}})};const U=(Q)=>{try{return JSON.stringify(Q)}catch{return JSON.stringify(String(Q))}};window.addEventListener("message",(Q)=>{if(j.indexOf(Q.origin)<0)return;if(Q.source!==y)return;const J=Q.data;if(!J)return;if(J.__om_file_r){const z=u[J.id];if(!z)return;clearTimeout(z.t);delete u[J.id];if(J.ok)z.resolve();else z.reject(new Error(J.error||"write failed"));return}if(J.__om_api_r){const z=k[J.id];if(!z)return;if(J.error!=null){clearTimeout(z.t);delete k[J.id];z.reject(new Error(J.error));return}if(J.chunk!=null){clearTimeout(z.t);z.t=z.arm();z.text+=J.chunk;return}if(J.done){clearTimeout(z.t);delete k[J.id];z.resolve(J.text!=null?J.text:z.text);return}return}if(!J.__om_eval)return;const W=J;const Z=(z)=>{Q.source.postMessage({...z,__om_eval_r:1,id:W.id},Q.origin)};try{const z=(0,eval)(W.code);if(z&&typeof z.then==="function"){z.then((V)=>Z({ok:1,v:U(V)}),(V)=>Z({ok:0,e:String(V)}))}else{Z({ok:1,v:U(z)})}}catch(z){Z({ok:0,e:String(z)})}})}})();
+</script>
+
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0" data-om-id="c84efe6e:3">
+<title>FRP Studio — API key setup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com/" data-om-id="c84efe6e:4">
+<link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="" data-om-id="c84efe6e:5">
+<link href="./css2" rel="stylesheet" data-om-id="c84efe6e:6">
+<style>
+:root {
+  --ink:        #0E1A38;
+  --ink-2:      #1a2749;
+  --paper:      #FAF8F3;
+  --paper-2:    #F3EFE6;
+  --paper-3:    #EAE4D5;
+  --line:       #E3DBC8;
+  --line-2:     #D0C6AE;
+  --muted:      #6B6555;
+  --muted-2:    #8E8773;
+  --accent:     #E8652B;
+  --accent-2:   #C9511C;
+  --accent-soft:#FBE3D3;
+  --leaf:       #2F6B4F;
+  --leaf-soft:  #DAEAD9;
+  --sky:        #3A6FA8;
+  --sky-soft:   #DCE8F4;
+  --gold:       #B28B2E;
+  --red:        #B33A3A;
+  --red-soft:   #F6D9D4;
+  --radius:     8px;
+  --radius-sm:  4px;
+  --shadow:     0 1px 2px rgba(14,26,56,.04), 0 4px 14px rgba(14,26,56,.06);
+  --shadow-lg:  0 2px 6px rgba(14,26,56,.06), 0 18px 48px rgba(14,26,56,.12);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { min-height: 100%; }
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── State switcher (designer chrome — not part of real screen) ── */
+.state-switcher {
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--ink);
+  color: #fff;
+  border-radius: 99px;
+  padding: 4px;
+  display: flex;
+  gap: 2px;
+  z-index: 100;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  box-shadow: var(--shadow-lg);
+}
+.state-switcher button {
+  background: transparent;
+  border: 0;
+  color: rgba(255,255,255,.6);
+  padding: 6px 14px;
+  border-radius: 99px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+  letter-spacing: .04em;
+}
+.state-switcher button.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* ── Top bar (replicates APEX Universal Theme bar shape, in our brand) ── */
+.topbar {
+  height: 44px;
+  background: var(--ink);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  padding: 0 18px;
+  gap: 14px;
+  border-bottom: 1px solid #000;
+}
+.brand {
+  display: flex; align-items: center; gap: 10px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.brand-mark {
+  width: 24px; height: 24px;
+  background: var(--accent);
+  border-radius: 5px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Instrument Serif', serif;
+  font-size: 16px; font-style: italic;
+  line-height: 1;
+}
+.topbar .spacer { flex: 1; }
+.topbar .user {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px;
+  color: rgba(255,255,255,.85);
+  font-family: 'JetBrains Mono', monospace;
+}
+.user-avatar {
+  width: 26px; height: 26px;
+  background: var(--accent);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: 0;
+  font-family: 'Inter', sans-serif;
+}
+
+/* ── Main canvas ── */
+main {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 56px 28px 80px;
+}
+
+/* breadcrumb */
+.crumb {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  margin-bottom: 14px;
+}
+.crumb a { color: var(--muted-2); text-decoration: none; }
+.crumb a:hover { color: var(--accent-2); }
+.crumb span { color: var(--line-2); margin: 0 8px; }
+
+/* page heading */
+.page-h {
+  margin-bottom: 6px;
+}
+h1 {
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-weight: 400;
+  font-size: 40px;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+h1 em { color: var(--accent-2); font-style: italic; }
+.page-sub {
+  color: var(--muted);
+  font-size: 15px;
+  margin-bottom: 32px;
+  max-width: 620px;
+}
+
+/* ── Card ── */
+.card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  margin-bottom: 18px;
+}
+.card-head {
+  padding: 18px 22px 14px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.card-head h2 {
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-weight: 400;
+  font-size: 22px;
+  letter-spacing: -0.005em;
+}
+.card-head h2 em { color: var(--accent-2); font-style: italic; }
+.card-head .step {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+  background: var(--paper-2);
+  padding: 3px 8px;
+  border-radius: 99px;
+  letter-spacing: .04em;
+  border: 1px solid var(--line);
+}
+.card-body {
+  padding: 22px;
+}
+.card-body + .card-body {
+  border-top: 1px solid var(--line);
+}
+
+/* form */
+label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  display: block;
+  margin-bottom: 7px;
+}
+input[type=password], input[type=text] {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  font: inherit;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  background: var(--paper);
+  color: var(--ink);
+  transition: border-color .15s, background .15s;
+}
+input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: #fff;
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.input-row {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+}
+.input-row input { flex: 1; }
+.input-help {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 8px;
+}
+.input-help a { color: var(--accent-2); }
+
+/* button */
+.btn {
+  font: inherit;
+  font-weight: 500;
+  font-size: 13px;
+  padding: 10px 18px;
+  border-radius: 5px;
+  cursor: pointer;
+  background: var(--accent);
+  color: #fff;
+  border: 1px solid var(--accent);
+  transition: background .12s, border-color .12s;
+  white-space: nowrap;
+}
+.btn:hover { background: var(--accent-2); border-color: var(--accent-2); }
+.btn-ghost {
+  background: #fff;
+  color: var(--ink);
+  border: 1px solid var(--line);
+}
+.btn-ghost:hover { background: var(--paper-2); border-color: var(--line-2); }
+.btn-danger-ghost {
+  background: #fff;
+  color: var(--red);
+  border: 1px solid var(--red-soft);
+}
+.btn-danger-ghost:hover { background: var(--red-soft); }
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+/* explanation block */
+.explain {
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  margin-top: 14px;
+  display: flex;
+  gap: 12px;
+}
+.explain svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--muted);
+}
+.explain .body {
+  font-size: 13px;
+  color: var(--ink-2);
+  line-height: 1.55;
+}
+.explain strong { color: var(--ink); }
+.explain ul {
+  margin-top: 6px;
+  padding-left: 18px;
+}
+.explain li { margin-bottom: 2px; }
+
+/* status / current key view */
+.key-current {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 20px;
+  background: var(--leaf-soft);
+  border: 1px solid #b9d4be;
+  border-radius: var(--radius-sm);
+}
+.key-current .check {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: var(--leaf);
+  color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.key-current .body { flex: 1; }
+.key-current .body .ttl {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--ink);
+  margin-bottom: 2px;
+}
+.key-current .body .meta {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--muted);
+}
+.key-current .actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* timeline of usage */
+.usage {
+  margin-top: 22px;
+}
+.usage h3 {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  margin-bottom: 10px;
+}
+.usage-row {
+  display: grid;
+  grid-template-columns: 90px 1fr 100px 70px;
+  gap: 14px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+  align-items: center;
+}
+.usage-row:last-child { border-bottom: 0; }
+.usage-row .when {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+}
+.usage-row .what { color: var(--ink); }
+.usage-row .what em { color: var(--muted); font-style: normal; }
+.usage-row .tokens {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--muted-2);
+  text-align: right;
+}
+.usage-row .cost {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--ink);
+  text-align: right;
+}
+
+/* status chips at top */
+.status-strip {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 22px;
+  flex-wrap: wrap;
+}
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 11px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  font-size: 11.5px;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--ink);
+  letter-spacing: .02em;
+}
+.status-chip .dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--leaf);
+  box-shadow: 0 0 0 2px rgba(47,107,79,.18);
+}
+.status-chip .dot.warn { background: var(--gold); box-shadow: 0 0 0 2px rgba(178,139,46,.18); }
+.status-chip .dot.off  { background: var(--line-2); box-shadow: none; }
+.status-chip .dot.err  { background: var(--red); }
+.status-chip .label { color: var(--muted); }
+
+/* save controls */
+.save-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 22px;
+  border-top: 1px solid var(--line);
+  background: var(--paper-2);
+  border-radius: 0 0 var(--radius) var(--radius);
+}
+.save-row .check-line {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.save-row input[type=checkbox] {
+  accent-color: var(--accent);
+  width: 14px; height: 14px;
+}
+
+/* footer */
+.foot {
+  text-align: center;
+  margin-top: 40px;
+  font-size: 12px;
+  color: var(--muted-2);
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: .04em;
+}
+
+/* hidden state machine */
+.state-2 { display: none; }
+body.show-returning .state-1 { display: none; }
+body.show-returning .state-2 { display: block; }
+</style>
+<style data-designer-overlay="1"></style></head>
+<body class="show-firsttime" data-om-id="c84efe6e:7">
+
+<!-- DESIGNER CHROME — toggle between the two screens -->
+<div class="state-switcher" role="tablist" aria-label="Preview state" data-om-id="c84efe6e:8">
+  <button class="active" data-state="firsttime" data-om-id="c84efe6e:9">FIRST-TIME</button>
+  <button data-state="returning" data-om-id="c84efe6e:10">RETURNING</button>
+</div>
+
+<!-- ── Top bar ── -->
+<div class="topbar" data-om-id="c84efe6e:11">
+  <div class="brand" data-om-id="c84efe6e:12">
+    <div class="brand-mark" data-om-id="c84efe6e:13">F</div>
+    FRP Studio
+  </div>
+  <div class="spacer" data-om-id="c84efe6e:14"></div>
+  <div class="user" data-om-id="c84efe6e:15">
+    Brian Schell
+    <div class="user-avatar" data-om-id="c84efe6e:16">BS</div>
+  </div>
+</div>
+
+<main data-om-id="c84efe6e:17">
+
+  <div class="crumb" data-om-id="c84efe6e:18">
+    <a href="https://35eb5f72-e1ae-4876-ac0e-dcf704fb6cb4.claudeusercontent.com/v1/design/projects/35eb5f72-e1ae-4876-ac0e-dcf704fb6cb4/serve/API%20Key%20Setup.html?t=64aa6ff6c4087587600f02d1885273884a8205d2f81e6f116fe54602615147ce.842a0d5e-a741-457d-b26e-abec5b95ef4f.dd4e5d87-0725-4823-a9ea-10b0e8a384f1.1777571061&amp;srcmap=1#" data-om-id="c84efe6e:19">Home</a><span data-om-id="c84efe6e:20">›</span><a href="https://35eb5f72-e1ae-4876-ac0e-dcf704fb6cb4.claudeusercontent.com/v1/design/projects/35eb5f72-e1ae-4876-ac0e-dcf704fb6cb4/serve/API%20Key%20Setup.html?t=64aa6ff6c4087587600f02d1885273884a8205d2f81e6f116fe54602615147ce.842a0d5e-a741-457d-b26e-abec5b95ef4f.dd4e5d87-0725-4823-a9ea-10b0e8a384f1.1777571061&amp;srcmap=1#" data-om-id="c84efe6e:21">My account</a><span data-om-id="c84efe6e:22">›</span>API access
+  </div>
+
+  <!-- ╭─────────────────────────────────────────────────────────╮
+       │  STATE 1 — FIRST-TIME SETUP                              │
+       ╰─────────────────────────────────────────────────────────╯ -->
+  <div class="state-1" data-om-id="c84efe6e:23">
+
+    <div class="page-h" data-om-id="c84efe6e:24">
+      <h1 data-om-id="c84efe6e:25">One last <em data-om-id="c84efe6e:26">setup step</em></h1>
+    </div>
+    <p class="page-sub" data-om-id="c84efe6e:27">
+      FRP Studio uses Anthropic's Claude to draft proposal sections from your library. Paste your personal API key once — we'll save it to your profile so you don't have to enter it again.
+    </p>
+
+    <!-- Status of the wider stack -->
+    <div class="status-strip" data-om-id="c84efe6e:28">
+      <span class="status-chip" data-om-id="c84efe6e:29"><span class="dot" data-om-id="c84efe6e:30"></span><span class="label" data-om-id="c84efe6e:31">OCI Object Storage</span> connected</span>
+      <span class="status-chip" data-om-id="c84efe6e:32"><span class="dot" data-om-id="c84efe6e:33"></span><span class="label" data-om-id="c84efe6e:34">23ai vector index</span> 142 docs</span>
+      <span class="status-chip" data-om-id="c84efe6e:35"><span class="dot" data-om-id="c84efe6e:36"></span><span class="label" data-om-id="c84efe6e:37">Cohere embed</span> ready</span>
+      <span class="status-chip" data-om-id="c84efe6e:38"><span class="dot" data-om-id="c84efe6e:39"></span><span class="label" data-om-id="c84efe6e:40">Llama 3.3</span> ready</span>
+      <span class="status-chip" data-om-id="c84efe6e:41"><span class="dot off" data-om-id="c84efe6e:42"></span><span class="label" data-om-id="c84efe6e:43">Anthropic Claude</span> not configured</span>
+    </div>
+
+    <div class="card" data-om-id="c84efe6e:44">
+      <div class="card-head" data-om-id="c84efe6e:45">
+        <span class="step" data-om-id="c84efe6e:46">STEP 1 OF 1</span>
+        <h2 data-om-id="c84efe6e:47">Add your Anthropic <em data-om-id="c84efe6e:48">API key</em></h2>
+      </div>
+      <div class="card-body" data-om-id="c84efe6e:49">
+        <label for="key-input" data-om-id="c84efe6e:50">Claude API key</label>
+        <div class="input-row" data-om-id="c84efe6e:51">
+          <input type="password" id="key-input" value="" placeholder="sk-ant-api03-…" autocomplete="off" spellcheck="false" data-om-id="c84efe6e:52">
+          <button class="btn btn-ghost btn-sm" id="show-key" type="button" data-om-id="c84efe6e:53">Show</button>
+        </div>
+        <p class="input-help" data-om-id="c84efe6e:54">
+          Don't have one? Sign in at <a href="https://console.anthropic.com/" target="_blank" rel="noopener" data-om-id="c84efe6e:55">console.anthropic.com</a>, click <strong data-om-id="c84efe6e:56">API keys</strong>, then <strong data-om-id="c84efe6e:57">Create key</strong>. The key starts with <code style="font-family:&#39;JetBrains Mono&#39;,monospace" data-om-id="c84efe6e:58">sk-ant-</code>.
+        </p>
+
+        <div class="explain" data-om-id="c84efe6e:59">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-om-id="c84efe6e:60">
+            <circle cx="12" cy="12" r="10" data-om-id="c84efe6e:61"></circle>
+            <path d="M12 16v-4" data-om-id="c84efe6e:62"></path>
+            <path d="M12 8h.01" data-om-id="c84efe6e:63"></path>
+          </svg>
+          <div class="body" data-om-id="c84efe6e:64">
+            <strong data-om-id="c84efe6e:65">Why your own key?</strong> Each user runs Claude on their own Anthropic billing — you see exactly what your drafts cost, IT doesn't have to manage shared spend, and your key never leaves iteria's tenancy.
+            <ul data-om-id="c84efe6e:66">
+              <li data-om-id="c84efe6e:67">Stored encrypted in <code style="font-family:&#39;JetBrains Mono&#39;,monospace" data-om-id="c84efe6e:68">USER_PROFILES</code> (Oracle 23ai).</li>
+              <li data-om-id="c84efe6e:69">Decrypted server-side only when you generate a draft.</li>
+              <li data-om-id="c84efe6e:70">Never logged, never sent to other users, never returned to the browser.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="save-row" data-om-id="c84efe6e:71">
+        <label class="check-line" data-om-id="c84efe6e:72">
+          <input type="checkbox" checked="" data-om-id="c84efe6e:73">
+          Remember this key on my profile
+        </label>
+        <button class="btn-ghost btn" data-om-id="c84efe6e:74">Skip for now</button>
+        <button class="btn" data-om-id="c84efe6e:75">Save and continue →</button>
+      </div>
+    </div>
+
+    <p class="foot" data-om-id="c84efe6e:76">
+      You can change or remove your key any time from <strong data-om-id="c84efe6e:77">My account → API access</strong>.
+    </p>
+
+  </div>
+
+
+  <!-- ╭─────────────────────────────────────────────────────────╮
+       │  STATE 2 — RETURNING USER                                │
+       ╰─────────────────────────────────────────────────────────╯ -->
+  <div class="state-2" data-om-id="c84efe6e:78">
+
+    <div class="page-h" data-om-id="c84efe6e:79">
+      <h1 data-om-id="c84efe6e:80">API <em data-om-id="c84efe6e:81">access</em></h1>
+    </div>
+    <p class="page-sub" data-om-id="c84efe6e:82">
+      Manage the API keys FRP Studio uses on your behalf. Anthropic is the only key required — the OCI models (Cohere, Llama) run on the iteria tenancy.
+    </p>
+
+    <div class="card" data-om-id="c84efe6e:83">
+      <div class="card-head" data-om-id="c84efe6e:84">
+        <h2 data-om-id="c84efe6e:85">Anthropic <em data-om-id="c84efe6e:86">Claude</em></h2>
+        <span class="step" data-om-id="c84efe6e:87">REQUIRED</span>
+      </div>
+      <div class="card-body" data-om-id="c84efe6e:88">
+
+        <div class="key-current" data-om-id="c84efe6e:89">
+          <div class="check" data-om-id="c84efe6e:90">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" data-om-id="c84efe6e:91">
+              <polyline points="20 6 9 17 4 12" data-om-id="c84efe6e:92"></polyline>
+            </svg>
+          </div>
+          <div class="body" data-om-id="c84efe6e:93">
+            <div class="ttl" data-om-id="c84efe6e:94">Key on file</div>
+            <div class="meta" data-om-id="c84efe6e:95">sk-ant-api03-•••••••••••••••••••••••••••••••YxR4 &nbsp;·&nbsp; added Apr 24, 2026 &nbsp;·&nbsp; last used 2 hours ago</div>
+          </div>
+          <div class="actions" data-om-id="c84efe6e:96">
+            <button class="btn btn-ghost btn-sm" data-om-id="c84efe6e:97">Update key</button>
+            <button class="btn btn-danger-ghost btn-sm" data-om-id="c84efe6e:98">Remove</button>
+          </div>
+        </div>
+
+        <div class="usage" data-om-id="c84efe6e:99">
+          <h3 data-om-id="c84efe6e:100">Recent usage</h3>
+          <div class="usage-row" data-om-id="c84efe6e:101">
+            <span class="when" data-om-id="c84efe6e:102">Apr 29 09:14</span>
+            <span class="what" data-om-id="c84efe6e:103">Drafted full response — <em data-om-id="c84efe6e:104">Outagamie County, WI</em></span>
+            <span class="tokens" data-om-id="c84efe6e:105">42.1k tok</span>
+            <span class="cost" data-om-id="c84efe6e:106">$0.18</span>
+          </div>
+          <div class="usage-row" data-om-id="c84efe6e:107">
+            <span class="when" data-om-id="c84efe6e:108">Apr 28 16:02</span>
+            <span class="what" data-om-id="c84efe6e:109">Auto-tagged 8 documents in <em data-om-id="c84efe6e:110">02_WON_PROPOSALS</em></span>
+            <span class="tokens" data-om-id="c84efe6e:111">61.4k tok</span>
+            <span class="cost" data-om-id="c84efe6e:112">$0.27</span>
+          </div>
+          <div class="usage-row" data-om-id="c84efe6e:113">
+            <span class="when" data-om-id="c84efe6e:114">Apr 28 11:33</span>
+            <span class="what" data-om-id="c84efe6e:115">Drafted Executive Summary — <em data-om-id="c84efe6e:116">City of West Fargo, ND</em></span>
+            <span class="tokens" data-om-id="c84efe6e:117">18.7k tok</span>
+            <span class="cost" data-om-id="c84efe6e:118">$0.08</span>
+          </div>
+          <div class="usage-row" data-om-id="c84efe6e:119">
+            <span class="when" data-om-id="c84efe6e:120">Apr 25 14:21</span>
+            <span class="what" data-om-id="c84efe6e:121">Auto-tagged 3 documents in <em data-om-id="c84efe6e:122">05_SOURCE_RFPs</em></span>
+            <span class="tokens" data-om-id="c84efe6e:123">22.0k tok</span>
+            <span class="cost" data-om-id="c84efe6e:124">$0.10</span>
+          </div>
+          <div class="usage-row" data-om-id="c84efe6e:125">
+            <span class="when" data-om-id="c84efe6e:126">Apr 24 10:08</span>
+            <span class="what" data-om-id="c84efe6e:127">Initial library auto-tag — <em data-om-id="c84efe6e:128">22 documents</em></span>
+            <span class="tokens" data-om-id="c84efe6e:129">187.3k tok</span>
+            <span class="cost" data-om-id="c84efe6e:130">$0.82</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" data-om-id="c84efe6e:131">
+      <div class="card-head" data-om-id="c84efe6e:132">
+        <h2 data-om-id="c84efe6e:133">Models running on <em data-om-id="c84efe6e:134">iteria's tenancy</em></h2>
+      </div>
+      <div class="card-body" data-om-id="c84efe6e:135">
+        <p style="color:var(--muted);font-size:13px;margin-bottom:14px;" data-om-id="c84efe6e:136">No setup needed — these are pre-configured by your admin and shared across all FRP Studio users.</p>
+
+        <div class="status-strip" style="margin-bottom:0" data-om-id="c84efe6e:137">
+          <span class="status-chip" data-om-id="c84efe6e:138"><span class="dot" data-om-id="c84efe6e:139"></span><span class="label" data-om-id="c84efe6e:140">Cohere Embed v3</span> — semantic search</span>
+          <span class="status-chip" data-om-id="c84efe6e:141"><span class="dot" data-om-id="c84efe6e:142"></span><span class="label" data-om-id="c84efe6e:143">Llama 3.3 70B</span> — bulk classification</span>
+          <span class="status-chip" data-om-id="c84efe6e:144"><span class="dot" data-om-id="c84efe6e:145"></span><span class="label" data-om-id="c84efe6e:146">OCI Doc Understanding</span> — file extraction</span>
+        </div>
+      </div>
+    </div>
+
+    <p class="foot" data-om-id="c84efe6e:147">
+      Questions about access? Ping <strong data-om-id="c84efe6e:148">amanda@iteria.us</strong>.
+    </p>
+
+  </div>
+
+</main>
+
+<script>
+  // State switcher (designer chrome only — would not ship)
+  document.querySelectorAll('.state-switcher button').forEach(b => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('.state-switcher button').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      document.body.classList.toggle('show-returning', b.dataset.state === 'returning');
+      document.body.classList.toggle('show-firsttime', b.dataset.state === 'firsttime');
+    });
+  });
+
+  // Show/hide key field
+  document.getElementById('show-key').addEventListener('click', (e) => {
+    const inp = document.getElementById('key-input');
+    const isPw = inp.type === 'password';
+    inp.type = isPw ? 'text' : 'password';
+    e.target.textContent = isPw ? 'Hide' : 'Show';
+  });
+</script>
+
+
+
+<script type="application/json" id="__om_srcmap">{"gen":"c84efe6e","entries":[{"id":"c84efe6e:0","tag":"html","openStart":16,"attrEnd":31,"openEnd":32,"closeStart":19721,"closeEnd":19728,"textRuns":[[32,33],[10249,10250],[19720,19721]],"parentId":null,"childIds":["c84efe6e:1","c84efe6e:7"]},{"id":"c84efe6e:1","tag":"head","openStart":33,"attrEnd":38,"openEnd":39,"closeStart":10242,"closeEnd":10249,"textRuns":[[39,40],[62,63],[133,134],[177,178],[237,238],[306,307],[486,487],[10241,10242]],"parentId":"c84efe6e:0","childIds":["c84efe6e:2","c84efe6e:3","c84efe6e:4","c84efe6e:5","c84efe6e:6"]},{"id":"c84efe6e:2","tag":"meta","openStart":40,"attrEnd":61,"openEnd":62,"closeEnd":62,"textRuns":[],"parentId":"c84efe6e:1","childIds":[]},{"id":"c84efe6e:3","tag":"meta","openStart":63,"attrEnd":132,"openEnd":133,"closeEnd":133,"textRuns":[],"parentId":"c84efe6e:1","childIds":[]},{"id":"c84efe6e:4","tag":"link","openStart":178,"attrEnd":236,"openEnd":237,"closeEnd":237,"textRuns":[],"parentId":"c84efe6e:1","childIds":[]},{"id":"c84efe6e:5","tag":"link","openStart":238,"attrEnd":305,"openEnd":306,"closeEnd":306,"textRuns":[],"parentId":"c84efe6e:1","childIds":[]},{"id":"c84efe6e:6","tag":"link","openStart":307,"attrEnd":485,"openEnd":486,"closeEnd":486,"textRuns":[],"parentId":"c84efe6e:1","childIds":[]},{"id":"c84efe6e:7","tag":"body","openStart":10250,"attrEnd":10278,"openEnd":10279,"closeStart":19713,"closeEnd":19720,"textRuns":[[10279,10281],[10340,10341],[10538,10540],[10570,10571],[10794,10796],[18898,18900],[19711,19713]],"parentId":"c84efe6e:0","childIds":["c84efe6e:8","c84efe6e:11","c84efe6e:17"]},{"id":"c84efe6e:8","tag":"div","openStart":10341,"attrEnd":10410,"openEnd":10411,"closeStart":10532,"closeEnd":10538,"textRuns":[[10411,10414],[10479,10482],[10531,10532]],"parentId":"c84efe6e:7","childIds":["c84efe6e:9","c84efe6e:10"]},{"id":"c84efe6e:9","tag":"button","openStart":10414,"attrEnd":10459,"openEnd":10460,"closeStart":10470,"closeEnd":10479,"textRuns":[[10460,10470]],"parentId":"c84efe6e:8","childIds":[]},{"id":"c84efe6e:10","tag":"button","openStart":10482,"attrEnd":10512,"openEnd":10513,"closeStart":10522,"closeEnd":10531,"textRuns":[[10513,10522]],"parentId":"c84efe6e:8","childIds":[]},{"id":"c84efe6e:11","tag":"div","openStart":10571,"attrEnd":10590,"openEnd":10591,"closeStart":10788,"closeEnd":10794,"textRuns":[[10591,10594],[10673,10676],[10702,10705],[10787,10788]],"parentId":"c84efe6e:7","childIds":["c84efe6e:12","c84efe6e:14","c84efe6e:15"]},{"id":"c84efe6e:12","tag":"div","openStart":10594,"attrEnd":10612,"openEnd":10613,"closeStart":10667,"closeEnd":10673,"textRuns":[[10613,10618],[10649,10667]],"parentId":"c84efe6e:11","childIds":["c84efe6e:13"]},{"id":"c84efe6e:13","tag":"div","openStart":10618,"attrEnd":10641,"openEnd":10642,"closeStart":10643,"closeEnd":10649,"textRuns":[[10642,10643]],"parentId":"c84efe6e:12","childIds":[]},{"id":"c84efe6e:14","tag":"div","openStart":10676,"attrEnd":10695,"openEnd":10696,"closeStart":10696,"closeEnd":10702,"textRuns":[],"parentId":"c84efe6e:11","childIds":[]},{"id":"c84efe6e:15","tag":"div","openStart":10705,"attrEnd":10722,"openEnd":10723,"closeStart":10781,"closeEnd":10787,"textRuns":[[10723,10745],[10778,10781]],"parentId":"c84efe6e:11","childIds":["c84efe6e:16"]},{"id":"c84efe6e:16","tag":"div","openStart":10745,"attrEnd":10769,"openEnd":10770,"closeStart":10772,"closeEnd":10778,"textRuns":[[10770,10772]],"parentId":"c84efe6e:15","childIds":[]},{"id":"c84efe6e:17","tag":"main","openStart":10796,"attrEnd":10801,"openEnd":10802,"closeStart":18891,"closeEnd":18898,"textRuns":[[10802,10806],[10927,10931],[11376,11379],[14644,14649],[15094,15097],[18889,18891]],"parentId":"c84efe6e:7","childIds":["c84efe6e:18","c84efe6e:23","c84efe6e:78"]},{"id":"c84efe6e:18","tag":"div","openStart":10806,"attrEnd":10824,"openEnd":10825,"closeStart":10921,"closeEnd":10927,"textRuns":[[10825,10830],[10908,10921]],"parentId":"c84efe6e:17","childIds":["c84efe6e:19","c84efe6e:20","c84efe6e:21","c84efe6e:22"]},{"id":"c84efe6e:19","tag":"a","openStart":10830,"attrEnd":10841,"openEnd":10842,"closeStart":10846,"closeEnd":10850,"textRuns":[[10842,10846]],"parentId":"c84efe6e:18","childIds":[]},{"id":"c84efe6e:20","tag":"span","openStart":10850,"attrEnd":10855,"openEnd":10856,"closeStart":10859,"closeEnd":10866,"textRuns":[[10856,10859]],"parentId":"c84efe6e:18","childIds":[]},{"id":"c84efe6e:21","tag":"a","openStart":10866,"attrEnd":10877,"openEnd":10878,"closeStart":10888,"closeEnd":10892,"textRuns":[[10878,10888]],"parentId":"c84efe6e:18","childIds":[]},{"id":"c84efe6e:22","tag":"span","openStart":10892,"attrEnd":10897,"openEnd":10898,"closeStart":10901,"closeEnd":10908,"textRuns":[[10898,10901]],"parentId":"c84efe6e:18","childIds":[]},{"id":"c84efe6e:23","tag":"div","openStart":11379,"attrEnd":11399,"openEnd":11400,"closeStart":14638,"closeEnd":14644,"textRuns":[[11400,11406],[11481,11486],[11706,11712],[11746,11751],[12370,12376],[14505,14511],[14634,14638]],"parentId":"c84efe6e:17","childIds":["c84efe6e:24","c84efe6e:27","c84efe6e:28","c84efe6e:44","c84efe6e:76"]},{"id":"c84efe6e:24","tag":"div","openStart":11406,"attrEnd":11425,"openEnd":11426,"closeStart":11475,"closeEnd":11481,"textRuns":[[11426,11433],[11470,11475]],"parentId":"c84efe6e:23","childIds":["c84efe6e:25"]},{"id":"c84efe6e:25","tag":"h1","openStart":11433,"attrEnd":11436,"openEnd":11437,"closeStart":11465,"closeEnd":11470,"textRuns":[[11437,11446]],"parentId":"c84efe6e:24","childIds":["c84efe6e:26"]},{"id":"c84efe6e:26","tag":"em","openStart":11446,"attrEnd":11449,"openEnd":11450,"closeStart":11460,"closeEnd":11465,"textRuns":[[11450,11460]],"parentId":"c84efe6e:25","childIds":[]},{"id":"c84efe6e:27","tag":"p","openStart":11486,"attrEnd":11505,"openEnd":11506,"textRuns":[[11506,11702]],"parentId":"c84efe6e:23","childIds":[]},{"id":"c84efe6e:28","tag":"div","openStart":11751,"attrEnd":11776,"openEnd":11777,"closeStart":12364,"closeEnd":12370,"textRuns":[[11777,11784],[11897,11904],[12015,12022],[12125,12132],[12232,12239],[12359,12364]],"parentId":"c84efe6e:23","childIds":["c84efe6e:29","c84efe6e:32","c84efe6e:35","c84efe6e:38","c84efe6e:41"]},{"id":"c84efe6e:29","tag":"span","openStart":11784,"attrEnd":11809,"openEnd":11810,"closeStart":11890,"closeEnd":11897,"textRuns":[[11880,11890]],"parentId":"c84efe6e:28","childIds":["c84efe6e:30","c84efe6e:31"]},{"id":"c84efe6e:30","tag":"span","openStart":11810,"attrEnd":11827,"openEnd":11828,"closeStart":11828,"closeEnd":11835,"textRuns":[],"parentId":"c84efe6e:29","childIds":[]},{"id":"c84efe6e:31","tag":"span","openStart":11835,"attrEnd":11854,"openEnd":11855,"closeStart":11873,"closeEnd":11880,"textRuns":[[11855,11873]],"parentId":"c84efe6e:29","childIds":[]},{"id":"c84efe6e:32","tag":"span","openStart":11904,"attrEnd":11929,"openEnd":11930,"closeStart":12008,"closeEnd":12015,"textRuns":[[11999,12008]],"parentId":"c84efe6e:28","childIds":["c84efe6e:33","c84efe6e:34"]},{"id":"c84efe6e:33","tag":"span","openStart":11930,"attrEnd":11947,"openEnd":11948,"closeStart":11948,"closeEnd":11955,"textRuns":[],"parentId":"c84efe6e:32","childIds":[]},{"id":"c84efe6e:34","tag":"span","openStart":11955,"attrEnd":11974,"openEnd":11975,"closeStart":11992,"closeEnd":11999,"textRuns":[[11975,11992]],"parentId":"c84efe6e:32","childIds":[]},{"id":"c84efe6e:35","tag":"span","openStart":12022,"attrEnd":12047,"openEnd":12048,"closeStart":12118,"closeEnd":12125,"textRuns":[[12112,12118]],"parentId":"c84efe6e:28","childIds":["c84efe6e:36","c84efe6e:37"]},{"id":"c84efe6e:36","tag":"span","openStart":12048,"attrEnd":12065,"openEnd":12066,"closeStart":12066,"closeEnd":12073,"textRuns":[],"parentId":"c84efe6e:35","childIds":[]},{"id":"c84efe6e:37","tag":"span","openStart":12073,"attrEnd":12092,"openEnd":12093,"closeStart":12105,"closeEnd":12112,"textRuns":[[12093,12105]],"parentId":"c84efe6e:35","childIds":[]},{"id":"c84efe6e:38","tag":"span","openStart":12132,"attrEnd":12157,"openEnd":12158,"closeStart":12225,"closeEnd":12232,"textRuns":[[12219,12225]],"parentId":"c84efe6e:28","childIds":["c84efe6e:39","c84efe6e:40"]},{"id":"c84efe6e:39","tag":"span","openStart":12158,"attrEnd":12175,"openEnd":12176,"closeStart":12176,"closeEnd":12183,"textRuns":[],"parentId":"c84efe6e:38","childIds":[]},{"id":"c84efe6e:40","tag":"span","openStart":12183,"attrEnd":12202,"openEnd":12203,"closeStart":12212,"closeEnd":12219,"textRuns":[[12203,12212]],"parentId":"c84efe6e:38","childIds":[]},{"id":"c84efe6e:41","tag":"span","openStart":12239,"attrEnd":12264,"openEnd":12265,"closeStart":12352,"closeEnd":12359,"textRuns":[[12337,12352]],"parentId":"c84efe6e:28","childIds":["c84efe6e:42","c84efe6e:43"]},{"id":"c84efe6e:42","tag":"span","openStart":12265,"attrEnd":12286,"openEnd":12287,"closeStart":12287,"closeEnd":12294,"textRuns":[],"parentId":"c84efe6e:41","childIds":[]},{"id":"c84efe6e:43","tag":"span","openStart":12294,"attrEnd":12313,"openEnd":12314,"closeStart":12330,"closeEnd":12337,"textRuns":[[12314,12330]],"parentId":"c84efe6e:41","childIds":[]},{"id":"c84efe6e:44","tag":"div","openStart":12376,"attrEnd":12393,"openEnd":12394,"closeStart":14499,"closeEnd":14505,"textRuns":[[12394,12401],[12536,12543],[14196,14204],[14494,14499]],"parentId":"c84efe6e:23","childIds":["c84efe6e:45","c84efe6e:49","c84efe6e:71"]},{"id":"c84efe6e:45","tag":"div","openStart":12401,"attrEnd":12423,"openEnd":12424,"closeStart":12530,"closeEnd":12536,"textRuns":[[12424,12433],[12470,12479],[12523,12530]],"parentId":"c84efe6e:44","childIds":["c84efe6e:46","c84efe6e:47"]},{"id":"c84efe6e:46","tag":"span","openStart":12433,"attrEnd":12451,"openEnd":12452,"closeStart":12463,"closeEnd":12470,"textRuns":[[12452,12463]],"parentId":"c84efe6e:45","childIds":[]},{"id":"c84efe6e:47","tag":"h2","openStart":12479,"attrEnd":12482,"openEnd":12483,"closeStart":12518,"closeEnd":12523,"textRuns":[[12483,12502]],"parentId":"c84efe6e:45","childIds":["c84efe6e:48"]},{"id":"c84efe6e:48","tag":"em","openStart":12502,"attrEnd":12505,"openEnd":12506,"closeStart":12513,"closeEnd":12518,"textRuns":[[12506,12513]],"parentId":"c84efe6e:47","childIds":[]},{"id":"c84efe6e:49","tag":"div","openStart":12543,"attrEnd":12565,"openEnd":12566,"closeStart":14190,"closeEnd":14196,"textRuns":[[12566,12575],[12620,12629],[12883,12892],[13218,13228],[14183,14190]],"parentId":"c84efe6e:44","childIds":["c84efe6e:50","c84efe6e:51","c84efe6e:54","c84efe6e:59"]},{"id":"c84efe6e:50","tag":"label","openStart":12575,"attrEnd":12597,"openEnd":12598,"closeStart":12612,"closeEnd":12620,"textRuns":[[12598,12612]],"parentId":"c84efe6e:49","childIds":[]},{"id":"c84efe6e:51","tag":"div","openStart":12629,"attrEnd":12651,"openEnd":12652,"closeStart":12877,"closeEnd":12883,"textRuns":[[12652,12663],[12779,12790],[12868,12877]],"parentId":"c84efe6e:49","childIds":["c84efe6e:52","c84efe6e:53"]},{"id":"c84efe6e:52","tag":"input","openStart":12663,"attrEnd":12778,"openEnd":12779,"closeEnd":12779,"textRuns":[],"parentId":"c84efe6e:51","childIds":[]},{"id":"c84efe6e:53","tag":"button","openStart":12790,"attrEnd":12854,"openEnd":12855,"closeStart":12859,"closeEnd":12868,"textRuns":[[12855,12859]],"parentId":"c84efe6e:51","childIds":[]},{"id":"c84efe6e:54","tag":"p","openStart":12892,"attrEnd":12913,"openEnd":12914,"textRuns":[[12914,12952],[13048,13056],[13081,13088],[13115,13137],[13204,13214]],"parentId":"c84efe6e:49","childIds":["c84efe6e:55","c84efe6e:56","c84efe6e:57","c84efe6e:58"]},{"id":"c84efe6e:55","tag":"a","openStart":12952,"attrEnd":13022,"openEnd":13023,"closeStart":13044,"closeEnd":13048,"textRuns":[[13023,13044]],"parentId":"c84efe6e:54","childIds":[]},{"id":"c84efe6e:56","tag":"strong","openStart":13056,"attrEnd":13063,"openEnd":13064,"closeStart":13072,"closeEnd":13081,"textRuns":[[13064,13072]],"parentId":"c84efe6e:54","childIds":[]},{"id":"c84efe6e:57","tag":"strong","openStart":13088,"attrEnd":13095,"openEnd":13096,"closeStart":13106,"closeEnd":13115,"textRuns":[[13096,13106]],"parentId":"c84efe6e:54","childIds":[]},{"id":"c84efe6e:58","tag":"code","openStart":13137,"attrEnd":13189,"openEnd":13190,"closeStart":13197,"closeEnd":13204,"styleAttr":[13150,13188],"textRuns":[[13190,13197]],"parentId":"c84efe6e:54","childIds":[]},{"id":"c84efe6e:59","tag":"div","openStart":13228,"attrEnd":13248,"openEnd":13249,"closeStart":14177,"closeEnd":14183,"textRuns":[[13249,13260],[13556,13567],[14168,14177]],"parentId":"c84efe6e:49","childIds":["c84efe6e:60","c84efe6e:64"]},{"id":"c84efe6e:60","tag":"svg","openStart":13260,"attrEnd":13405,"openEnd":13406,"closeStart":13550,"closeEnd":13556,"textRuns":[[13406,13419],[13459,13472],[13499,13512],[13539,13550]],"parentId":"c84efe6e:59","childIds":["c84efe6e:61","c84efe6e:62","c84efe6e:63"]},{"id":"c84efe6e:61","tag":"circle","openStart":13419,"attrEnd":13449,"openEnd":13450,"closeStart":13450,"closeEnd":13459,"textRuns":[],"parentId":"c84efe6e:60","childIds":[]},{"id":"c84efe6e:62","tag":"path","openStart":13472,"attrEnd":13491,"openEnd":13492,"closeStart":13492,"closeEnd":13499,"textRuns":[],"parentId":"c84efe6e:60","childIds":[]},{"id":"c84efe6e:63","tag":"path","openStart":13512,"attrEnd":13531,"openEnd":13532,"closeStart":13532,"closeEnd":13539,"textRuns":[],"parentId":"c84efe6e:60","childIds":[]},{"id":"c84efe6e:64","tag":"div","openStart":13567,"attrEnd":13584,"openEnd":13585,"closeStart":14162,"closeEnd":14168,"textRuns":[[13585,13598],[13632,13825],[14151,14162]],"parentId":"c84efe6e:59","childIds":["c84efe6e:65","c84efe6e:66"]},{"id":"c84efe6e:65","tag":"strong","openStart":13598,"attrEnd":13605,"openEnd":13606,"closeStart":13623,"closeEnd":13632,"textRuns":[[13606,13623]],"parentId":"c84efe6e:64","childIds":[]},{"id":"c84efe6e:66","tag":"ul","openStart":13825,"attrEnd":13828,"openEnd":13829,"closeStart":14146,"closeEnd":14151,"textRuns":[[13829,13844],[13961,13976],[14038,14053],[14133,14146]],"parentId":"c84efe6e:64","childIds":["c84efe6e:67","c84efe6e:69","c84efe6e:70"]},{"id":"c84efe6e:67","tag":"li","openStart":13844,"attrEnd":13847,"openEnd":13848,"textRuns":[[13848,13868],[13941,13956]],"parentId":"c84efe6e:66","childIds":["c84efe6e:68"]},{"id":"c84efe6e:68","tag":"code","openStart":13868,"attrEnd":13920,"openEnd":13921,"closeStart":13934,"closeEnd":13941,"styleAttr":[13881,13919],"textRuns":[[13921,13934]],"parentId":"c84efe6e:67","childIds":[]},{"id":"c84efe6e:69","tag":"li","openStart":13976,"attrEnd":13979,"openEnd":13980,"textRuns":[[13980,14033]],"parentId":"c84efe6e:66","childIds":[]},{"id":"c84efe6e:70","tag":"li","openStart":14053,"attrEnd":14056,"openEnd":14057,"textRuns":[[14057,14128]],"parentId":"c84efe6e:66","childIds":[]},{"id":"c84efe6e:71","tag":"div","openStart":14204,"attrEnd":14225,"openEnd":14226,"closeStart":14488,"closeEnd":14494,"textRuns":[[14226,14235],[14362,14371],[14422,14431],[14481,14488]],"parentId":"c84efe6e:44","childIds":["c84efe6e:72","c84efe6e:74","c84efe6e:75"]},{"id":"c84efe6e:72","tag":"label","openStart":14235,"attrEnd":14260,"openEnd":14261,"closeStart":14354,"closeEnd":14362,"textRuns":[[14261,14272],[14303,14354]],"parentId":"c84efe6e:71","childIds":["c84efe6e:73"]},{"id":"c84efe6e:73","tag":"input","openStart":14272,"attrEnd":14302,"openEnd":14303,"closeEnd":14303,"textRuns":[],"parentId":"c84efe6e:72","childIds":[]},{"id":"c84efe6e:74","tag":"button","openStart":14371,"attrEnd":14400,"openEnd":14401,"closeStart":14413,"closeEnd":14422,"textRuns":[[14401,14413]],"parentId":"c84efe6e:71","childIds":[]},{"id":"c84efe6e:75","tag":"button","openStart":14431,"attrEnd":14450,"openEnd":14451,"closeStart":14472,"closeEnd":14481,"textRuns":[[14451,14472]],"parentId":"c84efe6e:71","childIds":[]},{"id":"c84efe6e:76","tag":"p","openStart":14511,"attrEnd":14526,"openEnd":14527,"textRuns":[[14527,14582],[14624,14630]],"parentId":"c84efe6e:23","childIds":["c84efe6e:77"]},{"id":"c84efe6e:77","tag":"strong","openStart":14582,"attrEnd":14589,"openEnd":14590,"closeStart":14615,"closeEnd":14624,"textRuns":[[14590,14615]],"parentId":"c84efe6e:76","childIds":[]},{"id":"c84efe6e:78","tag":"div","openStart":15097,"attrEnd":15117,"openEnd":15118,"closeStart":18883,"closeEnd":18889,"textRuns":[[15118,15124],[15190,15195],[15379,15385],[17944,17950],[18778,18784],[18879,18883]],"parentId":"c84efe6e:17","childIds":["c84efe6e:79","c84efe6e:82","c84efe6e:83","c84efe6e:131","c84efe6e:147"]},{"id":"c84efe6e:79","tag":"div","openStart":15124,"attrEnd":15143,"openEnd":15144,"closeStart":15184,"closeEnd":15190,"textRuns":[[15144,15151],[15179,15184]],"parentId":"c84efe6e:78","childIds":["c84efe6e:80"]},{"id":"c84efe6e:80","tag":"h1","openStart":15151,"attrEnd":15154,"openEnd":15155,"closeStart":15174,"closeEnd":15179,"textRuns":[[15155,15159]],"parentId":"c84efe6e:79","childIds":["c84efe6e:81"]},{"id":"c84efe6e:81","tag":"em","openStart":15159,"attrEnd":15162,"openEnd":15163,"closeStart":15169,"closeEnd":15174,"textRuns":[[15163,15169]],"parentId":"c84efe6e:80","childIds":[]},{"id":"c84efe6e:82","tag":"p","openStart":15195,"attrEnd":15214,"openEnd":15215,"textRuns":[[15215,15375]],"parentId":"c84efe6e:78","childIds":[]},{"id":"c84efe6e:83","tag":"div","openStart":15385,"attrEnd":15402,"openEnd":15403,"closeStart":17938,"closeEnd":17944,"textRuns":[[15403,15410],[15532,15539],[17933,17938]],"parentId":"c84efe6e:78","childIds":["c84efe6e:84","c84efe6e:88"]},{"id":"c84efe6e:84","tag":"div","openStart":15410,"attrEnd":15432,"openEnd":15433,"closeStart":15526,"closeEnd":15532,"textRuns":[[15433,15442],[15476,15485],[15519,15526]],"parentId":"c84efe6e:83","childIds":["c84efe6e:85","c84efe6e:87"]},{"id":"c84efe6e:85","tag":"h2","openStart":15442,"attrEnd":15445,"openEnd":15446,"closeStart":15471,"closeEnd":15476,"textRuns":[[15446,15456]],"parentId":"c84efe6e:84","childIds":["c84efe6e:86"]},{"id":"c84efe6e:86","tag":"em","openStart":15456,"attrEnd":15459,"openEnd":15460,"closeStart":15466,"closeEnd":15471,"textRuns":[[15460,15466]],"parentId":"c84efe6e:85","childIds":[]},{"id":"c84efe6e:87","tag":"span","openStart":15485,"attrEnd":15503,"openEnd":15504,"closeStart":15512,"closeEnd":15519,"textRuns":[[15504,15512]],"parentId":"c84efe6e:84","childIds":[]},{"id":"c84efe6e:88","tag":"div","openStart":15539,"attrEnd":15561,"openEnd":15562,"closeStart":17927,"closeEnd":17933,"textRuns":[[15562,15572],[16400,16410],[17920,17927]],"parentId":"c84efe6e:83","childIds":["c84efe6e:89","c84efe6e:99"]},{"id":"c84efe6e:89","tag":"div","openStart":15572,"attrEnd":15596,"openEnd":15597,"closeStart":16394,"closeEnd":16400,"textRuns":[[15597,15608],[15884,15895],[16195,16206],[16385,16394]],"parentId":"c84efe6e:88","childIds":["c84efe6e:90","c84efe6e:93","c84efe6e:96"]},{"id":"c84efe6e:90","tag":"div","openStart":15608,"attrEnd":15626,"openEnd":15627,"closeStart":15878,"closeEnd":15884,"textRuns":[[15627,15640],[15867,15878]],"parentId":"c84efe6e:89","childIds":["c84efe6e:91"]},{"id":"c84efe6e:91","tag":"svg","openStart":15640,"attrEnd":15787,"openEnd":15788,"closeStart":15861,"closeEnd":15867,"textRuns":[[15788,15803],[15848,15861]],"parentId":"c84efe6e:90","childIds":["c84efe6e:92"]},{"id":"c84efe6e:92","tag":"polyline","openStart":15803,"attrEnd":15836,"openEnd":15837,"closeStart":15837,"closeEnd":15848,"textRuns":[],"parentId":"c84efe6e:91","childIds":[]},{"id":"c84efe6e:93","tag":"div","openStart":15895,"attrEnd":15912,"openEnd":15913,"closeStart":16189,"closeEnd":16195,"textRuns":[[15913,15926],[15960,15973],[16178,16189]],"parentId":"c84efe6e:89","childIds":["c84efe6e:94","c84efe6e:95"]},{"id":"c84efe6e:94","tag":"div","openStart":15926,"attrEnd":15942,"openEnd":15943,"closeStart":15954,"closeEnd":15960,"textRuns":[[15943,15954]],"parentId":"c84efe6e:93","childIds":[]},{"id":"c84efe6e:95","tag":"div","openStart":15973,"attrEnd":15990,"openEnd":15991,"closeStart":16172,"closeEnd":16178,"textRuns":[[15991,16172]],"parentId":"c84efe6e:93","childIds":[]},{"id":"c84efe6e:96","tag":"div","openStart":16206,"attrEnd":16226,"openEnd":16227,"closeStart":16379,"closeEnd":16385,"textRuns":[[16227,16240],[16296,16309],[16368,16379]],"parentId":"c84efe6e:89","childIds":["c84efe6e:97","c84efe6e:98"]},{"id":"c84efe6e:97","tag":"button","openStart":16240,"attrEnd":16276,"openEnd":16277,"closeStart":16287,"closeEnd":16296,"textRuns":[[16277,16287]],"parentId":"c84efe6e:96","childIds":[]},{"id":"c84efe6e:98","tag":"button","openStart":16309,"attrEnd":16352,"openEnd":16353,"closeStart":16359,"closeEnd":16368,"textRuns":[[16353,16359]],"parentId":"c84efe6e:96","childIds":[]},{"id":"c84efe6e:99","tag":"div","openStart":16410,"attrEnd":16428,"openEnd":16429,"closeStart":17914,"closeEnd":17920,"textRuns":[[16429,16440],[16461,16472],[16751,16762],[17038,17049],[17334,17345],[17619,17630],[17905,17914]],"parentId":"c84efe6e:88","childIds":["c84efe6e:100","c84efe6e:101","c84efe6e:107","c84efe6e:113","c84efe6e:119","c84efe6e:125"]},{"id":"c84efe6e:100","tag":"h3","openStart":16440,"attrEnd":16443,"openEnd":16444,"closeStart":16456,"closeEnd":16461,"textRuns":[[16444,16456]],"parentId":"c84efe6e:99","childIds":[]},{"id":"c84efe6e:101","tag":"div","openStart":16472,"attrEnd":16494,"openEnd":16495,"closeStart":16745,"closeEnd":16751,"textRuns":[[16495,16508],[16546,16559],[16640,16653],[16690,16703],[16734,16745]],"parentId":"c84efe6e:99","childIds":["c84efe6e:102","c84efe6e:103","c84efe6e:105","c84efe6e:106"]},{"id":"c84efe6e:102","tag":"span","openStart":16508,"attrEnd":16526,"openEnd":16527,"closeStart":16539,"closeEnd":16546,"textRuns":[[16527,16539]],"parentId":"c84efe6e:101","childIds":[]},{"id":"c84efe6e:103","tag":"span","openStart":16559,"attrEnd":16577,"openEnd":16578,"closeStart":16633,"closeEnd":16640,"textRuns":[[16578,16604]],"parentId":"c84efe6e:101","childIds":["c84efe6e:104"]},{"id":"c84efe6e:104","tag":"em","openStart":16604,"attrEnd":16607,"openEnd":16608,"closeStart":16628,"closeEnd":16633,"textRuns":[[16608,16628]],"parentId":"c84efe6e:103","childIds":[]},{"id":"c84efe6e:105","tag":"span","openStart":16653,"attrEnd":16673,"openEnd":16674,"closeStart":16683,"closeEnd":16690,"textRuns":[[16674,16683]],"parentId":"c84efe6e:101","childIds":[]},{"id":"c84efe6e:106","tag":"span","openStart":16703,"attrEnd":16721,"openEnd":16722,"closeStart":16727,"closeEnd":16734,"textRuns":[[16722,16727]],"parentId":"c84efe6e:101","childIds":[]},{"id":"c84efe6e:107","tag":"div","openStart":16762,"attrEnd":16784,"openEnd":16785,"closeStart":17032,"closeEnd":17038,"textRuns":[[16785,16798],[16836,16849],[16927,16940],[16977,16990],[17021,17032]],"parentId":"c84efe6e:99","childIds":["c84efe6e:108","c84efe6e:109","c84efe6e:111","c84efe6e:112"]},{"id":"c84efe6e:108","tag":"span","openStart":16798,"attrEnd":16816,"openEnd":16817,"closeStart":16829,"closeEnd":16836,"textRuns":[[16817,16829]],"parentId":"c84efe6e:107","childIds":[]},{"id":"c84efe6e:109","tag":"span","openStart":16849,"attrEnd":16867,"openEnd":16868,"closeStart":16920,"closeEnd":16927,"textRuns":[[16868,16895]],"parentId":"c84efe6e:107","childIds":["c84efe6e:110"]},{"id":"c84efe6e:110","tag":"em","openStart":16895,"attrEnd":16898,"openEnd":16899,"closeStart":16915,"closeEnd":16920,"textRuns":[[16899,16915]],"parentId":"c84efe6e:109","childIds":[]},{"id":"c84efe6e:111","tag":"span","openStart":16940,"attrEnd":16960,"openEnd":16961,"closeStart":16970,"closeEnd":16977,"textRuns":[[16961,16970]],"parentId":"c84efe6e:107","childIds":[]},{"id":"c84efe6e:112","tag":"span","openStart":16990,"attrEnd":17008,"openEnd":17009,"closeStart":17014,"closeEnd":17021,"textRuns":[[17009,17014]],"parentId":"c84efe6e:107","childIds":[]},{"id":"c84efe6e:113","tag":"div","openStart":17049,"attrEnd":17071,"openEnd":17072,"closeStart":17328,"closeEnd":17334,"textRuns":[[17072,17085],[17123,17136],[17223,17236],[17273,17286],[17317,17328]],"parentId":"c84efe6e:99","childIds":["c84efe6e:114","c84efe6e:115","c84efe6e:117","c84efe6e:118"]},{"id":"c84efe6e:114","tag":"span","openStart":17085,"attrEnd":17103,"openEnd":17104,"closeStart":17116,"closeEnd":17123,"textRuns":[[17104,17116]],"parentId":"c84efe6e:113","childIds":[]},{"id":"c84efe6e:115","tag":"span","openStart":17136,"attrEnd":17154,"openEnd":17155,"closeStart":17216,"closeEnd":17223,"textRuns":[[17155,17185]],"parentId":"c84efe6e:113","childIds":["c84efe6e:116"]},{"id":"c84efe6e:116","tag":"em","openStart":17185,"attrEnd":17188,"openEnd":17189,"closeStart":17211,"closeEnd":17216,"textRuns":[[17189,17211]],"parentId":"c84efe6e:115","childIds":[]},{"id":"c84efe6e:117","tag":"span","openStart":17236,"attrEnd":17256,"openEnd":17257,"closeStart":17266,"closeEnd":17273,"textRuns":[[17257,17266]],"parentId":"c84efe6e:113","childIds":[]},{"id":"c84efe6e:118","tag":"span","openStart":17286,"attrEnd":17304,"openEnd":17305,"closeStart":17310,"closeEnd":17317,"textRuns":[[17305,17310]],"parentId":"c84efe6e:113","childIds":[]},{"id":"c84efe6e:119","tag":"div","openStart":17345,"attrEnd":17367,"openEnd":17368,"closeStart":17613,"closeEnd":17619,"textRuns":[[17368,17381],[17419,17432],[17508,17521],[17558,17571],[17602,17613]],"parentId":"c84efe6e:99","childIds":["c84efe6e:120","c84efe6e:121","c84efe6e:123","c84efe6e:124"]},{"id":"c84efe6e:120","tag":"span","openStart":17381,"attrEnd":17399,"openEnd":17400,"closeStart":17412,"closeEnd":17419,"textRuns":[[17400,17412]],"parentId":"c84efe6e:119","childIds":[]},{"id":"c84efe6e:121","tag":"span","openStart":17432,"attrEnd":17450,"openEnd":17451,"closeStart":17501,"closeEnd":17508,"textRuns":[[17451,17478]],"parentId":"c84efe6e:119","childIds":["c84efe6e:122"]},{"id":"c84efe6e:122","tag":"em","openStart":17478,"attrEnd":17481,"openEnd":17482,"closeStart":17496,"closeEnd":17501,"textRuns":[[17482,17496]],"parentId":"c84efe6e:121","childIds":[]},{"id":"c84efe6e:123","tag":"span","openStart":17521,"attrEnd":17541,"openEnd":17542,"closeStart":17551,"closeEnd":17558,"textRuns":[[17542,17551]],"parentId":"c84efe6e:119","childIds":[]},{"id":"c84efe6e:124","tag":"span","openStart":17571,"attrEnd":17589,"openEnd":17590,"closeStart":17595,"closeEnd":17602,"textRuns":[[17590,17595]],"parentId":"c84efe6e:119","childIds":[]},{"id":"c84efe6e:125","tag":"div","openStart":17630,"attrEnd":17652,"openEnd":17653,"closeStart":17899,"closeEnd":17905,"textRuns":[[17653,17666],[17704,17717],[17793,17806],[17844,17857],[17888,17899]],"parentId":"c84efe6e:99","childIds":["c84efe6e:126","c84efe6e:127","c84efe6e:129","c84efe6e:130"]},{"id":"c84efe6e:126","tag":"span","openStart":17666,"attrEnd":17684,"openEnd":17685,"closeStart":17697,"closeEnd":17704,"textRuns":[[17685,17697]],"parentId":"c84efe6e:125","childIds":[]},{"id":"c84efe6e:127","tag":"span","openStart":17717,"attrEnd":17735,"openEnd":17736,"closeStart":17786,"closeEnd":17793,"textRuns":[[17736,17765]],"parentId":"c84efe6e:125","childIds":["c84efe6e:128"]},{"id":"c84efe6e:128","tag":"em","openStart":17765,"attrEnd":17768,"openEnd":17769,"closeStart":17781,"closeEnd":17786,"textRuns":[[17769,17781]],"parentId":"c84efe6e:127","childIds":[]},{"id":"c84efe6e:129","tag":"span","openStart":17806,"attrEnd":17826,"openEnd":17827,"closeStart":17837,"closeEnd":17844,"textRuns":[[17827,17837]],"parentId":"c84efe6e:125","childIds":[]},{"id":"c84efe6e:130","tag":"span","openStart":17857,"attrEnd":17875,"openEnd":17876,"closeStart":17881,"closeEnd":17888,"textRuns":[[17876,17881]],"parentId":"c84efe6e:125","childIds":[]},{"id":"c84efe6e:131","tag":"div","openStart":17950,"attrEnd":17967,"openEnd":17968,"closeStart":18772,"closeEnd":18778,"textRuns":[[17968,17975],[18072,18079],[18767,18772]],"parentId":"c84efe6e:78","childIds":["c84efe6e:132","c84efe6e:135"]},{"id":"c84efe6e:132","tag":"div","openStart":17975,"attrEnd":17997,"openEnd":17998,"closeStart":18066,"closeEnd":18072,"textRuns":[[17998,18007],[18059,18066]],"parentId":"c84efe6e:131","childIds":["c84efe6e:133"]},{"id":"c84efe6e:133","tag":"h2","openStart":18007,"attrEnd":18010,"openEnd":18011,"closeStart":18054,"closeEnd":18059,"textRuns":[[18011,18029]],"parentId":"c84efe6e:132","childIds":["c84efe6e:134"]},{"id":"c84efe6e:134","tag":"em","openStart":18029,"attrEnd":18032,"openEnd":18033,"closeStart":18049,"closeEnd":18054,"textRuns":[[18033,18049]],"parentId":"c84efe6e:133","childIds":[]},{"id":"c84efe6e:135","tag":"div","openStart":18079,"attrEnd":18101,"openEnd":18102,"closeStart":18761,"closeEnd":18767,"textRuns":[[18102,18111],[18278,18288],[18754,18761]],"parentId":"c84efe6e:131","childIds":["c84efe6e:136","c84efe6e:137"]},{"id":"c84efe6e:136","tag":"p","openStart":18111,"attrEnd":18175,"openEnd":18176,"styleAttr":[18121,18174],"textRuns":[[18176,18274]],"parentId":"c84efe6e:135","childIds":[]},{"id":"c84efe6e:137","tag":"div","openStart":18288,"attrEnd":18337,"openEnd":18338,"closeStart":18748,"closeEnd":18754,"styleAttr":[18321,18336],"textRuns":[[18338,18349],[18469,18480],[18602,18613],[18739,18748]],"parentId":"c84efe6e:135","childIds":["c84efe6e:138","c84efe6e:141","c84efe6e:144"]},{"id":"c84efe6e:138","tag":"span","openStart":18349,"attrEnd":18374,"openEnd":18375,"closeStart":18462,"closeEnd":18469,"textRuns":[[18442,18462]],"parentId":"c84efe6e:137","childIds":["c84efe6e:139","c84efe6e:140"]},{"id":"c84efe6e:139","tag":"span","openStart":18375,"attrEnd":18392,"openEnd":18393,"closeStart":18393,"closeEnd":18400,"textRuns":[],"parentId":"c84efe6e:138","childIds":[]},{"id":"c84efe6e:140","tag":"span","openStart":18400,"attrEnd":18419,"openEnd":18420,"closeStart":18435,"closeEnd":18442,"textRuns":[[18420,18435]],"parentId":"c84efe6e:138","childIds":[]},{"id":"c84efe6e:141","tag":"span","openStart":18480,"attrEnd":18505,"openEnd":18506,"closeStart":18595,"closeEnd":18602,"textRuns":[[18571,18595]],"parentId":"c84efe6e:137","childIds":["c84efe6e:142","c84efe6e:143"]},{"id":"c84efe6e:142","tag":"span","openStart":18506,"attrEnd":18523,"openEnd":18524,"closeStart":18524,"closeEnd":18531,"textRuns":[],"parentId":"c84efe6e:141","childIds":[]},{"id":"c84efe6e:143","tag":"span","openStart":18531,"attrEnd":18550,"openEnd":18551,"closeStart":18564,"closeEnd":18571,"textRuns":[[18551,18564]],"parentId":"c84efe6e:141","childIds":[]},{"id":"c84efe6e:144","tag":"span","openStart":18613,"attrEnd":18638,"openEnd":18639,"closeStart":18732,"closeEnd":18739,"textRuns":[[18712,18732]],"parentId":"c84efe6e:137","childIds":["c84efe6e:145","c84efe6e:146"]},{"id":"c84efe6e:145","tag":"span","openStart":18639,"attrEnd":18656,"openEnd":18657,"closeStart":18657,"closeEnd":18664,"textRuns":[],"parentId":"c84efe6e:144","childIds":[]},{"id":"c84efe6e:146","tag":"span","openStart":18664,"attrEnd":18683,"openEnd":18684,"closeStart":18705,"closeEnd":18712,"textRuns":[[18684,18705]],"parentId":"c84efe6e:144","childIds":[]},{"id":"c84efe6e:147","tag":"p","openStart":18784,"attrEnd":18799,"openEnd":18800,"textRuns":[[18800,18836],[18869,18875]],"parentId":"c84efe6e:78","childIds":["c84efe6e:148"]},{"id":"c84efe6e:148","tag":"strong","openStart":18836,"attrEnd":18843,"openEnd":18844,"closeStart":18860,"closeEnd":18869,"textRuns":[[18844,18860]],"parentId":"c84efe6e:147","childIds":[]}],"literals":[[19000,19022],[19064,19069],[19113,19135],[19171,19177],[19205,19211],[19253,19267],[19291,19300],[19342,19356],[19380,19389],[19460,19468],[19489,19494],[19547,19556],[19591,19599],[19625,19629],[19634,19642],[19680,19684],[19689,19693]]}</script></body></html>
