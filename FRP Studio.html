@@ -1,0 +1,2542 @@
+<!DOCTYPE html>
+<html lang="en" style="--accent: #E8652B; --accent-2: #be5323; --paper: #FAF8F3; --paper-2: #f0eee9; --paper-3: #e1dfdb; --ink: #0E1A38; --ink-2: #1a2749; --ink-3: #2a3a63; --line: #E3DBC8; --muted: #6B6555; --radius: 8px;"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FRP Studio — Government Proposal Engine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com/">
+<link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink:       #0E1A38;
+  --ink-2:     #1a2749;
+  --ink-3:     #2a3a63;
+  --paper:     #FAF8F3;
+  --paper-2:   #F3EFE6;
+  --paper-3:   #EAE4D5;
+  --line:      #E3DBC8;
+  --line-2:    #D0C6AE;
+  --muted:     #6B6555;
+  --muted-2:   #8E8773;
+  --accent:    #E8652B;
+  --accent-2:  #C9511C;
+  --accent-soft: #FBE3D3;
+  --leaf:      #2F6B4F;
+  --leaf-soft: #DAEAD9;
+  --sky:       #3A6FA8;
+  --sky-soft:  #DCE8F4;
+  --gold:      #B28B2E;
+  --red:       #B33A3A;
+  --red-soft:  #F6D9D4;
+
+  --radius:    8px;
+  --radius-sm: 4px;
+  --shadow:    0 1px 2px rgba(14,26,56,.04), 0 4px 14px rgba(14,26,56,.06);
+  --shadow-lg: 0 2px 6px rgba(14,26,56,.06), 0 18px 48px rgba(14,26,56,.12);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body { height: 100%; }
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+/* ── TOP BAR ── */
+.topbar {
+  height: 44px;
+  background: var(--ink);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  gap: 14px;
+  border-bottom: 1px solid #000;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 50;
+}
+.brand {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 13px; font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.brand-mark {
+  width: 22px; height: 22px;
+  background: var(--accent);
+  border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Instrument Serif', serif;
+  font-size: 15px; font-style: italic;
+  color: #fff;
+  line-height: 1;
+}
+.brand-name { color: #fff; }
+.brand-name em { font-family: 'Instrument Serif', serif; font-weight: 400; font-style: italic; color: rgba(255,255,255,.65); margin-left: 4px; }
+.brand-sep { width: 1px; height: 18px; background: rgba(255,255,255,.12); }
+.doc-meta { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.doc-title { font-weight: 500; color: rgba(255,255,255,.95); }
+.doc-title-input {
+  background: transparent; border: none; color: rgba(255,255,255,.95);
+  font: inherit; font-weight: 500; padding: 3px 6px; border-radius: 3px;
+  outline: none; min-width: 200px;
+}
+.doc-title-input:hover { background: rgba(255,255,255,.06); }
+.doc-title-input:focus { background: rgba(255,255,255,.1); }
+.doc-status {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10.5px;
+  color: rgba(255,255,255,.5);
+  display: flex; align-items: center; gap: 5px;
+}
+.doc-status::before {
+  content: ''; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--leaf); box-shadow: 0 0 0 2px rgba(47,107,79,.25);
+}
+.topbar-spacer { flex: 1; }
+.topbar-right { display: flex; align-items: center; gap: 6px; }
+.chip-sp {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 500;
+  background: rgba(58,111,168,.18);
+  border: 1px solid rgba(58,111,168,.35);
+  color: #b8d2f0;
+  padding: 3px 9px; border-radius: 4px;
+  font-family: 'JetBrains Mono', monospace;
+}
+.chip-sp-dot {
+  width: 6px; height: 6px; border-radius: 50%; background: #6cb26c;
+  box-shadow: 0 0 0 2px rgba(108,178,108,.25);
+}
+.tb-btn {
+  background: transparent; border: 1px solid rgba(255,255,255,.1);
+  color: rgba(255,255,255,.85); font: inherit; font-size: 12px; font-weight: 500;
+  padding: 5px 11px; border-radius: 5px; cursor: pointer;
+  display: flex; align-items: center; gap: 6px;
+  transition: all .15s;
+}
+.tb-btn:hover { background: rgba(255,255,255,.08); color: #fff; border-color: rgba(255,255,255,.2); }
+.tb-btn-primary {
+  background: var(--accent); border-color: var(--accent);
+  color: #fff; font-weight: 600;
+}
+.tb-btn-primary:hover { background: var(--accent-2); border-color: var(--accent-2); color: #fff; }
+.tb-btn svg { width: 12px; height: 12px; }
+
+/* ── OCI MODELS RAIL (top-bar) ── */
+.chip-copilot {
+  display: flex; align-items: center; gap: 8px;
+  background: linear-gradient(90deg, rgba(255,255,255,.06), rgba(232,101,43,.12));
+  border: 1px solid rgba(255,255,255,.12);
+  padding: 3px 9px 3px 5px;
+  border-radius: 13px;
+  font-size: 11px;
+  color: rgba(255,255,255,.9);
+  font-family: 'JetBrains Mono', monospace;
+  cursor: pointer;
+  transition: all .15s;
+}
+.chip-copilot:hover { border-color: rgba(255,255,255,.25); background: linear-gradient(90deg, rgba(255,255,255,.1), rgba(232,101,43,.18)); }
+.chip-copilot-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: rgba(255,255,255,.1);
+  border-radius: 10px;
+  padding: 2px 7px 2px 4px;
+  font-size: 10px; font-weight: 600;
+  color: #fff;
+}
+.chip-copilot-badge .cp-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: #6cb26c;
+  box-shadow: 0 0 0 2px rgba(108,178,108,.3);
+  animation: cp-pulse 2.4s ease-in-out infinite;
+}
+@keyframes cp-pulse {
+  0%,100% { opacity: 1; transform: scale(1); }
+  50% { opacity: .55; transform: scale(.85); }
+}
+.chip-copilot-count { color: rgba(255,255,255,.75); }
+
+/* ── CONNECT MODAL ── */
+.modal-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(14,26,56,.55);
+  backdrop-filter: blur(6px);
+  z-index: 1000;
+  display: flex; align-items: center; justify-content: center;
+  padding: 40px 20px;
+  opacity: 0; pointer-events: none;
+  transition: opacity .2s;
+}
+.modal-backdrop.open { opacity: 1; pointer-events: auto; }
+.modal {
+  background: var(--paper);
+  border-radius: 10px;
+  width: 560px; max-width: 100%;
+  max-height: 100%;
+  overflow: hidden;
+  box-shadow: 0 24px 60px -10px rgba(14,26,56,.4);
+  display: flex; flex-direction: column;
+  transform: translateY(8px) scale(.98);
+  transition: transform .2s;
+}
+.modal-backdrop.open .modal { transform: translateY(0) scale(1); }
+.modal-head {
+  padding: 22px 28px 16px;
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(180deg, #fff, var(--paper));
+  position: relative;
+}
+.modal-eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; font-weight: 500;
+  color: var(--accent-2);
+  letter-spacing: .12em; text-transform: uppercase;
+  margin-bottom: 8px;
+  display: flex; align-items: center; gap: 6px;
+}
+.modal-eyebrow-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
+.modal h2 {
+  font-family: 'Instrument Serif', serif;
+  font-size: 26px; line-height: 1.1;
+  font-weight: 400;
+  margin-bottom: 6px;
+}
+.modal h2 em { font-style: italic; color: var(--accent); }
+.modal-sub {
+  font-size: 13px; color: var(--muted);
+  line-height: 1.5;
+}
+.modal-close {
+  position: absolute; top: 14px; right: 14px;
+  width: 26px; height: 26px; border-radius: 50%;
+  background: transparent; border: 1px solid var(--line);
+  color: var(--muted); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.modal-close:hover { background: var(--paper-3); color: var(--ink); }
+.modal-close svg { width: 12px; height: 12px; }
+.modal-body {
+  padding: 20px 28px 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+.modal-foot {
+  padding: 14px 28px;
+  border-top: 1px solid var(--line);
+  background: var(--paper-2);
+  display: flex; align-items: center; gap: 10px;
+}
+.modal-foot-spacer { flex: 1; }
+.modal-step-dots { display: flex; gap: 4px; }
+.modal-step-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--line-2); }
+.modal-step-dot.active { background: var(--accent); width: 18px; border-radius: 3px; }
+.modal-btn {
+  padding: 8px 14px;
+  border-radius: 5px;
+  font: inherit; font-size: 12.5px; font-weight: 500;
+  cursor: pointer;
+  border: 1px solid var(--line);
+  background: #fff; color: var(--ink);
+}
+.modal-btn:hover { border-color: var(--muted-2); }
+.modal-btn.primary {
+  background: var(--ink); color: #fff; border-color: var(--ink);
+  font-weight: 600;
+}
+.modal-btn.primary:hover { background: var(--ink-2); }
+.modal-btn.accent {
+  background: var(--accent); color: #fff; border-color: var(--accent);
+  font-weight: 600;
+}
+.modal-btn.accent:hover { background: var(--accent-2); border-color: var(--accent-2); }
+.modal-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+.modal-step { display: none; }
+.modal-step.active { display: block; }
+
+.ms-stack { display: flex; flex-direction: column; gap: 10px; }
+.ms-option {
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 12px 14px;
+  background: #fff;
+  cursor: pointer;
+  display: flex; gap: 12px; align-items: center;
+  transition: all .12s;
+}
+.ms-option:hover { border-color: var(--muted-2); }
+.ms-option.sel { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 0 0 3px rgba(232,101,43,.08); }
+.ms-option-ico {
+  width: 38px; height: 38px; border-radius: 6px;
+  background: var(--sky-soft); color: var(--sky);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.ms-option-ico svg { width: 18px; height: 18px; }
+.ms-option.copilot .ms-option-ico { background: linear-gradient(135deg, #FBE3D3, #DCE8F4); color: var(--accent-2); }
+.ms-option-body { flex: 1; min-width: 0; }
+.ms-option-title { font-weight: 600; font-size: 13px; margin-bottom: 2px; display: flex; align-items: center; gap: 8px; }
+.ms-option-title .rec {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9.5px; font-weight: 600;
+  padding: 1px 6px; border-radius: 3px;
+  background: var(--leaf-soft); color: #1e5a3e;
+  text-transform: uppercase; letter-spacing: .08em;
+}
+.ms-option-sub { font-size: 11.5px; color: var(--muted); line-height: 1.4; }
+
+.ms-url {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 5px; background: #fff;
+  padding: 9px 12px;
+  font: inherit; font-size: 12.5px;
+  outline: none;
+  font-family: 'JetBrains Mono', monospace;
+}
+.ms-url:focus { border-color: var(--ink-3); box-shadow: 0 0 0 3px rgba(14,26,56,.06); }
+.ms-label {
+  font-size: 11px; font-weight: 500;
+  color: var(--ink-3);
+  margin-bottom: 6px; margin-top: 14px;
+  display: flex; align-items: center; gap: 6px;
+}
+.ms-label:first-child { margin-top: 0; }
+
+.ms-folder-tree {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  padding: 6px;
+  max-height: 220px; overflow-y: auto;
+}
+.ms-folder {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 8px; border-radius: 4px;
+  font-size: 12.5px; cursor: pointer;
+}
+.ms-folder:hover { background: var(--paper-2); }
+.ms-folder.sel { background: var(--accent-soft); color: var(--accent-2); font-weight: 600; }
+.ms-folder svg { width: 13px; height: 13px; color: var(--muted); flex-shrink: 0; }
+.ms-folder.sel svg { color: var(--accent-2); }
+.ms-folder .ms-folder-count {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; color: var(--muted-2);
+  margin-left: auto;
+}
+.ms-folder.sel .ms-folder-count { color: var(--accent-2); }
+.ms-folder.nested { padding-left: 26px; }
+
+.ms-scan {
+  background: linear-gradient(135deg, #fff, var(--paper));
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 16px 18px;
+}
+.ms-scan-head {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 14px;
+}
+.ms-scan-spinner {
+  width: 20px; height: 20px; border-radius: 50%;
+  border: 2px solid var(--accent-soft);
+  border-top-color: var(--accent);
+  animation: spin 1s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.ms-scan-title { font-weight: 600; font-size: 13px; }
+.ms-scan-sub { font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; margin-top: 2px; }
+.ms-scan-log {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10.5px;
+  color: var(--muted);
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 10px 12px;
+  max-height: 140px; overflow-y: auto;
+  line-height: 1.7;
+}
+.ms-scan-log .done { color: var(--leaf); }
+.ms-scan-log .doing { color: var(--accent-2); }
+.ms-scan-summary {
+  display: grid; grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+  margin-top: 14px;
+}
+.ms-scan-stat {
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 10px 12px;
+  text-align: center;
+}
+.ms-scan-stat-num { font-family: 'Instrument Serif', serif; font-size: 22px; font-weight: 500; color: var(--accent-2); }
+.ms-scan-stat-label { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-top: 2px; }
+
+/* ── AUTO-PARSED CALLOUT ── */
+.autoparse {
+  margin: 20px 0 28px;
+  border: 1px solid var(--accent-soft);
+  border-left: 3px solid var(--accent);
+  border-radius: 7px;
+  background: linear-gradient(180deg, #fff, var(--paper));
+  overflow: hidden;
+}
+.autoparse-head {
+  padding: 12px 16px;
+  display: flex; align-items: center; gap: 10px;
+  border-bottom: 1px solid var(--accent-soft);
+}
+.autoparse-spark {
+  width: 24px; height: 24px; border-radius: 6px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  display: flex; align-items: center; justify-content: center;
+  color: #fff;
+  box-shadow: 0 2px 6px -2px rgba(232,101,43,.5);
+}
+.autoparse-spark svg { width: 14px; height: 14px; }
+.autoparse-title { font-weight: 600; font-size: 13px; }
+.autoparse-sub { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted-2); margin-top: 1px; }
+.autoparse-action {
+  margin-left: auto;
+  background: transparent;
+  border: 1px solid var(--line);
+  padding: 4px 10px;
+  border-radius: 4px;
+  font: inherit; font-size: 11px; font-weight: 500;
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.autoparse-action:hover { border-color: var(--accent); color: var(--accent-2); }
+.autoparse-body { padding: 4px 0; }
+.ap-field {
+  display: grid;
+  grid-template-columns: 140px 1fr auto;
+  gap: 14px;
+  padding: 9px 16px;
+  border-bottom: 1px dashed var(--paper-3);
+  align-items: center;
+}
+.ap-field:last-child { border-bottom: none; }
+.ap-field-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .06em;
+}
+.ap-field-value {
+  font-size: 13px; color: var(--ink);
+  font-weight: 500;
+  display: flex; align-items: center; gap: 8px;
+}
+.ap-field-source {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9.5px; color: var(--accent-2);
+  background: var(--accent-soft);
+  padding: 1px 6px; border-radius: 3px;
+  white-space: nowrap;
+}
+.ap-field-conf {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; font-weight: 600;
+  padding: 2px 7px; border-radius: 3px;
+  white-space: nowrap;
+}
+.ap-field-conf.high { background: var(--leaf-soft); color: #1e5a3e; }
+.ap-field-conf.mid { background: #FCE8C2; color: #8a5f0a; }
+.ap-field-conf.low { background: #F6D9D4; color: #8a2323; }
+.kbd {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9.5px; font-weight: 500;
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.1);
+  padding: 1px 5px;
+  border-radius: 3px;
+  color: rgba(255,255,255,.55);
+  margin-left: 4px;
+}
+
+/* ── MAIN LAYOUT ── */
+.app {
+  display: grid;
+  grid-template-columns: 280px 1fr 1fr;
+  height: calc(100vh - 44px);
+  background: var(--paper);
+}
+
+/* ── LIBRARY RAIL ── */
+.library {
+  background: var(--paper-2);
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.lib-head {
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid var(--line);
+}
+.lib-head-row {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 10px;
+}
+.lib-title {
+  font-size: 10px; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase;
+  color: var(--muted);
+}
+.lib-path {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; color: var(--muted-2);
+  margin-bottom: 8px;
+  display: flex; align-items: center; gap: 3px;
+  overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+}
+.lib-path svg { width: 10px; height: 10px; flex-shrink: 0; }
+.lib-search {
+  width: 100%;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 6px 10px 6px 28px;
+  font: inherit; font-size: 12px;
+  color: var(--ink);
+  outline: none;
+  position: relative;
+}
+.lib-search-wrap { position: relative; }
+.lib-search-wrap svg {
+  position: absolute; left: 9px; top: 50%; transform: translateY(-50%);
+  width: 12px; height: 12px; color: var(--muted-2);
+}
+.lib-search:focus { border-color: var(--ink-3); background: #fff; }
+
+.lib-tabs {
+  display: flex; gap: 1px;
+  padding: 8px 12px 0;
+  border-bottom: 1px solid var(--line);
+  background: var(--paper-2);
+}
+.lib-tab {
+  padding: 6px 10px;
+  font-size: 11px; font-weight: 500;
+  color: var(--muted); border: none; background: none; cursor: pointer;
+  border-bottom: 2px solid transparent; margin-bottom: -1px;
+  font-family: inherit;
+  display: flex; align-items: center; gap: 5px;
+}
+.lib-tab-count {
+  font-family: 'JetBrains Mono', monospace; font-size: 9.5px;
+  background: var(--line); color: var(--muted); padding: 1px 5px; border-radius: 6px;
+}
+.lib-tab:hover { color: var(--ink); }
+.lib-tab.active { color: var(--ink); border-bottom-color: var(--accent); font-weight: 600; }
+.lib-tab.active .lib-tab-count { background: var(--accent-soft); color: var(--accent-2); }
+
+.lib-body { flex: 1; overflow-y: auto; padding: 8px 8px 40px; }
+.lib-group {
+  font-size: 9.5px; font-weight: 700; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--muted-2);
+  padding: 10px 8px 6px;
+}
+.lib-item {
+  display: flex; align-items: flex-start; gap: 9px;
+  padding: 7px 8px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background .12s;
+  position: relative;
+}
+.lib-item:hover { background: var(--paper); }
+.lib-item.active { background: #fff; box-shadow: inset 2px 0 0 var(--accent); }
+.lib-ico {
+  width: 18px; height: 18px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; margin-top: 1px;
+  border-radius: 3px;
+  font-size: 10px; font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+}
+.lib-ico.pdf { background: #F6D9D4; color: #8a2323; }
+.lib-ico.xlsx { background: var(--leaf-soft); color: #1e5a3e; }
+.lib-ico.docx { background: var(--sky-soft); color: #1e4b75; }
+.lib-ico.folder { background: var(--paper-3); color: var(--muted); }
+.lib-ico.ref { background: var(--accent-soft); color: var(--accent-2); }
+.lib-item-body { flex: 1; min-width: 0; }
+.lib-item-name {
+  font-weight: 500;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  margin-bottom: 1px;
+}
+.lib-item-meta {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; color: var(--muted-2);
+  display: flex; gap: 8px;
+}
+.lib-item-tag {
+  display: inline-block; font-size: 9.5px; font-weight: 600;
+  padding: 1px 5px; border-radius: 3px;
+  background: var(--leaf-soft); color: #1e5a3e;
+  margin-left: 6px; vertical-align: middle;
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.lib-item-tag.won { background: var(--leaf-soft); color: #1e5a3e; }
+.lib-item-tag.draft { background: var(--paper-3); color: var(--muted); }
+.lib-item-tag.rfp { background: var(--sky-soft); color: #1e4b75; }
+
+.lib-item-actions {
+  display: none; gap: 4px;
+  position: absolute; right: 6px; top: 6px;
+  background: #fff; border: 1px solid var(--line); border-radius: 4px;
+  padding: 2px; box-shadow: var(--shadow);
+}
+.lib-item:hover .lib-item-actions { display: flex; }
+.lib-item-actions button {
+  background: none; border: none; cursor: pointer;
+  width: 22px; height: 22px; border-radius: 3px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--muted);
+}
+.lib-item-actions button:hover { background: var(--paper-2); color: var(--ink); }
+.lib-item-actions svg { width: 12px; height: 12px; }
+
+.lib-footer {
+  padding: 10px 14px;
+  border-top: 1px solid var(--line);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; color: var(--muted-2);
+  display: flex; justify-content: space-between;
+  background: var(--paper-2);
+  flex-shrink: 0;
+}
+.lib-footer a { color: var(--accent-2); text-decoration: none; font-weight: 500; }
+.lib-footer a:hover { text-decoration: underline; }
+
+/* ── EDITOR (center) ── */
+.editor {
+  background: var(--paper);
+  overflow-y: auto;
+  position: relative;
+  border-right: 1px solid var(--line);
+}
+.editor-inner {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 28px 48px 120px;
+}
+.doc-header {
+  margin-bottom: 28px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--line);
+}
+.doc-eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; font-weight: 500;
+  letter-spacing: .12em; text-transform: uppercase;
+  color: var(--muted-2);
+  margin-bottom: 10px;
+  display: flex; align-items: center; gap: 8px;
+}
+.doc-eyebrow-dot {
+  width: 5px; height: 5px; border-radius: 50%; background: var(--accent);
+}
+.doc-h1 {
+  font-family: 'Instrument Serif', serif;
+  font-size: 34px; line-height: 1.05;
+  letter-spacing: -0.015em;
+  margin-bottom: 6px;
+  font-weight: 400;
+}
+.doc-h1 em { font-style: italic; color: var(--accent); }
+.doc-sub {
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.55;
+  max-width: 520px;
+}
+
+.progress-strip {
+  display: flex; gap: 3px;
+  margin-top: 18px;
+  align-items: center;
+}
+.progress-step {
+  flex: 1;
+  height: 3px;
+  background: var(--line);
+  border-radius: 2px;
+  position: relative;
+  cursor: pointer;
+}
+.progress-step.done { background: var(--leaf); }
+.progress-step.active { background: var(--accent); }
+.progress-step-label {
+  position: absolute; top: 8px; left: 0;
+  font-size: 10px; color: var(--muted-2);
+  font-family: 'JetBrains Mono', monospace;
+  white-space: nowrap;
+}
+.progress-step.active .progress-step-label { color: var(--accent-2); font-weight: 600; }
+.progress-step.done .progress-step-label { color: var(--leaf); }
+
+/* ── SECTIONS ── */
+.section {
+  margin-top: 40px;
+  scroll-margin-top: 24px;
+}
+.section-head {
+  display: flex; align-items: baseline; gap: 12px;
+  margin-bottom: 4px;
+  cursor: pointer;
+  user-select: none;
+}
+.section-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; font-weight: 500;
+  color: var(--muted-2);
+  letter-spacing: .05em;
+  width: 24px;
+  flex-shrink: 0;
+}
+.section-title {
+  font-family: 'Instrument Serif', serif;
+  font-size: 22px; font-weight: 400;
+  letter-spacing: -0.01em;
+  flex: 1;
+}
+.section-status {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; font-weight: 500;
+  padding: 2px 8px; border-radius: 3px;
+  background: var(--paper-3); color: var(--muted);
+  display: flex; align-items: center; gap: 5px;
+}
+.section-status.complete { background: var(--leaf-soft); color: #1e5a3e; }
+.section-status.partial { background: #FCE8C2; color: #8a5f0a; }
+.section-status.empty { background: var(--paper-3); color: var(--muted); }
+.section-status-dot {
+  width: 5px; height: 5px; border-radius: 50%;
+}
+.section-status.complete .section-status-dot { background: var(--leaf); }
+.section-status.partial .section-status-dot { background: var(--gold); }
+.section-status.empty .section-status-dot { background: var(--muted-2); }
+
+.section-sub {
+  font-size: 13px; color: var(--muted);
+  margin-bottom: 16px;
+  padding-left: 36px;
+}
+.section-body {
+  padding-left: 36px;
+}
+
+/* ── FIELDS ── */
+.field-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 12px 16px;
+  margin-bottom: 12px;
+}
+.field-grid.one { grid-template-columns: 1fr; }
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field.full { grid-column: 1 / -1; }
+label {
+  font-size: 11px; font-weight: 500;
+  color: var(--ink-3);
+  display: flex; align-items: center; gap: 6px;
+}
+label .req { color: var(--accent); font-size: 10px; }
+label .hint {
+  font-size: 10px; color: var(--muted-2);
+  font-weight: 400; margin-left: auto;
+  font-family: 'JetBrains Mono', monospace;
+}
+input[type=text], input[type=date], input[type=email],
+select, textarea {
+  width: 100%;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 7px 10px;
+  font: inherit; font-size: 12.5px;
+  color: var(--ink);
+  outline: none;
+  transition: border-color .12s, box-shadow .12s;
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--ink-3);
+  box-shadow: 0 0 0 3px rgba(14,26,56,.06);
+}
+textarea { min-height: 72px; resize: vertical; font-family: inherit; line-height: 1.55; }
+
+/* ── TAG INPUT / PILLS ── */
+.tag-group {
+  display: flex; flex-wrap: wrap; gap: 4px;
+  padding: 4px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  min-height: 34px;
+}
+.tag-option {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 9px; border-radius: 3px;
+  background: var(--paper-2); border: 1px solid var(--line);
+  font-size: 11.5px; cursor: pointer;
+  transition: all .12s;
+  user-select: none;
+}
+.tag-option:hover { border-color: var(--muted-2); }
+.tag-option input { display: none; }
+.tag-option.sel {
+  background: var(--ink); border-color: var(--ink); color: #fff;
+}
+.tag-option.sel::before {
+  content: '✓'; font-size: 10px; font-weight: 700;
+}
+.tag-option.accent.sel { background: var(--accent); border-color: var(--accent); }
+
+/* ── DROP WELL ── */
+.dropzone {
+  border: 1.5px dashed var(--line-2);
+  border-radius: 8px;
+  padding: 16px;
+  background: var(--paper-2);
+  display: flex; align-items: center; gap: 14px;
+  cursor: pointer;
+  transition: all .15s;
+}
+.dropzone:hover { border-color: var(--accent); background: #fff; }
+.dropzone-ico {
+  width: 38px; height: 38px;
+  background: #fff; border: 1px solid var(--line);
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--muted); flex-shrink: 0;
+}
+.dropzone-body { flex: 1; }
+.dropzone-title { font-weight: 600; font-size: 12.5px; margin-bottom: 2px; }
+.dropzone-sub { font-size: 11.5px; color: var(--muted); }
+.dropzone-sub code {
+  font-family: 'JetBrains Mono', monospace; font-size: 10.5px;
+  background: var(--paper-3); padding: 1px 5px; border-radius: 3px;
+  color: var(--ink-3);
+}
+
+/* Files attached from library */
+.attached {
+  display: flex; flex-direction: column; gap: 4px;
+  margin-top: 8px;
+}
+.attached-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 10px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+}
+.attached-item .lib-ico { width: 26px; height: 26px; font-size: 10px; }
+.attached-item-body { flex: 1; min-width: 0; }
+.attached-item-name { font-size: 12px; font-weight: 500; }
+.attached-item-source {
+  font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted-2);
+}
+.attached-item-source svg { width: 9px; height: 9px; display: inline-block; vertical-align: -1px; margin-right: 2px; }
+.attached-x {
+  background: none; border: none; cursor: pointer;
+  color: var(--muted); padding: 4px; border-radius: 3px;
+  display: flex; align-items: center; justify-content: center;
+}
+.attached-x:hover { background: var(--red-soft); color: var(--red); }
+.attached-x svg { width: 12px; height: 12px; }
+
+/* ── FLOATING GENERATE PANEL ── */
+.run-bar {
+  position: sticky;
+  bottom: 0;
+  background: linear-gradient(to bottom, transparent, var(--paper) 20%, var(--paper));
+  padding: 32px 0 20px;
+  margin: 0 -48px;
+  padding-left: 48px; padding-right: 48px;
+  z-index: 10;
+}
+.run-panel {
+  background: var(--ink);
+  color: #fff;
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex; align-items: center; gap: 14px;
+  box-shadow: var(--shadow-lg);
+}
+.run-panel-head { flex: 1; }
+.run-panel-title { font-weight: 600; font-size: 13px; }
+.run-panel-sub {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10.5px; color: rgba(255,255,255,.55);
+  margin-top: 2px;
+}
+.run-panel-go {
+  background: var(--accent); color: #fff; border: none;
+  padding: 9px 18px; border-radius: 6px;
+  font: inherit; font-weight: 600; font-size: 13px;
+  cursor: pointer; display: flex; align-items: center; gap: 8px;
+  transition: all .15s;
+}
+.run-panel-go:hover { background: var(--accent-2); transform: translateY(-1px); }
+.run-panel-go svg { width: 14px; height: 14px; }
+
+/* ── PREVIEW (right) ── */
+.preview {
+  background: var(--paper-2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.preview-head {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--line);
+  background: var(--paper-2);
+  display: flex; align-items: center; gap: 10px;
+  flex-shrink: 0;
+}
+.preview-title {
+  font-size: 11px; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase;
+  color: var(--muted);
+}
+.preview-spacer { flex: 1; }
+.preview-action {
+  background: #fff; border: 1px solid var(--line);
+  padding: 4px 9px; border-radius: 4px;
+  font: inherit; font-size: 11.5px; cursor: pointer;
+  color: var(--ink-3); display: flex; align-items: center; gap: 5px;
+}
+.preview-action:hover { border-color: var(--muted-2); }
+.preview-action svg { width: 11px; height: 11px; }
+
+.preview-tabs {
+  display: flex;
+  padding: 0 16px;
+  gap: 2px;
+  background: var(--paper-2);
+  border-bottom: 1px solid var(--line);
+  overflow-x: auto;
+  flex-shrink: 0;
+}
+.preview-tabs::-webkit-scrollbar { display: none; }
+.ptab {
+  padding: 9px 11px;
+  font-size: 11.5px; font-weight: 500;
+  color: var(--muted); border: none; background: none; cursor: pointer;
+  border-bottom: 2px solid transparent;
+  font-family: inherit;
+  white-space: nowrap;
+  display: flex; align-items: center; gap: 6px;
+  margin-bottom: -1px;
+  transition: color .12s;
+}
+.ptab:hover { color: var(--ink); }
+.ptab.active { color: var(--ink); border-bottom-color: var(--accent); font-weight: 600; }
+.ptab-count {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9.5px; font-weight: 500;
+  background: var(--paper-3); color: var(--muted);
+  padding: 0 5px; border-radius: 6px;
+  min-width: 14px; text-align: center;
+}
+.ptab.active .ptab-count { background: var(--accent-soft); color: var(--accent-2); }
+
+.preview-body {
+  flex: 1; overflow-y: auto;
+  padding: 18px 22px 40px;
+  background: #fff;
+  border-top-left-radius: 0;
+}
+.preview-wrap {
+  background: #fff; border-radius: 0;
+  min-height: 100%;
+}
+
+/* Output content styles */
+.p-eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; font-weight: 500;
+  letter-spacing: .12em; text-transform: uppercase;
+  color: var(--muted-2);
+  margin-bottom: 8px;
+}
+.p-h1 {
+  font-family: 'Instrument Serif', serif;
+  font-size: 26px; font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+  margin-bottom: 16px;
+}
+.p-h2 {
+  font-family: 'Instrument Serif', serif;
+  font-size: 18px; font-weight: 400;
+  margin: 20px 0 8px;
+  color: var(--ink);
+}
+.p-h3 {
+  font-size: 12px; font-weight: 700;
+  letter-spacing: .04em; text-transform: uppercase;
+  margin: 16px 0 6px;
+  color: var(--ink-3);
+}
+.p-body { font-size: 12.5px; line-height: 1.65; color: var(--ink-2); margin-bottom: 8px; }
+.p-body strong { color: var(--ink); font-weight: 600; }
+.p-pullquote {
+  border-left: 2px solid var(--accent);
+  padding: 2px 0 2px 14px;
+  font-family: 'Instrument Serif', serif;
+  font-size: 15px; font-style: italic;
+  color: var(--ink-2);
+  margin: 12px 0;
+  line-height: 1.45;
+}
+.p-divider { height: 1px; background: var(--line); margin: 20px 0; }
+
+.p-stat-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 10px; margin: 12px 0 16px;
+}
+.p-stat {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 10px 12px;
+}
+.p-stat-num {
+  font-family: 'Instrument Serif', serif;
+  font-size: 22px; color: var(--ink);
+  line-height: 1;
+}
+.p-stat-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9.5px; color: var(--muted);
+  letter-spacing: .08em; text-transform: uppercase;
+  margin-top: 4px;
+}
+
+/* Compliance matrix */
+.matrix {
+  width: 100%; border-collapse: collapse; font-size: 11.5px;
+  margin: 10px 0;
+}
+.matrix th {
+  text-align: left; padding: 8px 10px;
+  font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--muted); background: var(--paper-2);
+  border-bottom: 1px solid var(--line);
+  font-family: 'JetBrains Mono', monospace;
+}
+.matrix td {
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+.matrix tr:hover td { background: var(--paper-2); }
+.badge {
+  display: inline-block; font-family: 'JetBrains Mono', monospace;
+  font-size: 9.5px; font-weight: 700; letter-spacing: .06em;
+  padding: 2px 7px; border-radius: 3px;
+  text-transform: uppercase;
+}
+.badge.y { background: var(--leaf-soft); color: #1e5a3e; }
+.badge.c { background: #FCE8C2; color: #8a5f0a; }
+.badge.n { background: var(--red-soft); color: var(--red); }
+.badge.f { background: var(--sky-soft); color: #1e4b75; }
+
+/* Coverage bar */
+.cov-bar {
+  height: 6px; background: var(--paper-3); border-radius: 3px; overflow: hidden;
+  display: flex;
+}
+.cov-seg { height: 100%; }
+.cov-seg.y { background: var(--leaf); }
+.cov-seg.c { background: var(--gold); }
+.cov-seg.f { background: var(--sky); }
+.cov-seg.n { background: var(--red); }
+.cov-legend {
+  display: flex; gap: 16px; font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; color: var(--muted);
+  margin-top: 6px;
+}
+.cov-legend-dot {
+  display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 4px;
+  vertical-align: -1px;
+}
+
+/* === STATUS BANNER (live progress during generation) === */
+.genstatus {
+  position: absolute;
+  top: 52px; right: 16px;
+  background: #fff; border: 1px solid var(--line);
+  border-radius: 8px; box-shadow: var(--shadow-lg);
+  padding: 10px 14px;
+  width: 300px;
+  z-index: 40;
+  display: none;
+}
+.genstatus.visible { display: block; }
+.genstatus-title {
+  font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 8px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.genstatus-pct { color: var(--accent); font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+.genstatus-bar { height: 3px; background: var(--paper-3); border-radius: 2px; margin-bottom: 10px; overflow: hidden; }
+.genstatus-fill { height: 100%; background: var(--accent); transition: width .4s; width: 40%; }
+.genstatus-list { display: flex; flex-direction: column; gap: 4px; }
+.genstatus-item {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 11.5px; color: var(--muted);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10.5px;
+}
+.genstatus-item .dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--line);
+  flex-shrink: 0;
+}
+.genstatus-item.done .dot { background: var(--leaf); }
+.genstatus-item.done { color: var(--ink-2); }
+.genstatus-item.active .dot { background: var(--accent); animation: pulse 1.4s ease infinite; }
+.genstatus-item.active { color: var(--ink); font-weight: 600; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
+
+/* === TWEAKS PANEL === */
+.tweaks {
+  position: fixed; bottom: 16px; right: 16px; z-index: 200;
+  width: 280px;
+  background: #fff; border: 1px solid var(--line); border-radius: 10px;
+  box-shadow: var(--shadow-lg);
+  padding: 14px;
+  display: none;
+  font-size: 12px;
+}
+.tweaks.visible { display: block; }
+.tweaks-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--line);
+}
+.tweaks-title { font-weight: 600; font-size: 12px; }
+.tweaks-close { background: none; border: none; cursor: pointer; color: var(--muted); }
+.tweaks-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 0; }
+.tweaks-row label { font-size: 11.5px; font-weight: 500; color: var(--ink-3); }
+.tweaks-row select, .tweaks-row input[type=color] { padding: 3px 6px; font-size: 11.5px; }
+.tweaks-swatches { display: flex; gap: 4px; }
+.tw-swatch {
+  width: 18px; height: 18px; border-radius: 4px; cursor: pointer;
+  border: 1.5px solid transparent;
+}
+.tw-swatch.sel { border-color: var(--ink); }
+
+/* Scrollbars */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--muted-2); }
+::-webkit-scrollbar-track { background: transparent; }
+
+/* Tooltips (title fallback is fine; minimal custom) */
+.hide { display: none !important; }
+
+/* tight spacing for matrix header filter */
+.matrix-toolbar {
+  display: flex; gap: 6px; margin-bottom: 10px;
+  align-items: center; flex-wrap: wrap;
+}
+.mini-chip {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; font-weight: 500;
+  padding: 3px 8px; border-radius: 3px;
+  background: var(--paper-2); border: 1px solid var(--line);
+  cursor: pointer; color: var(--ink-3);
+  display: inline-flex; align-items: center; gap: 5px;
+}
+.mini-chip:hover { border-color: var(--muted-2); }
+.mini-chip.sel { background: var(--ink); color: #fff; border-color: var(--ink); }
+
+/* Empty preview */
+.preview-empty {
+  padding: 60px 30px;
+  text-align: center;
+  color: var(--muted);
+}
+.preview-empty svg { width: 48px; height: 48px; margin-bottom: 14px; color: var(--line-2); }
+.preview-empty-title {
+  font-family: 'Instrument Serif', serif;
+  font-size: 20px; color: var(--ink); margin-bottom: 6px;
+}
+.preview-empty-sub { font-size: 12.5px; line-height: 1.55; max-width: 280px; margin: 0 auto; }
+
+/* Responsive-ish: hide editor when screen very small */
+@media (max-width: 1200px) {
+  .app { grid-template-columns: 240px 1fr 1fr; }
+  .editor-inner { padding: 24px 32px 120px; }
+  .run-bar { margin: 0 -32px; padding-left: 32px; padding-right: 32px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ TOP BAR ═══ -->
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-mark">f</div>
+    <div class="brand-name">FRP <em>Studio</em></div>
+  </div>
+  <div class="brand-sep"></div>
+  <div class="doc-meta">
+    <input class="doc-title-input" value="New proposal" id="doc-title" placeholder="Client name — RFP number">
+    <span class="doc-status" id="doc-status">Saved · 2 min ago</span>
+  </div>
+  <div class="topbar-spacer"></div>
+  <div class="topbar-right">
+    <button class="chip-copilot" onclick="openConnect()" title="OCI Generative AI — click to manage">
+      <span class="chip-copilot-badge">
+        <span class="cp-dot"></span>
+        OCI
+      </span>
+      <span>Cohere · Llama · Claude</span>
+      <span class="chip-copilot-count">· 142 indexed</span>
+    </button>
+    <button class="tb-btn" onclick="toggleTweaks()" title="Tweaks">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg>
+    </button>
+    <button class="tb-btn">Share</button>
+    <button class="tb-btn tb-btn-primary" onclick="runGenerate()">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"></path></svg>
+      Generate
+      <span class="kbd">⌘↵</span>
+    </button>
+  </div>
+</header>
+
+<div class="app">
+
+  <!-- ═══ LIBRARY (left rail) ═══ -->
+  <aside class="library">
+    <div class="lib-head">
+      <div class="lib-head-row">
+        <div class="lib-title">Library</div>
+        <button class="preview-action" style="padding:2px 7px;font-size:10.5px" title="Refresh from OCI Object Storage">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 4v6h6M23 20v-6h-6"></path><path d="M3.5 15A9 9 0 0 0 18.4 18.4L23 14M20.5 9A9 9 0 0 0 5.6 5.6L1 10"></path></svg>
+          Sync
+        </button>
+      </div>
+      <div class="lib-path">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+        <span>Proposals / Active</span>
+      </div>
+      <div class="lib-search-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><path d="M21 21l-4.35-4.35"></path></svg>
+        <input class="lib-search" placeholder="Search library…">
+      </div>
+    </div>
+
+    <div class="lib-tabs" role="tablist">
+      <button class="lib-tab active" onclick="libTab(this,&#39;all&#39;)">All <span class="lib-tab-count">42</span></button>
+      <button class="lib-tab" onclick="libTab(this,&#39;prop&#39;)">Proposals <span class="lib-tab-count">18</span></button>
+      <button class="lib-tab" onclick="libTab(this,&#39;rfp&#39;)">RFPs <span class="lib-tab-count">12</span></button>
+      <button class="lib-tab" onclick="libTab(this,&#39;ref&#39;)">Refs <span class="lib-tab-count">12</span></button>
+    </div>
+
+    <div class="lib-body">
+      <div class="lib-group">Pinned</div>
+
+      <div class="lib-item active" onclick="selectLibItem(this)">
+        <div class="lib-ico docx">DOC</div>
+        <div class="lib-item-body">
+          <div class="lib-item-name">Current proposal <span class="lib-item-tag draft">Draft</span></div>
+          <div class="lib-item-meta">
+            <span>In progress</span>
+            <span>Awaiting inputs</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="lib-group" style="padding:10px 8px 4px">Client templates (uploaded by user)</div>
+      <div class="lib-item" onclick="selectLibItem(this)">
+        <div class="lib-ico xlsx">XLS</div>
+        <div class="lib-item-body">
+          <div class="lib-item-name">Finance_Requirements.xlsx <span style="color:var(--muted);font-size:10px;font-weight:500">· detected</span></div>
+          <div class="lib-item-meta"><span>Client template</span><span>Y/C/F/3/N</span></div>
+        </div>
+      </div>
+      <div class="lib-item" onclick="selectLibItem(this)">
+        <div class="lib-ico xlsx">XLS</div>
+        <div class="lib-item-body">
+          <div class="lib-item-name">HCM_Requirements.xlsx</div>
+          <div class="lib-item-meta"><span>Client template</span></div>
+        </div>
+      </div>
+      <div class="lib-item" onclick="selectLibItem(this)">
+        <div class="lib-ico xlsx">XLS</div>
+        <div class="lib-item-body">
+          <div class="lib-item-name">Procurement_Requirements.xlsx</div>
+          <div class="lib-item-meta"><span>Client template</span></div>
+        </div>
+      </div>
+      <div class="lib-item" onclick="selectLibItem(this)">
+        <div class="lib-ico xlsx">XLS</div>
+        <div class="lib-item-body">
+          <div class="lib-item-name">Inventory_Requirements.xlsx</div>
+          <div class="lib-item-meta"><span>Client template</span></div>
+        </div>
+      </div>
+      <div class="lib-item" onclick="selectLibItem(this)">
+        <div class="lib-ico xlsx">XLS</div>
+        <div class="lib-item-body">
+          <div class="lib-item-name">Technical_Requirements.xlsx</div>
+          <div class="lib-item-meta"><span>Client template</span></div>
+        </div>
+      </div>
+
+      <div class="lib-group">Prior proposals (answer library)</div>
+
+      <div class="lib-item" onclick="selectLibItem(this)">
+        <div class="lib-ico docx">DOC</div>
+        <div class="lib-item-body">
+          <div class="lib-item-name">Midwest County — ERP Upgrade <span class="lib-item-tag won">Won</span></div>
+          <div class="lib-item-meta">
+            <span>2024</span>
+            <span>Reference</span>
+          </div>
+        </div>
+        <div class="lib-item-actions">
+          <button title="Use as template"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></button>
+          <button title="Attach to proposal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"></path></svg></button>
+        </div>
+      </div>
+
+      <div class="lib-item" onclick="selectLibItem(this)">
+        <div class="lib-ico docx">DOC</div>
+        <div class="lib-item-body">
+          <div class="lib-item-name">Southwest City — Payroll Modernization <span class="lib-item-tag won">Won</span></div>
+          <div class="lib-item-meta"><span>2026</span><span>Reference</span></div>
+        </div>
+      </div>
+
+      <div class="lib-item" onclick="selectLibItem(this)">
+        <div class="lib-ico docx">DOC</div>
+        <div class="lib-item-body">
+          <div class="lib-item-name">Mountain West County — EPM Cloud</div>
+          <div class="lib-item-meta"><span>2026</span><span>Reference</span></div>
+        </div>
+      </div>
+
+      <div class="lib-item" onclick="selectLibItem(this)">
+        <div class="lib-ico docx">DOC</div>
+        <div class="lib-item-body">
+          <div class="lib-item-name">State Agency — HCM Fusion</div>
+          <div class="lib-item-meta"><span>2026</span><span>Reference</span></div>
+        </div>
+      </div>
+
+      <div class="lib-group">Client RFP (this project)</div>
+
+      <div class="lib-item" onclick="selectLibItem(this)">
+        <div class="lib-ico pdf">PDF</div>
+        <div class="lib-item-body">
+          <div class="lib-item-name">Main solicitation.pdf <span class="lib-item-tag rfp">Active</span></div>
+          <div class="lib-item-meta"><span>Uploaded by user</span></div>
+        </div>
+      </div>
+
+      <div class="lib-item" onclick="selectLibItem(this)">
+        <div class="lib-ico pdf">PDF</div>
+        <div class="lib-item-body">
+          <div class="lib-item-name">IT Standards attachment.pdf</div>
+          <div class="lib-item-meta"><span>Uploaded by user</span></div>
+        </div>
+      </div>
+
+      <div class="lib-group">References</div>
+
+      <div class="lib-item" onclick="selectLibItem(this)">
+        <div class="lib-ico ref">REF</div>
+        <div class="lib-item-body">
+          <div class="lib-item-name">Firm Qualifications — current year</div>
+          <div class="lib-item-meta"><span>Company library</span></div>
+        </div>
+      </div>
+
+      <div class="lib-item" onclick="selectLibItem(this)">
+        <div class="lib-ico ref">REF</div>
+        <div class="lib-item-body">
+          <div class="lib-item-name">Resume Pack — PMs &amp; Architects</div>
+          <div class="lib-item-meta"><span>Company library</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lib-footer">
+      <span>Connected to OCI Object Storage</span>
+      <a href="https://35eb5f72-e1ae-4876-ac0e-dcf704fb6cb4.claudeusercontent.com/v1/design/projects/35eb5f72-e1ae-4876-ac0e-dcf704fb6cb4/serve/FRP%20Studio%20v5.html?t=64aa6ff6c4087587600f02d1885273884a8205d2f81e6f116fe54602615147ce.842a0d5e-a741-457d-b26e-abec5b95ef4f.dd4e5d87-0725-4823-a9ea-10b0e8a384f1.1777571061&amp;srcmap=1#">Open bucket ↗</a>
+    </div>
+  </aside>
+
+  <!-- ═══ EDITOR (center) ═══ -->
+  <main class="editor" id="editor">
+    <div class="editor-inner" style="padding: 28px 48px 120px;">
+
+      <header class="doc-header">
+        <div class="doc-eyebrow">
+          <span class="doc-eyebrow-dot"></span>
+          <span>Draft proposal</span>
+          <span style="color:var(--line-2);margin:0 4px">/</span>
+          <span>No due date set</span>
+          <span style="color:var(--line-2);margin:0 4px">/</span>
+          <span>Bundle output</span>
+        </div>
+        <h1 class="doc-h1" style="font-family: &quot;Instrument Serif&quot;, serif; font-weight: 400;">New proposal.<br><em>Fill in. Let Claude write.</em></h1>
+        <p class="doc-sub">Upload the client's RFP and any requirements workbooks. Claude extracts the client profile and due dates from the solicitation, then matches every requirement against your won-proposal library and drafts the full bundle in the client's exact template format. <span style="color:var(--muted)">You review before anything ships.</span></p>
+
+        <div class="progress-strip" style="position: relative; margin-top: 32px; margin-bottom: 8px; display: flex;">
+          <div class="progress-step done" onclick="scrollToSection(&#39;sec-client&#39;)"><span class="progress-step-label">01 · Client</span></div>
+          <div class="progress-step done" onclick="scrollToSection(&#39;sec-rfp&#39;)"><span class="progress-step-label">02 · RFP</span></div>
+          <div class="progress-step active" onclick="scrollToSection(&#39;sec-solution&#39;)"><span class="progress-step-label">03 · Solution</span></div>
+          <div class="progress-step" onclick="scrollToSection(&#39;sec-team&#39;)"><span class="progress-step-label">04 · Team</span></div>
+          <div class="progress-step" onclick="scrollToSection(&#39;sec-tech&#39;)"><span class="progress-step-label">05 · Technical</span></div>
+          <div class="progress-step" onclick="scrollToSection(&#39;sec-refs&#39;)"><span class="progress-step-label">06 · References</span></div>
+        </div>
+      </header>
+
+      <!-- ═ AUTO-PARSED CALLOUT ═ -->
+      <div class="autoparse" id="autoparse-callout">
+        <div class="autoparse-head">
+          <span class="autoparse-spark">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"></path></svg>
+          </span>
+          <div>
+            <div class="autoparse-title">Cohere parsed the RFP and pre-filled 11 fields from your library</div>
+            <div class="autoparse-sub">parsed Main solicitation.pdf · vector-matched 12 past proposals · 3.2s</div>
+          </div>
+          <button class="autoparse-action" onclick="toggleAutoparse()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:11px;height:11px"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            <span id="ap-toggle-label">Review</span>
+          </button>
+        </div>
+        <div class="autoparse-body" id="autoparse-body" style="display:none">
+          <div class="ap-field">
+            <div class="ap-field-label">Client name</div>
+            <div class="ap-field-value">City of Ashford <span class="ap-field-source">Main solicitation.pdf · p.1</span></div>
+            <div class="ap-field-conf high">99%</div>
+          </div>
+          <div class="ap-field">
+            <div class="ap-field-label">RFP number</div>
+            <div class="ap-field-value">RFP-2026-ERP-014 <span class="ap-field-source">Main solicitation.pdf · cover</span></div>
+            <div class="ap-field-conf high">99%</div>
+          </div>
+          <div class="ap-field">
+            <div class="ap-field-label">Due date</div>
+            <div class="ap-field-value">May 14, 2026 · 2:00 PM CT <span class="ap-field-source">Main solicitation.pdf · §1.3</span></div>
+            <div class="ap-field-conf high">98%</div>
+          </div>
+          <div class="ap-field">
+            <div class="ap-field-label">Primary contact</div>
+            <div class="ap-field-value">J. Marquez, Procurement Mgr <span class="ap-field-source">Main solicitation.pdf · §1.5</span></div>
+            <div class="ap-field-conf high">97%</div>
+          </div>
+          <div class="ap-field">
+            <div class="ap-field-label">Industry</div>
+            <div class="ap-field-value">City / Municipality <span class="ap-field-source">inferred from client</span></div>
+            <div class="ap-field-conf high">96%</div>
+          </div>
+          <div class="ap-field">
+            <div class="ap-field-label">Annual budget</div>
+            <div class="ap-field-value">$184M operating <span class="ap-field-source">Ashford_CAFR_2025.pdf · library</span></div>
+            <div class="ap-field-conf mid">82%</div>
+          </div>
+          <div class="ap-field">
+            <div class="ap-field-label">Legacy systems</div>
+            <div class="ap-field-value">Munis (finance), Kronos (HR/payroll) <span class="ap-field-source">Main solicitation.pdf · §3.2</span></div>
+            <div class="ap-field-conf high">94%</div>
+          </div>
+          <div class="ap-field">
+            <div class="ap-field-label">Required modules</div>
+            <div class="ap-field-value">Finance · HR · Payroll · Procurement · Budgeting <span class="ap-field-source">Req_workbook.xlsx · sheet 1</span></div>
+            <div class="ap-field-conf high">99%</div>
+          </div>
+          <div class="ap-field">
+            <div class="ap-field-label">Pain points</div>
+            <div class="ap-field-value">Manual processes · Disconnected systems · Reporting gaps <span class="ap-field-source">solicitation §2, §4</span></div>
+            <div class="ap-field-conf mid">78%</div>
+          </div>
+          <div class="ap-field">
+            <div class="ap-field-label">Matched case studies</div>
+            <div class="ap-field-value">3 similar wins in library <span class="ap-field-source">Pinecrest, Westfield, Sunbrook</span></div>
+            <div class="ap-field-conf high">match</div>
+          </div>
+          <div class="ap-field">
+            <div class="ap-field-label">Matched references</div>
+            <div class="ap-field-value">5 eligible references (same module mix) <span class="ap-field-source">Refs / won, past 24 mo</span></div>
+            <div class="ap-field-conf high">match</div>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- ═ 01 Client ═ -->
+      <section class="section" id="sec-client">
+        <div class="section-head">
+          <span class="section-num">01</span>
+          <h2 class="section-title" style="font-family: &quot;Instrument Serif&quot;, serif; font-weight: 400;">About the client</h2>
+          <span class="section-status complete"><span class="section-status-dot"></span>Complete</span>
+        </div>
+        <p class="section-sub">Basic organization profile. This shapes tone, industry voice, and which case studies Claude pulls from the library.</p>
+        <div class="section-body">
+          <div class="field-grid">
+            <div class="field"><label>Client name <span class="req">*</span> <span class="hint" style="color:var(--accent-2)">• from RFP</span></label><input type="text" placeholder="e.g. City of ——, State Agency of ——"></div>
+            <div class="field"><label>Industry <span class="req">*</span></label>
+              <select><option>Select…</option><option>City / Municipality</option><option>County Government</option><option>State Agency</option><option>Federal</option><option>K-12 / Higher Ed</option><option>Utility / Special District</option></select>
+            </div>
+            <div class="field"><label>Primary contact <span class="hint" style="color:var(--accent-2)">• from RFP</span></label><input type="text" placeholder="Name, title"></div>
+            <div class="field"><label>Annual budget / revenue <span class="hint" style="color:var(--accent-2)">• from RFP</span></label><input type="text" placeholder="e.g. $——M operating budget"></div>
+            <div class="field full"><label>Current ERP / systems <span class="hint" style="color:var(--accent-2)">• from RFP</span></label><input type="text" placeholder="e.g. legacy platform ——, supporting systems ——"></div>
+            <div class="field full"><label>Top pain points <span class="hint">select all that apply</span></label>
+              <div class="tag-group">
+                <label class="tag-option sel"><input type="checkbox" checked="">Manual processes</label>
+                <label class="tag-option sel"><input type="checkbox" checked="">Data silos</label>
+                <label class="tag-option sel"><input type="checkbox" checked="">Aging system</label>
+                <label class="tag-option"><input type="checkbox">Compliance gaps</label>
+                <label class="tag-option"><input type="checkbox">Poor reporting</label>
+                <label class="tag-option"><input type="checkbox">Vendor support ending</label>
+                <label class="tag-option"><input type="checkbox">High maintenance cost</label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═ 02 RFP ═ -->
+      <section class="section" id="sec-rfp">
+        <div class="section-head">
+          <span class="section-num">02</span>
+          <h2 class="section-title" style="font-family: &quot;Instrument Serif&quot;, serif; font-weight: 400;">The solicitation</h2>
+          <span class="section-status complete"><span class="section-status-dot"></span>Complete</span>
+        </div>
+        <p class="section-sub">Attach the RFP and any requirements workbooks from the OCI bucket. OCI Document Understanding extracts text, then Claude reads it for client statistics, due dates, and the requirements matrix.</p>
+        <div class="section-body">
+          <div class="field-grid">
+            <div class="field"><label>RFP number <span class="hint" style="color:var(--accent-2)">• from RFP</span></label><input type="text" placeholder="e.g. RFP ——"></div>
+            <div class="field"><label>Due date <span class="hint" style="color:var(--accent-2)">• from RFP</span></label><input type="date"></div>
+          </div>
+
+          <label style="margin-bottom:6px;display:block">Attached documents <span class="hint">drag from library ←</span></label>
+          <div class="attached">
+            <div class="attached-item">
+              <div class="lib-ico pdf">PDF</div>
+              <div class="attached-item-body">
+                <div class="attached-item-name">Main solicitation.pdf</div>
+                <div class="attached-item-source"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.1V12a10 10 0 1 1-5.9-9.1"></path><path d="M22 4L12 14l-3-3"></path></svg>Uploaded · parsed · <span style="color:var(--accent-2)">189 shall-statements extracted</span></div>
+              </div>
+              <button class="attached-x" title="Remove"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"></path></svg></button>
+            </div>
+            <div class="attached-item">
+              <div class="lib-ico xlsx">XLS</div>
+              <div class="attached-item-body">
+                <div class="attached-item-name">Requirement workbooks (5 files)</div>
+                <div class="attached-item-source"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.1V12a10 10 0 1 1-5.9-9.1"></path><path d="M22 4L12 14l-3-3"></path></svg>Uploaded · <span style="color:var(--accent-2)">Y/C/F/3/N format detected</span> · 2,222 rows mapped</div>
+              </div>
+              <button class="attached-x" title="Remove"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"></path></svg></button>
+            </div>
+          </div>
+          <div class="dropzone" style="margin-top:8px">
+            <div class="dropzone-ico">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="M17 8l-5-5-5 5"></path><path d="M12 3v12"></path></svg>
+            </div>
+            <div class="dropzone-body">
+              <div class="dropzone-title">Drop files or paste an <code>RFP URL</code></div>
+              <div class="dropzone-sub">PDF, DOCX, XLSX · or drag from library ←</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═ 03 Solution ═ -->
+      <section class="section" id="sec-solution">
+        <div class="section-head">
+          <span class="section-num">03</span>
+          <h2 class="section-title" style="font-family: &quot;Instrument Serif&quot;, serif; font-weight: 400;">Our solution</h2>
+          <span class="section-status partial"><span class="section-status-dot"></span>In progress · 2 fields left</span>
+        </div>
+        <p class="section-sub">Products, scope, and engagement style. Claude uses this to tailor the Software, Schedule, and Architecture tabs.</p>
+        <div class="section-body">
+          <div class="field-grid">
+            <div class="field"><label>Engagement type</label>
+              <select><option>Full implementation</option><option>Upgrade</option><option>Advisory</option><option>Staff augmentation</option></select>
+            </div>
+            <div class="field"><label>Primary competition</label><input type="text" placeholder="e.g. Workday, SAP S/4HANA"></div>
+            <div class="field full"><label>Proposed modules</label>
+              <div class="tag-group">
+                <label class="tag-option accent sel"><input type="checkbox" checked="">Financials</label>
+                <label class="tag-option accent sel"><input type="checkbox" checked="">Procurement</label>
+                <label class="tag-option accent sel"><input type="checkbox" checked="">HCM</label>
+                <label class="tag-option accent sel"><input type="checkbox" checked="">Payroll</label>
+                <label class="tag-option"><input type="checkbox">EPM</label>
+                <label class="tag-option"><input type="checkbox">SCM</label>
+                <label class="tag-option"><input type="checkbox">Project Portfolio</label>
+                <label class="tag-option"><input type="checkbox">Analytics / OAC</label>
+              </div>
+            </div>
+            <div class="field full"><label>Win theme <span class="hint">1–2 sentences</span></label>
+              <textarea placeholder="e.g. A disciplined cloud-first cutover anchored by our proven delivery accelerators and local team."></textarea>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═ 04 Team ═ -->
+      <section class="section" id="sec-team">
+        <div class="section-head">
+          <span class="section-num">04</span>
+          <h2 class="section-title" style="font-family: &quot;Instrument Serif&quot;, serif; font-weight: 400;">Team &amp; references</h2>
+          <span class="section-status empty"><span class="section-status-dot"></span>Not started</span>
+        </div>
+        <p class="section-sub">Project manager, key personnel, and up to three client references. Pull resumes and reference write-ups from the <strong>References</strong> folder in the library.</p>
+        <div class="section-body">
+          <div class="field-grid">
+            <div class="field"><label>Project manager</label><input type="text" placeholder="Name"></div>
+            <div class="field"><label>Solution architect</label><input type="text" placeholder="Name"></div>
+          </div>
+          <div class="dropzone">
+            <div class="dropzone-ico">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="7" r="4"></circle><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2M16 3.13a4 4 0 0 1 0 7.75M21 21v-2a4 4 0 0 0-3-3.87"></path></svg>
+            </div>
+            <div class="dropzone-body">
+              <div class="dropzone-title">Drag resumes or client references here</div>
+              <div class="dropzone-sub">Or pick from <code>References</code> in the library</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═ 05 Technical ═ -->
+      <section class="section" id="sec-tech">
+        <div class="section-head">
+          <span class="section-num">05</span>
+          <h2 class="section-title" style="font-family: &quot;Instrument Serif&quot;, serif; font-weight: 400;">Technical details</h2>
+          <span class="section-status empty"><span class="section-status-dot"></span>Optional</span>
+        </div>
+        <p class="section-sub">Architecture, security, conversion. Most fields auto-fill when the IT standards attachment is parsed.</p>
+        <div class="section-body">
+          <div class="field-grid">
+            <div class="field"><label>SSO platform</label><input type="text" placeholder="Azure AD, Okta, SAML 2.0"></div>
+            <div class="field"><label>Compliance frameworks</label><input type="text" placeholder="NIST 800-53, SOC 2, CJIS"></div>
+            <div class="field full"><label>Legacy systems to convert <span class="hint" style="color:var(--accent-2)">• from RFP</span></label><input type="text" placeholder="e.g. legacy ERP ——, payroll ——, time &amp; attendance ——"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═ 06 References / Win library ═ -->
+      <section class="section" id="sec-refs">
+        <div class="section-head">
+          <span class="section-num">06</span>
+          <h2 class="section-title" style="font-family: &quot;Instrument Serif&quot;, serif; font-weight: 400;">Response library</h2>
+          <span class="section-status partial"><span class="section-status-dot"></span>2 proposals linked</span>
+        </div>
+        <p class="section-sub">Claude compares each client question against these past proposals and scores the best match. Pull from <strong>Won</strong> deals for highest-confidence answers.</p>
+        <div class="section-body">
+          <div class="attached">
+            <div class="attached-item">
+              <div class="lib-ico docx">DOC</div>
+              <div class="attached-item-body">
+                <div class="attached-item-name">Midwest County — EBS Upgrade</div>
+                <div class="attached-item-source"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.1V12a10 10 0 1 1-5.9-9.1"></path><path d="M22 4L12 14l-3-3"></path></svg>Won · 2024 · <span style="color:var(--accent-2)">94% match</span></div>
+              </div>
+              <button class="attached-x"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"></path></svg></button>
+            </div>
+            <div class="attached-item">
+              <div class="lib-ico docx">DOC</div>
+              <div class="attached-item-body">
+                <div class="attached-item-name">Southeast County — Payroll Modernization</div>
+                <div class="attached-item-source"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.1V12a10 10 0 1 1-5.9-9.1"></path><path d="M22 4L12 14l-3-3"></path></svg>Won · 2026 · <span style="color:var(--accent-2)">88% match</span></div>
+              </div>
+              <button class="attached-x"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"></path></svg></button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="run-bar">
+        <div class="run-panel">
+          <div class="run-panel-head">
+            <div class="run-panel-title">Ready to generate</div>
+            <div class="run-panel-sub">6 sections · attachments parsed · ~ 90 seconds</div>
+          </div>
+          <button class="run-panel-go" onclick="runGenerate()">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"></path></svg>
+            Generate proposal
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Live generation status -->
+    <div class="genstatus" id="genstatus">
+      <div class="genstatus-title">
+        <span>Generating · 4 of 10</span>
+        <span class="genstatus-pct" id="gen-pct">40%</span>
+      </div>
+      <div class="genstatus-bar"><div class="genstatus-fill" id="gen-fill"></div></div>
+      <div class="genstatus-list">
+        <div class="genstatus-item done"><span class="dot"></span>Parsed RFP · 218 pages</div>
+        <div class="genstatus-item done"><span class="dot"></span>Extracted client stats</div>
+        <div class="genstatus-item done"><span class="dot"></span>Narrative · 1,840 words</div>
+        <div class="genstatus-item active"><span class="dot"></span>Writing software descriptions…</div>
+        <div class="genstatus-item"><span class="dot"></span>Schedule · Gantt &amp; milestones</div>
+        <div class="genstatus-item"><span class="dot"></span>Security &amp; architecture</div>
+        <div class="genstatus-item"><span class="dot"></span>Filling 1,247 requirements</div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ═══ PREVIEW (right) ═══ -->
+  <aside class="preview">
+    <div class="preview-head">
+      <span class="preview-title">Preview</span>
+      <span class="preview-spacer"></span>
+      <button class="preview-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>Copy</button>
+      <button class="preview-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"></path></svg>Export</button>
+      <button class="preview-action" title="Save to OCI bucket"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><path d="M17 21v-8H7v8M7 3v5h8"></path></svg>Save</button>
+    </div>
+
+    <div class="preview-tabs">
+      <button class="ptab active" onclick="ptab(this,&#39;bundle&#39;)">Deliverables <span class="ptab-count">6</span></button>
+      <button class="ptab" onclick="ptab(this,&#39;narrative&#39;)">Proposal DOCX</button>
+      <button class="ptab" onclick="ptab(this,&#39;finance&#39;)">Finance <span class="ptab-count">623</span></button>
+      <button class="ptab" onclick="ptab(this,&#39;hcm&#39;)">HCM <span class="ptab-count">892</span></button>
+      <button class="ptab" onclick="ptab(this,&#39;procurement&#39;)">Procurement <span class="ptab-count">634</span></button>
+      <button class="ptab" onclick="ptab(this,&#39;technical&#39;)">Technical <span class="ptab-count">412</span></button>
+      <button class="ptab" onclick="ptab(this,&#39;compliance&#39;)">Compliance</button>
+      <button class="ptab" onclick="ptab(this,&#39;review&#39;)">Leadership review</button>
+    </div>
+
+    <div class="preview-body" id="preview-body">
+
+      <!-- BUNDLE OVERVIEW (default) -->
+      <div class="ppanel" data-panel="bundle">
+        <div class="p-eyebrow">Output bundle · 6 deliverables · ready to submit</div>
+        <h1 class="p-h1" style="font-family: &quot;Instrument Serif&quot;, serif; font-weight: 400;">Document bundle</h1>
+        <p class="p-body" style="color:var(--muted)">Claude matched your won-proposal library against the client's exact template structure and filled each file in their required format. Review, edit, ship.</p>
+
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:18px">
+
+          <div style="border:1px solid var(--line);border-radius:8px;padding:14px 16px;background:#fff;display:flex;gap:14px;align-items:flex-start">
+            <div class="lib-ico docx" style="width:38px;height:38px;font-size:11px;flex-shrink:0">DOCX</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:600;font-size:13px;margin-bottom:2px">Proposal.docx</div>
+              <div style="font-family:&#39;JetBrains Mono&#39;,monospace;font-size:10.5px;color:var(--muted);margin-bottom:8px">45 pp · 5 sections · written in client's template format · 14,284 words</div>
+              <div style="display:flex;flex-wrap:wrap;gap:4px">
+                <span class="mini-chip">01 Transmittal</span>
+                <span class="mini-chip">02 Qualifications</span>
+                <span class="mini-chip">03 Proposed Solution</span>
+                <span class="mini-chip">04 Contract Alignment</span>
+                <span class="mini-chip">05 Cost Proposal (sealed)</span>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">
+              <span class="badge y">Ready</span>
+              <button class="preview-action" style="font-size:11px">Preview</button>
+            </div>
+          </div>
+
+          <div style="border:1px solid var(--line);border-radius:8px;padding:14px 16px;background:#fff;display:flex;gap:14px;align-items:flex-start">
+            <div class="lib-ico xlsx" style="width:38px;height:38px;font-size:11px;flex-shrink:0">XLSX</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:600;font-size:13px;margin-bottom:2px">Finance_Requirements_Response.xlsx</div>
+              <div style="font-family:&#39;JetBrains Mono&#39;,monospace;font-size:10.5px;color:var(--muted);margin-bottom:8px">623 requirements · Grants, GL, AP, AR, Budget, Treasury</div>
+              <div class="cov-bar" style="max-width:340px">
+                <div class="cov-seg y" style="width:71%"></div><div class="cov-seg c" style="width:18%"></div><div class="cov-seg f" style="width:6%"></div><div class="cov-seg n" style="width:5%"></div>
+              </div>
+              <div style="font-family:&#39;JetBrains Mono&#39;,monospace;font-size:10px;color:var(--muted);margin-top:4px">Y 442 · C 112 · F 37 · N 32</div>
+            </div>
+            <span class="badge y">Ready</span>
+          </div>
+
+          <div style="border:1px solid var(--line);border-radius:8px;padding:14px 16px;background:#fff;display:flex;gap:14px;align-items:flex-start">
+            <div class="lib-ico xlsx" style="width:38px;height:38px;font-size:11px;flex-shrink:0">XLSX</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:600;font-size:13px;margin-bottom:2px">HCM_Requirements_Response.xlsx</div>
+              <div style="font-family:&#39;JetBrains Mono&#39;,monospace;font-size:10.5px;color:var(--muted);margin-bottom:8px">892 requirements · Core HR, Talent, Payroll, Benefits, Time &amp; Labor</div>
+              <div class="cov-bar" style="max-width:340px"><div class="cov-seg y" style="width:66%"></div><div class="cov-seg c" style="width:22%"></div><div class="cov-seg f" style="width:7%"></div><div class="cov-seg n" style="width:5%"></div></div>
+              <div style="font-family:&#39;JetBrains Mono&#39;,monospace;font-size:10px;color:var(--muted);margin-top:4px">Y 589 · C 196 · F 62 · N 45</div>
+            </div>
+            <span class="badge y">Ready</span>
+          </div>
+
+          <div style="border:1px solid var(--line);border-radius:8px;padding:14px 16px;background:#fff;display:flex;gap:14px;align-items:flex-start">
+            <div class="lib-ico xlsx" style="width:38px;height:38px;font-size:11px;flex-shrink:0">XLSX</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:600;font-size:13px;margin-bottom:2px">Procurement_Requirements_Response.xlsx</div>
+              <div style="font-family:&#39;JetBrains Mono&#39;,monospace;font-size:10.5px;color:var(--muted);margin-bottom:8px">634 requirements · Sourcing, Contracts, Supplier Management</div>
+              <div class="cov-bar" style="max-width:340px"><div class="cov-seg y" style="width:74%"></div><div class="cov-seg c" style="width:17%"></div><div class="cov-seg f" style="width:5%"></div><div class="cov-seg n" style="width:4%"></div></div>
+              <div style="font-family:&#39;JetBrains Mono&#39;,monospace;font-size:10px;color:var(--muted);margin-top:4px">Y 469 · C 108 · F 32 · N 25</div>
+            </div>
+            <span class="badge y">Ready</span>
+          </div>
+
+          <div style="border:1px solid var(--line);border-radius:8px;padding:14px 16px;background:#fff;display:flex;gap:14px;align-items:flex-start">
+            <div class="lib-ico xlsx" style="width:38px;height:38px;font-size:11px;flex-shrink:0">XLSX</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:600;font-size:13px;margin-bottom:2px">Inventory_Requirements_Response.xlsx</div>
+              <div style="font-family:&#39;JetBrains Mono&#39;,monospace;font-size:10.5px;color:var(--muted);margin-bottom:8px">284 requirements · Warehouse, Stock, Asset Management</div>
+              <div class="cov-bar" style="max-width:340px"><div class="cov-seg y" style="width:59%"></div><div class="cov-seg c" style="width:24%"></div><div class="cov-seg f" style="width:10%"></div><div class="cov-seg n" style="width:7%"></div></div>
+              <div style="font-family:&#39;JetBrains Mono&#39;,monospace;font-size:10px;color:var(--muted);margin-top:4px">Y 168 · C 68 · F 28 · N 20 · <span style="color:var(--red)">20 low-confidence — needs review</span></div>
+            </div>
+            <span class="badge c">Review</span>
+          </div>
+
+          <div style="border:1px solid var(--line);border-radius:8px;padding:14px 16px;background:#fff;display:flex;gap:14px;align-items:flex-start">
+            <div class="lib-ico xlsx" style="width:38px;height:38px;font-size:11px;flex-shrink:0">XLSX</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:600;font-size:13px;margin-bottom:2px">Technical_Requirements_Response.xlsx</div>
+              <div style="font-family:&#39;JetBrains Mono&#39;,monospace;font-size:10.5px;color:var(--muted);margin-bottom:8px">412 requirements · Architecture, Security, Integration, Infrastructure</div>
+              <div class="cov-bar" style="max-width:340px"><div class="cov-seg y" style="width:70%"></div><div class="cov-seg c" style="width:19%"></div><div class="cov-seg f" style="width:6%"></div><div class="cov-seg n" style="width:5%"></div></div>
+              <div style="font-family:&#39;JetBrains Mono&#39;,monospace;font-size:10px;color:var(--muted);margin-top:4px">Y 288 · C 78 · F 25 · N 21</div>
+            </div>
+            <span class="badge y">Ready</span>
+          </div>
+
+        </div>
+
+        <div style="margin-top:22px;padding:14px 16px;background:var(--ink);color:#fff;border-radius:8px;display:flex;align-items:center;gap:14px">
+          <div style="flex:1">
+            <div style="font-weight:600;font-size:13px">Ship bundle</div>
+            <div style="font-size:10.5px;color:rgba(255,255,255,.6);font-family:&#39;JetBrains Mono&#39;,monospace;margin-top:2px">Write all 6 files back to OCI Object Storage · /frp-library/03_IN_PROGRESS</div>
+          </div>
+          <button class="run-panel-go">Save to OCI →</button>
+        </div>
+      </div>
+
+      <!-- NARRATIVE (proposal DOCX body) -->
+      <div class="ppanel hide" data-panel="narrative">
+        <div class="p-eyebrow">Proposal.docx · Section 03 · Proposed Solution — <em style="color:var(--muted)">example output</em></div>
+        <h1 class="p-h1" style="font-family: &quot;Instrument Serif&quot;, serif; font-weight: 400;">A platform successor the client can run confidently for the next fifteen years.</h1>
+        <p class="p-body">The client has operated on their current ERP platform for nearly two decades — an implementation that has served well but is now approaching end of life. Our proposal migrates Finance, HCM, Procurement, Inventory, and the supporting technical architecture onto a modern cloud ERP with a disciplined, phased cutover that preserves the institutional knowledge your employees depend on every day.</p>
+
+        <div class="p-pullquote" style="font-family: &quot;Instrument Serif&quot;, serif; font-weight: 400;">
+          "We configure, we don't customize. Eleven comparable implementations. Zero custom objects left behind."
+        </div>
+
+        <h2 class="p-h2" style="font-family: &quot;Instrument Serif&quot;, serif; font-weight: 400;">Why this, why now</h2>
+        <p class="p-body">Extended support for the legacy platform sunsets within a fixed window, but the prudent migration window is <em>now</em> — while the organization still has a stable platform, experienced staff, and negotiating leverage. Rushing a cutover late is how projects fail.</p>
+
+        <div class="p-stat-grid">
+          <div class="p-stat"><div class="p-stat-num">18 mo</div><div class="p-stat-label">Time to go-live</div></div>
+          <div class="p-stat"><div class="p-stat-num">2,222</div><div class="p-stat-label">Requirements answered</div></div>
+          <div class="p-stat"><div class="p-stat-num">11</div><div class="p-stat-label">Similar cities delivered</div></div>
+        </div>
+
+        <h2 class="p-h2" style="font-family: &quot;Instrument Serif&quot;, serif; font-weight: 400;">How we're different</h2>
+        <p class="p-body">Our delivery approach is anchored by our <strong>Industry Accelerator Pack</strong>: a pre-configured chart of accounts, fund accounting templates, and a legacy-to-cloud conversion factory refined across eleven comparable engagements. Each engagement sharpens the next.</p>
+
+        <div class="p-divider"></div>
+
+        <p class="p-body" style="color:var(--muted);font-size:11.5px">45 pages · Drafted in 3m 12s · Reviewed against 18 past proposals · <a href="https://35eb5f72-e1ae-4876-ac0e-dcf704fb6cb4.claudeusercontent.com/v1/design/projects/35eb5f72-e1ae-4876-ac0e-dcf704fb6cb4/serve/FRP%20Studio%20v5.html?t=64aa6ff6c4087587600f02d1885273884a8205d2f81e6f116fe54602615147ce.842a0d5e-a741-457d-b26e-abec5b95ef4f.dd4e5d87-0725-4823-a9ea-10b0e8a384f1.1777571061&amp;srcmap=1#" style="color:var(--accent-2)">Regenerate section</a> · <a href="https://35eb5f72-e1ae-4876-ac0e-dcf704fb6cb4.claudeusercontent.com/v1/design/projects/35eb5f72-e1ae-4876-ac0e-dcf704fb6cb4/serve/FRP%20Studio%20v5.html?t=64aa6ff6c4087587600f02d1885273884a8205d2f81e6f116fe54602615147ce.842a0d5e-a741-457d-b26e-abec5b95ef4f.dd4e5d87-0725-4823-a9ea-10b0e8a384f1.1777571061&amp;srcmap=1#" style="color:var(--accent-2)">Inline edit</a></p>
+      </div>
+
+      <!-- FINANCE WORKBOOK -->
+      <div class="ppanel hide" data-panel="finance">
+        <div class="p-eyebrow">Finance_Requirements_Response.xlsx · 623 rows · 16 sheets</div>
+        <h1 class="p-h1" style="margin-bottom: 6px; font-family: &quot;Instrument Serif&quot;, serif; font-weight: 400;">Finance requirements response</h1>
+        <p class="p-body" style="color:var(--muted);margin-bottom:14px">Each row filled in the client's exact Y/C/F/3/N format with module, customization level, and comment. Written back to the original template cell ranges.</p>
+
+        <div style="margin-bottom:12px">
+          <div class="cov-bar">
+            <div class="cov-seg y" style="width:71%"></div>
+            <div class="cov-seg c" style="width:18%"></div>
+            <div class="cov-seg f" style="width:6%"></div>
+            <div class="cov-seg n" style="width:5%"></div>
+          </div>
+          <div class="cov-legend">
+            <span><span class="cov-legend-dot" style="background:var(--leaf)"></span>Y · 442</span>
+            <span><span class="cov-legend-dot" style="background:var(--gold)"></span>C · 112</span>
+            <span><span class="cov-legend-dot" style="background:var(--sky)"></span>F · 37</span>
+            <span><span class="cov-legend-dot" style="background:var(--red)"></span>N · 32</span>
+          </div>
+        </div>
+
+        <div class="matrix-toolbar">
+          <span class="mini-chip sel">All sheets</span>
+          <span class="mini-chip">Grants</span>
+          <span class="mini-chip">GL</span>
+          <span class="mini-chip">AP</span>
+          <span class="mini-chip">AR</span>
+          <span class="mini-chip">Budget</span>
+          <span class="mini-chip" style="margin-left:auto">Low conf. <span style="color:var(--red);margin-left:4px">12</span></span>
+        </div>
+
+        <table class="matrix">
+          <thead><tr><th>Req ID</th><th>Requirement</th><th>Module</th><th>Resp.</th><th>Cust.</th><th>Comment</th></tr></thead>
+          <tbody>
+            <tr><td>FR.FIN.001</td><td>Central repository to store, view, manage and track all grants from setup through completion.</td><td>Grants Mgmt</td><td><span class="badge y">Y</span></td><td>—</td><td>Oracle Fusion Grants Mgmt — configurable workflow, rules-based routing.</td></tr>
+            <tr><td>FR.FIN.002</td><td>Ability to store the grant agreement.</td><td>Grants Mgmt</td><td><span class="badge y">Y</span></td><td>—</td><td>Native document attachments at grant header.</td></tr>
+            <tr><td>FR.FIN.047</td><td>Automatic interfund balancing across multiple funds.</td><td>Financials</td><td><span class="badge y">Y</span></td><td>—</td><td>Fund accounting native; no configuration effort.</td></tr>
+            <tr><td>FR.FIN.112</td><td>Encumbrance accounting with automatic release on invoice match.</td><td>Procurement</td><td><span class="badge y">Y</span></td><td>—</td><td>Three-way match releases encumbrance automatically.</td></tr>
+            <tr><td>FR.FIN.218</td><td>Custom variance reporting by council-defined budget category.</td><td>EPM</td><td><span class="badge c">C</span></td><td>L</td><td>Report customization; est. 40 hrs configuration.</td></tr>
+            <tr><td>FR.FIN.331</td><td>Direct integration with NC GEAR state reporting.</td><td>PaaS</td><td><span class="badge n">3</span></td><td>—</td><td>Via OIC integration adapter; partner: Mythics.</td></tr>
+            <tr><td>FR.FIN.402</td><td>Council-approved mid-year budget amendments with audit trail.</td><td>EPM</td><td><span class="badge y">Y</span></td><td>—</td><td>Budget revision workflow with full approval history.</td></tr>
+            <tr><td>FR.FIN.517</td><td>Real-time cash position dashboard across all operating accounts.</td><td>Treasury</td><td><span class="badge c">C</span></td><td>M</td><td>Dashboard configuration; 60 hrs.</td></tr>
+            <tr><td>FR.FIN.598</td><td>Legacy PeopleSoft ledger history import (15 yrs).</td><td>Financials</td><td><span class="badge f">F</span></td><td>—</td><td>Planned 26C release; committed roadmap.</td></tr>
+          </tbody>
+        </table>
+
+        <p class="p-body" style="color:var(--muted);font-size:11.5px;margin-top:14px">Showing 9 of 623 · <a href="https://35eb5f72-e1ae-4876-ac0e-dcf704fb6cb4.claudeusercontent.com/v1/design/projects/35eb5f72-e1ae-4876-ac0e-dcf704fb6cb4/serve/FRP%20Studio%20v5.html?t=64aa6ff6c4087587600f02d1885273884a8205d2f81e6f116fe54602615147ce.842a0d5e-a741-457d-b26e-abec5b95ef4f.dd4e5d87-0725-4823-a9ea-10b0e8a384f1.1777571061&amp;srcmap=1#" style="color:var(--accent-2)">Open full XLSX preview</a> · <a href="https://35eb5f72-e1ae-4876-ac0e-dcf704fb6cb4.claudeusercontent.com/v1/design/projects/35eb5f72-e1ae-4876-ac0e-dcf704fb6cb4/serve/FRP%20Studio%20v5.html?t=64aa6ff6c4087587600f02d1885273884a8205d2f81e6f116fe54602615147ce.842a0d5e-a741-457d-b26e-abec5b95ef4f.dd4e5d87-0725-4823-a9ea-10b0e8a384f1.1777571061&amp;srcmap=1#" style="color:var(--accent-2)">Export</a></p>
+      </div>
+
+      <!-- HCM WORKBOOK -->
+      <div class="ppanel hide" data-panel="hcm">
+        <div class="p-eyebrow">CoR_HCM_Requirements · 892 rows · 12 sheets</div>
+        <h1 class="p-h1" style="margin-bottom: 6px; font-family: &quot;Instrument Serif&quot;, serif; font-weight: 400;">HCM requirements response</h1>
+        <p class="p-body" style="color:var(--muted);margin-bottom:14px">Core HR, Talent, Payroll, Benefits, Time &amp; Labor, Absence Management.</p>
+
+        <div style="margin-bottom:12px">
+          <div class="cov-bar">
+            <div class="cov-seg y" style="width:66%"></div>
+            <div class="cov-seg c" style="width:22%"></div>
+            <div class="cov-seg f" style="width:7%"></div>
+            <div class="cov-seg n" style="width:5%"></div>
+          </div>
+          <div class="cov-legend">
+            <span><span class="cov-legend-dot" style="background:var(--leaf)"></span>Y · 589</span>
+            <span><span class="cov-legend-dot" style="background:var(--gold)"></span>C · 196</span>
+            <span><span class="cov-legend-dot" style="background:var(--sky)"></span>F · 62</span>
+            <span><span class="cov-legend-dot" style="background:var(--red)"></span>N · 45</span>
+          </div>
+        </div>
+
+        <table class="matrix">
+          <thead><tr><th>Req ID</th><th>Requirement</th><th>Module</th><th>Resp.</th><th>Cust.</th><th>Comment</th></tr></thead>
+          <tbody>
+            <tr><td>HR.HCM.014</td><td>Position control with budget-bound authorization.</td><td>Core HR</td><td><span class="badge y">Y</span></td><td>—</td><td>Native position management with fund/dept binding.</td></tr>
+            <tr><td>HR.HCM.073</td><td>Collective bargaining retro-pay calculations across multiple unions.</td><td>Payroll</td><td><span class="badge y">Y</span></td><td>—</td><td>Retro-pay engine; supports overlapping CBA effective dates.</td></tr>
+            <tr><td>HR.HCM.189</td><td>Biometric time clock integration (existing Kronos TS6500 hardware).</td><td>T&amp;L</td><td><span class="badge c">C</span></td><td>M</td><td>Kronos connector — 80 hrs integration work.</td></tr>
+            <tr><td>HR.HCM.284</td><td>Federal law enforcement officer (FLSA 7k) overtime rules.</td><td>Payroll</td><td><span class="badge y">Y</span></td><td>—</td><td>Pre-configured FLSA 7(k) work period rules.</td></tr>
+            <tr><td>HR.HCM.441</td><td>Employee self-service available in Spanish.</td><td>Core HR</td><td><span class="badge y">Y</span></td><td>—</td><td>Native multi-language; 26 languages incl. Spanish.</td></tr>
+            <tr><td>HR.HCM.612</td><td>Integration with NC Retirement System (ORBIT) contribution reporting.</td><td>Benefits</td><td><span class="badge c">C</span></td><td>M</td><td>OIC adapter; 120 hrs; reference: Harris County TRS.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- PROCUREMENT WORKBOOK -->
+      <div class="ppanel hide" data-panel="procurement">
+        <div class="p-eyebrow">CoR_Procurement_Requirements · 634 rows · 8 sheets</div>
+        <h1 class="p-h1" style="margin-bottom: 6px; font-family: &quot;Instrument Serif&quot;, serif; font-weight: 400;">Procurement requirements response</h1>
+        <p class="p-body" style="color:var(--muted);margin-bottom:14px">Sourcing, Contracts, Supplier Management, P-Card.</p>
+        <div style="margin-bottom:12px">
+          <div class="cov-bar"><div class="cov-seg y" style="width:74%"></div><div class="cov-seg c" style="width:17%"></div><div class="cov-seg f" style="width:5%"></div><div class="cov-seg n" style="width:4%"></div></div>
+          <div class="cov-legend">
+            <span><span class="cov-legend-dot" style="background:var(--leaf)"></span>Y · 469</span>
+            <span><span class="cov-legend-dot" style="background:var(--gold)"></span>C · 108</span>
+            <span><span class="cov-legend-dot" style="background:var(--sky)"></span>F · 32</span>
+            <span><span class="cov-legend-dot" style="background:var(--red)"></span>N · 25</span>
+          </div>
+        </div>
+        <table class="matrix">
+          <thead><tr><th>Req ID</th><th>Requirement</th><th>Module</th><th>Resp.</th><th>Cust.</th><th>Comment</th></tr></thead>
+          <tbody>
+            <tr><td>PR.PROC.022</td><td>Electronic RFP/RFQ authoring and evaluation scoring.</td><td>Sourcing</td><td><span class="badge y">Y</span></td><td>—</td><td>Native Sourcing Cloud; configurable scoring rubrics.</td></tr>
+            <tr><td>PR.PROC.091</td><td>MBE/WBE/DBE supplier diversity tracking and reporting.</td><td>Supplier Mgmt</td><td><span class="badge y">Y</span></td><td>—</td><td>Supplier classification attributes; DBE dashboard included.</td></tr>
+            <tr><td>PR.PROC.184</td><td>NC Statute 143-129 piggyback contract compliance.</td><td>Contracts</td><td><span class="badge c">C</span></td><td>L</td><td>Configuration of contract category templates; 24 hrs.</td></tr>
+            <tr><td>PR.PROC.298</td><td>P-Card transaction match to GL with exception workflow.</td><td>AP</td><td><span class="badge y">Y</span></td><td>—</td><td>JP Morgan P-Card feed; exception routing rules.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- TECHNICAL WORKBOOK -->
+      <div class="ppanel hide" data-panel="technical">
+        <div class="p-eyebrow">CoR_Technical_Requirements · 412 rows · 7 sheets</div>
+        <h1 class="p-h1" style="margin-bottom: 6px; font-family: &quot;Instrument Serif&quot;, serif; font-weight: 400;">Technical requirements response</h1>
+        <p class="p-body" style="color:var(--muted);margin-bottom:14px">Architecture, security, integration, SSO, audit, infrastructure.</p>
+        <div style="margin-bottom:12px">
+          <div class="cov-bar"><div class="cov-seg y" style="width:70%"></div><div class="cov-seg c" style="width:19%"></div><div class="cov-seg f" style="width:6%"></div><div class="cov-seg n" style="width:5%"></div></div>
+          <div class="cov-legend">
+            <span><span class="cov-legend-dot" style="background:var(--leaf)"></span>Y · 288</span>
+            <span><span class="cov-legend-dot" style="background:var(--gold)"></span>C · 78</span>
+            <span><span class="cov-legend-dot" style="background:var(--sky)"></span>F · 25</span>
+            <span><span class="cov-legend-dot" style="background:var(--red)"></span>N · 21</span>
+          </div>
+        </div>
+        <table class="matrix">
+          <thead><tr><th>Req ID</th><th>Requirement</th><th>Module</th><th>Resp.</th><th>Cust.</th><th>Comment</th></tr></thead>
+          <tbody>
+            <tr><td>TR.ARCH.003</td><td>SaaS multi-tenant cloud deployment with quarterly update cadence.</td><td>Platform</td><td><span class="badge y">Y</span></td><td>—</td><td>Oracle Fusion SaaS; quarterly updates with preview window.</td></tr>
+            <tr><td>TR.SEC.018</td><td>SSO via the City's Okta tenant (SAML 2.0 + SCIM provisioning).</td><td>IDCS</td><td><span class="badge y">Y</span></td><td>—</td><td>SAML 2.0 federation; SCIM 2.0 for user lifecycle.</td></tr>
+            <tr><td>TR.INT.092</td><td>REST integration with Tyler EnerGov permits system.</td><td>OIC</td><td><span class="badge y">Y</span></td><td>—</td><td>OIC adapter with Tyler EnerGov; reference: City of Durham.</td></tr>
+            <tr><td>TR.SEC.131</td><td>FIPS 140-2 certified cryptographic modules for data at rest.</td><td>Platform</td><td><span class="badge y">Y</span></td><td>—</td><td>FIPS 140-2 Level 1 validated; TDE on all tablespaces.</td></tr>
+            <tr><td>TR.AUD.207</td><td>Immutable audit log retention for 7 years — NC Public Records Act.</td><td>Platform</td><td><span class="badge y">Y</span></td><td>—</td><td>WORM-compliant audit archive in OCI Object Storage.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- COMPLIANCE (placeholder) -->
+      <div class="ppanel hide" data-panel="compliance">
+        <div class="p-eyebrow">RFP compliance checker</div>
+        <h1 class="p-h1" style="font-family: &quot;Instrument Serif&quot;, serif; font-weight: 400;">Compliance check</h1>
+        <p class="p-body" style="color:var(--muted)">Every "shall" and "must" from the RFP mapped against what we've written.</p>
+        <div style="background:var(--leaf-soft);border:1px solid #b9d7c1;border-radius:8px;padding:14px 16px;margin:14px 0;">
+          <div style="font-family:&#39;Instrument Serif&#39;,serif;font-size:22px;color:#1e5a3e">94% covered</div>
+          <div style="font-size:11.5px;color:#1e5a3e;margin-top:2px;font-family:&#39;JetBrains Mono&#39;,monospace">178 of 189 items addressed · 11 gaps · 4 clarifications</div>
+        </div>
+        <table class="matrix">
+          <thead><tr><th>Ref</th><th>Requirement</th><th>Section</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td>§2.3.1</td><td>Cover letter signed by authorized officer</td><td>Transmittal</td><td><span class="badge y">✓</span></td></tr>
+            <tr><td>§2.3.4</td><td>Proof of insurance $5M minimum</td><td>Exhibits</td><td><span class="badge c">Gap</span></td></tr>
+            <tr><td>§3.1.2</td><td>Three municipal references &gt; $1M</td><td>Refs</td><td><span class="badge y">✓</span></td></tr>
+            <tr><td>§3.4.7</td><td>FIPS 140-2 cryptographic modules</td><td>Security</td><td><span class="badge y">✓</span></td></tr>
+            <tr><td>§4.2.1</td><td>Firm fixed price pricing model</td><td>Pricing</td><td><span class="badge c">Gap</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- LEADERSHIP REVIEW -->
+      <div class="ppanel hide" data-panel="review">
+        <div class="p-eyebrow">Leadership review · single-page summary</div>
+        <h1 class="p-h1" style="font-family: &quot;Instrument Serif&quot;, serif; font-weight: 400;">Ship / hold / fix</h1>
+        <p class="p-body" style="color:var(--muted)">One screen for the partner or VP to sign off. No scrolling through 45 pages.</p>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:18px 0 20px">
+          <div style="border:1px solid var(--leaf-soft);background:var(--leaf-soft);border-radius:8px;padding:12px 14px">
+            <div style="font-family:&#39;JetBrains Mono&#39;,monospace;font-size:9.5px;color:#1e5a3e;letter-spacing:.08em;text-transform:uppercase">Recommendation</div>
+            <div style="font-family:&#39;Instrument Serif&#39;,serif;font-size:24px;color:#1e5a3e;line-height:1.1;margin-top:4px">Ship</div>
+            <div style="font-size:11px;color:#1e5a3e;margin-top:4px">2 minor fixes first</div>
+          </div>
+          <div style="border:1px solid var(--line);background:#fff;border-radius:8px;padding:12px 14px">
+            <div style="font-family:&#39;JetBrains Mono&#39;,monospace;font-size:9.5px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase">Win probability</div>
+            <div style="font-family:&#39;Instrument Serif&#39;,serif;font-size:24px;color:var(--ink);line-height:1.1;margin-top:4px">68%</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:4px">vs. 54% library avg</div>
+          </div>
+          <div style="border:1px solid var(--line);background:#fff;border-radius:8px;padding:12px 14px">
+            <div style="font-family:&#39;JetBrains Mono&#39;,monospace;font-size:9.5px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase">Time to draft</div>
+            <div style="font-family:&#39;Instrument Serif&#39;,serif;font-size:24px;color:var(--ink);line-height:1.1;margin-top:4px">3.2s</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:4px">vs. 40h manually</div>
+          </div>
+        </div>
+
+        <h2 class="p-h2" style="font-size: 16px; margin-bottom: 10px; font-family: &quot;Instrument Serif&quot;, serif; font-weight: 400;">What Claude matched from the library</h2>
+        <table class="matrix">
+          <tbody>
+            <tr><td style="width:24%"><strong>3 past wins</strong></td><td>Pinecrest · Westfield · Sunbrook — all same module mix, similar budget</td></tr>
+            <tr><td><strong>5 references</strong></td><td>Live in last 24 months, CIO-level contacts, verified post-Connect</td></tr>
+            <tr><td><strong>8 team bios</strong></td><td>Matched to RFP's required certifications — PMP, CPA, CISSP present</td></tr>
+            <tr><td><strong>Pricing anchors</strong></td><td>Library median $2.4M · this proposal $2.1M (8th percentile competitive)</td></tr>
+          </tbody>
+        </table>
+
+        <h2 class="p-h2" style="font-size: 16px; margin: 24px 0px 10px; font-family: &quot;Instrument Serif&quot;, serif; font-weight: 400;">Two things to fix before signing</h2>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="border-left:3px solid #B33A3A;background:#FCEAE8;padding:10px 14px;border-radius:0 6px 6px 0">
+            <div style="font-weight:600;font-size:12.5px">Insurance exhibit missing ($5M minimum)</div>
+            <div style="font-size:11.5px;color:var(--muted);margin-top:2px">Upload certificate to /Exhibits before submission. Template in library.</div>
+          </div>
+          <div style="border-left:3px solid var(--gold);background:#FCF3E0;padding:10px 14px;border-radius:0 6px 6px 0">
+            <div style="font-weight:600;font-size:12.5px">Pricing model says T&amp;M — RFP requires firm fixed price</div>
+            <div style="font-size:11.5px;color:var(--muted);margin-top:2px">Claude flagged and prepared an FFP variant. Swap in §4.2.</div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-top:20px">
+          <button class="preview-action" style="background:var(--leaf);color:#fff;border-color:var(--leaf);font-weight:600">Approve &amp; send to client</button>
+          <button class="preview-action">Send to partner for review</button>
+          <button class="preview-action">Request fixes</button>
+        </div>
+      </div>
+
+    </div>
+  </aside>
+
+</div>
+
+<!-- ═══ TWEAKS ═══ -->
+<div class="tweaks visible" id="tweaks">
+  <div class="tweaks-head">
+    <div class="tweaks-title">Tweaks</div>
+    <button class="tweaks-close" onclick="toggleTweaks()"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"></path></svg></button>
+  </div>
+  <div class="tweaks-row">
+    <label>Accent color</label>
+    <div class="tweaks-swatches" id="tw-accent">
+      <div class="tw-swatch sel" style="background:#E8652B" data-hex="#E8652B"></div>
+      <div class="tw-swatch" style="background:#3A6FA8" data-hex="#3A6FA8"></div>
+      <div class="tw-swatch" style="background:#2F6B4F" data-hex="#2F6B4F"></div>
+      <div class="tw-swatch" style="background:#B28B2E" data-hex="#B28B2E"></div>
+      <div class="tw-swatch" style="background:#0E1A38" data-hex="#0E1A38"></div>
+    </div>
+  </div>
+  <div class="tweaks-row">
+    <label>Paper tone</label>
+    <div class="tweaks-swatches" id="tw-paper">
+      <div class="tw-swatch sel" style="background:#FAF8F3;border-color:#ddd" data-hex="#FAF8F3"></div>
+      <div class="tw-swatch" style="background:#FFFFFF;border-color:#ddd" data-hex="#FFFFFF"></div>
+      <div class="tw-swatch" style="background:#F5F5F4;border-color:#ddd" data-hex="#F5F5F4"></div>
+      <div class="tw-swatch" style="background:#0E1A38" data-hex="#0E1A38"></div>
+    </div>
+  </div>
+  <div class="tweaks-row">
+    <label>Display font</label>
+    <select id="tw-font" onchange="applyTweaks()">
+      <option value="Instrument Serif">Instrument Serif</option>
+      <option value="Inter">Inter (no serif)</option>
+      <option value="Georgia">Georgia</option>
+    </select>
+  </div>
+  <div class="tweaks-row">
+    <label>Layout density</label>
+    <select id="tw-density" onchange="applyTweaks()">
+      <option value="comfortable">Comfortable</option>
+      <option value="compact">Compact</option>
+    </select>
+  </div>
+  <div class="tweaks-row">
+    <label>Show progress bar</label>
+    <select id="tw-progress" onchange="applyTweaks()">
+      <option value="on">On</option>
+      <option value="off">Off</option>
+    </select>
+  </div>
+</div>
+
+<script>
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "accent": "#E8652B",
+  "paper": "#FAF8F3",
+  "font": "Instrument Serif",
+  "density": "comfortable",
+  "progress": "on"
+}/*EDITMODE-END*/;
+
+function scrollToSection(id) {
+  document.getElementById(id).scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function ptab(el, name) {
+  el.parentElement.querySelectorAll('.ptab').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.ppanel').forEach(p => p.classList.add('hide'));
+  const target = document.querySelector('[data-panel="'+name+'"]');
+  if (target) target.classList.remove('hide');
+  document.getElementById('preview-body').scrollTop = 0;
+}
+
+function libTab(el, name) {
+  el.parentElement.querySelectorAll('.lib-tab').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function selectLibItem(el) {
+  document.querySelectorAll('.lib-item').forEach(i => i.classList.remove('active'));
+  el.classList.add('active');
+}
+
+let genTimer;
+function runGenerate() {
+  const box = document.getElementById('genstatus');
+  box.classList.add('visible');
+  const items = box.querySelectorAll('.genstatus-item');
+  const fill = document.getElementById('gen-fill');
+  const pct = document.getElementById('gen-pct');
+  const title = box.querySelector('.genstatus-title span:first-child');
+  let i = 3;
+  clearInterval(genTimer);
+  genTimer = setInterval(() => {
+    if (i >= items.length) {
+      clearInterval(genTimer);
+      setTimeout(() => box.classList.remove('visible'), 1400);
+      return;
+    }
+    items[i].classList.remove('active');
+    items[i].classList.add('done');
+    if (items[i+1]) items[i+1].classList.add('active');
+    i++;
+    const p = Math.round((i / items.length) * 100);
+    fill.style.width = p + '%';
+    pct.textContent = p + '%';
+    title.textContent = `Generating · ${i} of ${items.length}`;
+  }, 900);
+}
+
+/* === TWEAKS === */
+function toggleTweaks() {
+  document.getElementById('tweaks').classList.toggle('visible');
+}
+function applyTweaks() {
+  const accent = document.querySelector('#tw-accent .tw-swatch.sel')?.dataset.hex || TWEAK_DEFAULTS.accent;
+  const paper  = document.querySelector('#tw-paper .tw-swatch.sel')?.dataset.hex || TWEAK_DEFAULTS.paper;
+  const font   = document.getElementById('tw-font').value;
+  const density= document.getElementById('tw-density').value;
+  const progress = document.getElementById('tw-progress').value;
+
+  document.documentElement.style.setProperty('--accent', accent);
+  // derive a darker accent-2
+  document.documentElement.style.setProperty('--accent-2', shade(accent, -18));
+
+  const darkPaper = paper === '#0E1A38';
+  if (darkPaper) {
+    document.documentElement.style.setProperty('--paper', '#10152B');
+    document.documentElement.style.setProperty('--paper-2', '#151B36');
+    document.documentElement.style.setProperty('--paper-3', '#1D2544');
+    document.documentElement.style.setProperty('--ink', '#F4EFE1');
+    document.documentElement.style.setProperty('--ink-2', '#E0DAC8');
+    document.documentElement.style.setProperty('--ink-3', '#B9B29E');
+    document.documentElement.style.setProperty('--line', '#2A3358');
+    document.documentElement.style.setProperty('--muted', '#8E8773');
+  } else {
+    document.documentElement.style.setProperty('--paper', paper);
+    document.documentElement.style.setProperty('--paper-2', shade(paper,-4));
+    document.documentElement.style.setProperty('--paper-3', shade(paper,-10));
+    document.documentElement.style.setProperty('--ink', '#0E1A38');
+    document.documentElement.style.setProperty('--ink-2', '#1a2749');
+    document.documentElement.style.setProperty('--ink-3', '#2a3a63');
+    document.documentElement.style.setProperty('--line', '#E3DBC8');
+    document.documentElement.style.setProperty('--muted', '#6B6555');
+  }
+
+  document.querySelectorAll('.doc-h1, .section-title, .p-h1, .p-h2, .p-pullquote').forEach(el => {
+    el.style.fontFamily = font === 'Inter' ? 'Inter, system-ui, sans-serif' : `'${font}', serif`;
+    if (font === 'Inter') el.style.fontWeight = '600';
+    else el.style.fontWeight = '400';
+  });
+
+  if (density === 'compact') {
+    document.documentElement.style.setProperty('--radius', '6px');
+    document.querySelector('.editor-inner').style.padding = '16px 32px 120px';
+  } else {
+    document.documentElement.style.setProperty('--radius', '8px');
+    document.querySelector('.editor-inner').style.padding = '28px 48px 120px';
+  }
+
+  document.querySelector('.progress-strip').style.display = progress === 'on' ? 'flex' : 'none';
+
+  // persist
+  window.parent.postMessage({type:'__edit_mode_set_keys', edits:{accent, paper, font, density, progress}}, '*');
+}
+
+function shade(hex, pct) {
+  const n = parseInt(hex.replace('#',''), 16);
+  let r = (n>>16)&255, g = (n>>8)&255, b = n&255;
+  const k = pct/100;
+  r = Math.max(0, Math.min(255, Math.round(r + (pct<0 ? r*k : (255-r)*k))));
+  g = Math.max(0, Math.min(255, Math.round(g + (pct<0 ? g*k : (255-g)*k))));
+  b = Math.max(0, Math.min(255, Math.round(b + (pct<0 ? b*k : (255-b)*k))));
+  return '#' + [r,g,b].map(x=>x.toString(16).padStart(2,'0')).join('');
+}
+
+// wire swatch clicks
+document.querySelectorAll('.tw-swatch').forEach(s => {
+  s.addEventListener('click', () => {
+    s.parentElement.querySelectorAll('.tw-swatch').forEach(x => x.classList.remove('sel'));
+    s.classList.add('sel');
+    applyTweaks();
+  });
+});
+
+// init from defaults
+(function init(){
+  const d = TWEAK_DEFAULTS;
+  document.querySelectorAll('#tw-accent .tw-swatch').forEach(s => {
+    s.classList.toggle('sel', s.dataset.hex === d.accent);
+  });
+  document.querySelectorAll('#tw-paper .tw-swatch').forEach(s => {
+    s.classList.toggle('sel', s.dataset.hex === d.paper);
+  });
+  document.getElementById('tw-font').value = d.font;
+  document.getElementById('tw-density').value = d.density;
+  document.getElementById('tw-progress').value = d.progress;
+  applyTweaks();
+})();
+
+// Edit-mode listener first, then announce
+window.addEventListener('message', (e) => {
+  if (!e.data || !e.data.type) return;
+  if (e.data.type === '__activate_edit_mode') {
+    document.getElementById('tweaks').classList.add('visible');
+  }
+  if (e.data.type === '__deactivate_edit_mode') {
+    document.getElementById('tweaks').classList.remove('visible');
+  }
+});
+window.parent.postMessage({type:'__edit_mode_available'}, '*');
+
+// Keyboard: Cmd/Ctrl+Enter runs generate
+window.addEventListener('keydown', (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); runGenerate(); }
+});
+
+/* === CONNECT MODAL === */
+let connectStep = 0;
+function openConnect(){ document.getElementById('connect-modal').classList.add('open'); gotoConnectStep(0); }
+function closeConnect(){ document.getElementById('connect-modal').classList.remove('open'); }
+function gotoConnectStep(n){
+  connectStep = n;
+  document.querySelectorAll('.modal-step').forEach((el,i)=>el.classList.toggle('active', i===n));
+  document.querySelectorAll('.modal-step-dot').forEach((el,i)=>el.classList.toggle('active', i===n));
+  const back = document.getElementById('mb-back');
+  const next = document.getElementById('mb-next');
+  back.style.visibility = n===0 ? 'hidden' : 'visible';
+  if (n===3) { next.textContent = 'Done'; next.onclick = closeConnect; }
+  else if (n===2) {
+    next.textContent = 'Indexing…'; next.disabled = true;
+    runScan();
+  }
+  else { next.textContent = n===0 ? 'Connect →' : 'Continue →'; next.disabled = false; next.onclick = ()=>gotoConnectStep(n+1); }
+}
+function runScan(){
+  const log = document.getElementById('scan-log');
+  const steps = [
+    'Authenticating with OCI Identity …',
+    'Listed 8 prefixes in /frp-library',
+    'Indexing documents (142 objects) …',
+    'Doc Understanding: extracting PDFs (87) …',
+    'Doc Understanding: parsing workbooks (12) …',
+    'Cohere Embed v3: chunking + embedding …',
+    'Upserting 1,847 vectors into VECTOR$FRP_CHUNKS_VIDX …',
+    'OCI Generative AI ready.'
+  ];
+  log.innerHTML = '';
+  let i=0;
+  const advance = ()=>{
+    if (i>0) { const prev = log.children[i-1]; prev.classList.remove('doing'); prev.classList.add('done'); prev.innerHTML = '✓ ' + prev.textContent.replace(/^[↻✓]\s*/,''); }
+    if (i<steps.length){
+      const row = document.createElement('div');
+      row.className = 'doing';
+      row.textContent = '↻ ' + steps[i];
+      log.appendChild(row);
+      log.scrollTop = log.scrollHeight;
+      i++;
+      setTimeout(advance, 420 + Math.random()*280);
+    } else {
+      document.getElementById('scan-spinner').style.animationPlayState = 'paused';
+      document.getElementById('scan-title').textContent = 'Index complete';
+      document.getElementById('scan-sub').textContent = '142 documents · 12 workbooks · 87 PDFs · 1,847 vectors';
+      document.getElementById('scan-summary').style.display = 'grid';
+      const next = document.getElementById('mb-next');
+      next.disabled = false;
+      next.textContent = 'Continue →';
+      next.onclick = ()=>gotoConnectStep(3);
+    }
+  };
+  advance();
+}
+
+function pickSource(btn, copilot){
+  document.querySelectorAll('#connect-step-0 .ms-option').forEach(el=>el.classList.remove('sel'));
+  btn.classList.add('sel');
+  document.getElementById('sp-url-row').style.display = 'block';
+}
+function pickFolder(btn){
+  document.querySelectorAll('.ms-folder').forEach(el=>el.classList.remove('sel'));
+  btn.classList.add('sel');
+  document.getElementById('mb-next').disabled = false;
+}
+
+/* === AUTOPARSE TOGGLE === */
+function toggleAutoparse(){
+  const body = document.getElementById('autoparse-body');
+  const lbl = document.getElementById('ap-toggle-label');
+  const open = body.style.display === 'none';
+  body.style.display = open ? 'block' : 'none';
+  lbl.textContent = open ? 'Hide' : 'Review';
+}
+</script>
+
+<!-- ═══ CONNECT MODAL ═══ -->
+<div class="modal-backdrop" id="connect-modal">
+  <div class="modal">
+    <div class="modal-head">
+      <button class="modal-close" onclick="closeConnect()" title="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+      </button>
+      <div class="modal-eyebrow"><span class="modal-eyebrow-dot"></span>Library connection</div>
+      <h2 id="modal-h2">Connect your <em>OCI library</em></h2>
+      <p class="modal-sub" id="modal-sub">Point FRP at the Object Storage bucket where your proposals, RFPs, and references live. Cohere indexes it once — every new RFP after that fills this tool in automatically.</p>
+    </div>
+
+    <div class="modal-body">
+
+      <!-- ── STEP 0: source ── -->
+      <div class="modal-step active" id="connect-step-0">
+        <div class="ms-label">Choose a source</div>
+        <div class="ms-stack">
+          <div class="ms-option copilot sel" onclick="pickSource(this, true)">
+            <div class="ms-option-ico">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path></svg>
+            </div>
+            <div class="ms-option-body">
+              <div class="ms-option-title">OCI Object Storage + Generative AI <span class="rec">Recommended</span></div>
+              <div class="ms-option-sub">Auto-parse every document via Doc Understanding + Cohere. Every new RFP pre-fills this tool in &lt; 10 sec.</div>
+            </div>
+          </div>
+          <div class="ms-option" onclick="pickSource(this, false)">
+            <div class="ms-option-ico">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+            </div>
+            <div class="ms-option-body">
+              <div class="ms-option-title">OCI Object Storage only</div>
+              <div class="ms-option-sub">Read files from the bucket but skip embeddings. Vector search disabled — fall back to folder filters only.</div>
+            </div>
+          </div>
+          <div class="ms-option" onclick="pickSource(this, false)">
+            <div class="ms-option-ico">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"></path></svg>
+            </div>
+            <div class="ms-option-body">
+              <div class="ms-option-title">Upload folder manually</div>
+              <div class="ms-option-sub">Drop documents directly from your machine. Good for one-offs.</div>
+            </div>
+          </div>
+        </div>
+
+        <div id="sp-url-row">
+          <div class="ms-label">OCI bucket name</div>
+          <input class="ms-url" value="frp-library · namespace: iteria · region: us-ashburn-1" placeholder="bucket-name · namespace · region">
+          <div class="ms-label" style="margin-top:10px">OCI tenancy · signed-in user</div>
+          <input class="ms-url" value="iteria_ai · admin (Brian Schell)" readonly="" style="color:var(--muted)">
+        </div>
+      </div>
+
+      <!-- ── STEP 1: folder picker ── -->
+      <div class="modal-step" id="connect-step-1">
+        <div class="ms-label">Pick the bucket prefix FRP should index</div>
+        <div class="ms-folder-tree">
+          <div class="ms-folder">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+            frp-library <span class="ms-folder-count">142</span>
+          </div>
+          <div class="ms-folder nested" onclick="pickFolder(this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+            01_BOILERPLATE <span class="ms-folder-count">12</span>
+          </div>
+          <div class="ms-folder nested sel" onclick="pickFolder(this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+            02_WON_PROPOSALS <span class="ms-folder-count">38</span>
+          </div>
+          <div class="ms-folder nested" onclick="pickFolder(this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+            03_IN_PROGRESS <span class="ms-folder-count">17</span>
+          </div>
+          <div class="ms-folder nested" onclick="pickFolder(this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+            04_LOST_PROPOSALS <span class="ms-folder-count">21</span>
+          </div>
+          <div class="ms-folder nested" onclick="pickFolder(this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+            05_SOURCE_RFPs <span class="ms-folder-count">28</span>
+          </div>
+          <div class="ms-folder nested" onclick="pickFolder(this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+            06_COMPETITOR_INTEL <span class="ms-folder-count">9</span>
+          </div>
+          <div class="ms-folder nested" onclick="pickFolder(this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+            07_INTERNAL_ONLY <span class="ms-folder-count">14</span>
+          </div>
+          <div class="ms-folder nested" onclick="pickFolder(this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="3 2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+            08_DROP_ZONE <span class="ms-folder-count">3</span>
+          </div>
+        </div>
+        <div class="ms-label" style="margin-top:12px">What Cohere will extract</div>
+        <div class="ms-stack">
+          <div class="ms-option sel" style="pointer-events:none">
+            <div class="ms-option-ico" style="background:var(--leaf-soft);color:var(--leaf)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            </div>
+            <div class="ms-option-body">
+              <div class="ms-option-title" style="font-size:12px">Client profiles · RFP requirements · Due dates · Contacts</div>
+              <div class="ms-option-sub">Pulled from each incoming solicitation automatically.</div>
+            </div>
+          </div>
+          <div class="ms-option sel" style="pointer-events:none">
+            <div class="ms-option-ico" style="background:var(--leaf-soft);color:var(--leaf)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            </div>
+            <div class="ms-option-body">
+              <div class="ms-option-title" style="font-size:12px">Past proposals · Case studies · Matched references</div>
+              <div class="ms-option-sub">Vector-indexed in 23ai (VECTOR$FRP_CHUNKS_VIDX) — Claude reuses the strongest language from your wins.</div>
+            </div>
+          </div>
+          <div class="ms-option sel" style="pointer-events:none">
+            <div class="ms-option-ico" style="background:var(--leaf-soft);color:var(--leaf)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            </div>
+            <div class="ms-option-body">
+              <div class="ms-option-title" style="font-size:12px">Team bios · Resumes · Certifications</div>
+              <div class="ms-option-sub">Matched to RFP's required qualifications.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── STEP 2: scanning ── -->
+      <div class="modal-step" id="connect-step-2">
+        <div class="ms-scan">
+          <div class="ms-scan-head">
+            <div class="ms-scan-spinner" id="scan-spinner"></div>
+            <div>
+              <div class="ms-scan-title" id="scan-title">Cohere is indexing your bucket</div>
+              <div class="ms-scan-sub" id="scan-sub">One-time scan. Runs entirely inside iteria's OCI tenancy.</div>
+            </div>
+          </div>
+          <div class="ms-scan-log" id="scan-log"></div>
+          <div class="ms-scan-summary" id="scan-summary" style="display:none">
+            <div class="ms-scan-stat"><div class="ms-scan-stat-num">142</div><div class="ms-scan-stat-label">Documents</div></div>
+            <div class="ms-scan-stat"><div class="ms-scan-stat-num">12</div><div class="ms-scan-stat-label">Workbooks</div></div>
+            <div class="ms-scan-stat"><div class="ms-scan-stat-num">1,847</div><div class="ms-scan-stat-label">Vectors indexed</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── STEP 3: done ── -->
+      <div class="modal-step" id="connect-step-3">
+        <div class="ms-scan" style="text-align:center;padding:28px 20px">
+          <div style="width:48px;height:48px;border-radius:50%;background:var(--leaf-soft);color:var(--leaf);display:inline-flex;align-items:center;justify-content:center;margin-bottom:14px">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:22px;height:22px"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          </div>
+          <div style="font-family:&#39;Instrument Serif&#39;,serif;font-size:22px;line-height:1.15;margin-bottom:6px">Library connected.</div>
+          <div style="font-size:13px;color:var(--muted);max-width:380px;margin:0 auto;line-height:1.5">When a new RFP lands in the <strong>08_DROP_ZONE</strong> bucket prefix, FRP will auto-populate. The OCI Function watches that prefix — no manual upload needed.</div>
+          <div style="display:flex;gap:10px;justify-content:center;margin-top:16px">
+            <div class="ms-scan-stat" style="flex:0 0 130px"><div class="ms-scan-stat-num">~10 s</div><div class="ms-scan-stat-label">Auto-parse</div></div>
+            <div class="ms-scan-stat" style="flex:0 0 130px"><div class="ms-scan-stat-num">11</div><div class="ms-scan-stat-label">Fields avg.</div></div>
+            <div class="ms-scan-stat" style="flex:0 0 130px"><div class="ms-scan-stat-num">97%</div><div class="ms-scan-stat-label">Confidence</div></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="modal-foot">
+      <button class="modal-btn" id="mb-back" onclick="gotoConnectStep(connectStep-1)">← Back</button>
+      <div class="modal-foot-spacer"></div>
+      <div class="modal-step-dots">
+        <div class="modal-step-dot active"></div>
+        <div class="modal-step-dot"></div>
+        <div class="modal-step-dot"></div>
+        <div class="modal-step-dot"></div>
+      </div>
+      <button class="modal-btn accent" id="mb-next" onclick="gotoConnectStep(1)">Connect →</button>
+    </div>
+  </div>
+</div>
+
+
+
+</body></html>

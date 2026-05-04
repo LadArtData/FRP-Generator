@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FRP Studio → APEX Migration Spec</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0E1A38; --ink-2: #1a2749; --ink-3: #2a3a63;
+    --paper: #FAF8F3; --paper-2: #F3EFE6; --paper-3: #EAE4D5;
+    --line: #E3DBC8; --line-2: #D0C6AE;
+    --muted: #6B6555; --muted-2: #8E8773;
+    --accent: #E8652B; --accent-2: #C9511C; --accent-soft: #FBE3D3;
+    --leaf: #2F6B4F; --leaf-soft: #DAEAD9;
+    --sky: #3A6FA8; --sky-soft: #DCE8F4;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--paper); color: var(--ink);
+    font-size: 14px; line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 56px 48px 120px; }
+  .eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; font-weight: 500;
+    letter-spacing: .14em; text-transform: uppercase;
+    color: var(--accent-2); margin-bottom: 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .eyebrow::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+  h1 {
+    font-family: 'Instrument Serif', serif;
+    font-size: 48px; line-height: 1.05;
+    font-weight: 400; letter-spacing: -0.02em;
+    margin-bottom: 12px;
+  }
+  h1 em { font-style: italic; color: var(--accent); }
+  .lede { font-size: 16px; color: var(--muted); max-width: 640px; margin-bottom: 32px; }
+
+  h2 {
+    font-family: 'Instrument Serif', serif;
+    font-size: 28px; font-weight: 400;
+    letter-spacing: -0.01em;
+    margin: 48px 0 8px;
+    padding-top: 28px;
+    border-top: 1px solid var(--line);
+  }
+  h2:first-of-type { border-top: none; padding-top: 0; }
+  h3 {
+    font-size: 13px; font-weight: 700;
+    letter-spacing: .06em; text-transform: uppercase;
+    color: var(--ink-3);
+    margin: 28px 0 10px;
+  }
+  p { margin-bottom: 12px; color: var(--ink-2); }
+  ul, ol { padding-left: 22px; margin-bottom: 12px; }
+  li { margin-bottom: 5px; color: var(--ink-2); }
+  code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    background: var(--paper-2);
+    border: 1px solid var(--line);
+    padding: 1px 6px; border-radius: 3px;
+    color: var(--ink);
+  }
+  pre {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px; line-height: 1.6;
+    background: var(--ink); color: #f5efe1;
+    padding: 16px 20px; border-radius: 8px;
+    overflow-x: auto;
+    margin: 12px 0 20px;
+  }
+  pre .k { color: #f0a878; }
+  pre .c { color: #8e8773; font-style: italic; }
+  pre .s { color: #b9d4a3; }
+
+  .summary {
+    background: linear-gradient(180deg, #fff, var(--paper-2));
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 22px 26px;
+    margin-bottom: 36px;
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px;
+  }
+  .stat-num {
+    font-family: 'Instrument Serif', serif;
+    font-size: 32px; line-height: 1; color: var(--ink);
+  }
+  .stat-num em { color: var(--accent); font-style: italic; }
+  .stat-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; color: var(--muted);
+    letter-spacing: .1em; text-transform: uppercase;
+    margin-top: 6px;
+  }
+
+  .card {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--accent);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin: 16px 0;
+  }
+  .card-head {
+    display: flex; align-items: baseline; gap: 12px;
+    margin-bottom: 4px;
+  }
+  .card-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; font-weight: 600;
+    color: var(--accent-2);
+    background: var(--accent-soft);
+    padding: 2px 7px; border-radius: 3px;
+  }
+  .card-title {
+    font-family: 'Instrument Serif', serif;
+    font-size: 22px; font-weight: 400;
+    flex: 1;
+  }
+  .card-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; color: var(--muted-2);
+  }
+  .card-sub {
+    font-size: 13px; color: var(--muted);
+    margin-bottom: 12px;
+  }
+
+  table {
+    width: 100%; border-collapse: collapse;
+    font-size: 12.5px;
+    margin: 8px 0 18px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  th {
+    text-align: left; padding: 10px 14px;
+    font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--muted); background: var(--paper-2);
+    border-bottom: 1px solid var(--line);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+  tr:last-child td { border-bottom: none; }
+  td code { font-size: 11px; }
+
+  .badge {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9.5px; font-weight: 700;
+    letter-spacing: .06em; text-transform: uppercase;
+    padding: 2px 7px; border-radius: 3px;
+  }
+  .badge.page { background: var(--sky-soft); color: #1e4b75; }
+  .badge.region { background: var(--leaf-soft); color: #1e5a3e; }
+  .badge.proc { background: var(--accent-soft); color: var(--accent-2); }
+  .badge.item { background: var(--paper-3); color: var(--muted); }
+
+  .next {
+    margin-top: 56px;
+    background: var(--ink); color: #fff;
+    border-radius: 10px;
+    padding: 28px 32px;
+  }
+  .next h2 {
+    color: #fff; border-top: none; padding-top: 0;
+    margin-top: 0;
+  }
+  .next h2 em { color: var(--accent); font-style: italic; }
+  .next p, .next li { color: rgba(255,255,255,.78); }
+  .next code {
+    background: rgba(255,255,255,.08);
+    border-color: rgba(255,255,255,.15);
+    color: #f5efe1;
+  }
+  .checklist { list-style: none; padding-left: 0; }
+  .checklist li {
+    padding: 8px 0 8px 28px; position: relative;
+    border-bottom: 1px dashed rgba(255,255,255,.12);
+  }
+  .checklist li:last-child { border-bottom: none; }
+  .checklist li::before {
+    content: ''; position: absolute; left: 0; top: 11px;
+    width: 14px; height: 14px; border-radius: 3px;
+    border: 1.5px solid rgba(255,255,255,.3);
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="eyebrow">Handoff · v1 · May 2026</div>
+  <h1>FRP Studio → <em>Oracle APEX</em></h1>
+  <p class="lede">A page-by-page binding spec mapping the cleaned <code>FRP Studio.html</code> mockup to APEX pages, regions, items, and PL/SQL processes against the existing <code>FRP_INGEST</code> and <code>FRP_PIPELINE</code> packages in <code>ITERIA_AI</code>.</p>
+
+  <div class="summary">
+    <div><div class="stat-num"><em>5</em></div><div class="stat-label">APEX pages</div></div>
+    <div><div class="stat-num"><em>3</em></div><div class="stat-label">Backend tables</div></div>
+    <div><div class="stat-num"><em>2</em></div><div class="stat-label">PL/SQL packages</div></div>
+    <div><div class="stat-num"><em>1</em></div><div class="stat-label">OCI bucket</div></div>
+  </div>
+
+  <h2>What changed in the cleanup</h2>
+  <ul>
+    <li>Stripped <code>data-om-id</code>, <code>data-omelette-injected</code>, srcmap JSON, and the Claude editor bridge script — file dropped from <strong>424k → 125k chars</strong> (70% smaller, no behavioral change).</li>
+    <li>Restored the Google Fonts CDN link (was rewritten to a local <code>./css2</code> path during export).</li>
+    <li>Deleted dead duplicates: <code>FRP Machine.html</code>, <code>FRP Machinekey.html</code>, <code>FRP_Studio_v5_apex.html</code>, <code>FRP Machinekey_files/</code>.</li>
+    <li>Single source of truth: <code>FRP Studio.html</code>.</li>
+  </ul>
+
+  <h2>Existing backend (already built)</h2>
+  <table>
+    <thead><tr><th>Object</th><th>Type</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td><code>FRP_DOCS</code></td><td>Table</td><td>One row per file in OCI bucket. Holds bucket path, prefix (=deal_status), filename, MIME, raw_text, metadata_json.</td></tr>
+      <tr><td><code>FRP_CHUNKS</code></td><td>Table</td><td>Chunked text + 1024-d <code>VECTOR</code> embedding from Cohere. Indexed by <code>FRP_CHUNKS_VIDX</code>.</td></tr>
+      <tr><td><code>FRP_PROPOSALS</code></td><td>Table</td><td>One row per proposal-in-flight. Links to RFP doc, holds extracted_json + draft_text.</td></tr>
+      <tr><td><code>FRP_INGEST</code></td><td>Package</td><td><code>scan_all_prefixes</code>, per-prefix scan, doc → chunks → embed pipeline.</td></tr>
+      <tr><td><code>FRP_PIPELINE</code></td><td>Package</td><td>RFP → match → draft. The "engine" the UI drives.</td></tr>
+      <tr><td><code>V_FRP_LIBRARY_STATS</code></td><td>View</td><td>Counts for the dashboard / library footer.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>APEX page map</h2>
+  <p>The mockup is one screen with three panes plus a modal. In APEX it makes more sense to split into a small set of pages with a shared navigation, because each pane has very different binding semantics (interactive grid vs. form vs. report).</p>
+
+  <div class="card">
+    <div class="card-head">
+      <span class="card-num">P1</span>
+      <span class="card-title">Library</span>
+      <span class="card-meta">Home / Landing</span>
+    </div>
+    <p class="card-sub">Browse everything in <code>FRP_DOCS</code> — search, filter by prefix (won / lost / boilerplate / RFP / competitor), tap into a doc's chunks.</p>
+    <table>
+      <thead><tr><th>UI element</th><th>APEX binding</th></tr></thead>
+      <tbody>
+        <tr><td>Library list</td><td><span class="badge region">Interactive Report</span> on <code>FRP_DOCS</code> ordered by <code>INGESTED_AT DESC</code></td></tr>
+        <tr><td>Tab filters (All / Won / Lost / RFPs / Refs)</td><td>Page items <span class="badge item">P1_PREFIX</span> driving an IR filter</td></tr>
+        <tr><td>Search box</td><td><span class="badge item">P1_SEARCH</span> → IR filter on <code>FILENAME</code> + <code>RAW_TEXT</code> CONTAINS</td></tr>
+        <tr><td>Sync button</td><td><span class="badge proc">PROCESS</span> calls <code>FRP_INGEST.scan_all_prefixes</code> via Dynamic Action</td></tr>
+        <tr><td>Library footer counts</td><td>Static region from <code>V_FRP_LIBRARY_STATS</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <span class="card-num">P2</span>
+      <span class="card-title">Proposal — Editor</span>
+      <span class="card-meta">Master form on FRP_PROPOSALS</span>
+    </div>
+    <p class="card-sub">The center pane of the mockup. One form with collapsible sections (Client, RFP, Solution, Team, Tech, Refs).</p>
+    <table>
+      <thead><tr><th>UI element</th><th>APEX binding</th></tr></thead>
+      <tbody>
+        <tr><td>Doc title input</td><td><span class="badge item">P2_PROPOSAL_NAME</span> bound to <code>FRP_PROPOSALS.CLIENT_NAME</code></td></tr>
+        <tr><td>Auto-parsed callout (client, RFP#, due date, scope)</td><td>Region rendered from <code>FRP_PROPOSALS.EXTRACTED_JSON</code> (read-only review block)</td></tr>
+        <tr><td>Section: Client</td><td>Form items bound to <code>FRP_PROPOSALS</code> + JSON path edits to <code>EXTRACTED_JSON</code></td></tr>
+        <tr><td>Section: RFP</td><td><span class="badge item">P2_RFP_DOC_ID</span> popup-LOV from <code>FRP_DOCS WHERE PREFIX='05_SOURCE_RFPS'</code></td></tr>
+        <tr><td>Attached docs list</td><td>Classic Report on a <code>FRP_PROPOSAL_ATTACHMENTS</code> link table (<strong>new</strong>, see schema additions)</td></tr>
+        <tr><td>Generate button</td><td><span class="badge proc">PROCESS</span> calls <code>FRP_PIPELINE.run_proposal(p_proposal_id)</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <span class="card-num">P3</span>
+      <span class="card-title">Proposal — Preview &amp; Outputs</span>
+      <span class="card-meta">Right pane / generated tabs</span>
+    </div>
+    <p class="card-sub">The 7 output tabs from the mockup. Render-only — bound to <code>DRAFT_TEXT</code> and the JSON shaping done by <code>FRP_PIPELINE</code>.</p>
+    <table>
+      <thead><tr><th>Tab</th><th>APEX binding</th></tr></thead>
+      <tbody>
+        <tr><td>Cover Letter / Exec Summary</td><td>Display Only on JSON path <code>$.cover_letter</code></td></tr>
+        <tr><td>Compliance Matrix</td><td><span class="badge region">Interactive Grid</span> on inline collection populated by <code>FRP_PIPELINE.build_compliance_matrix</code></td></tr>
+        <tr><td>Requirements Workbook</td><td>Tabular region per workbook tab; bind to <code>APEX_JSON.parse(EXTRACTED_JSON)</code></td></tr>
+        <tr><td>Cited Sources</td><td>Classic Report joining <code>FRP_CHUNKS</code> on top-K matches for the proposal</td></tr>
+        <tr><td>Export DOCX / XLSX</td><td><span class="badge proc">PROCESS</span> using <code>APEX_DATA_EXPORT.export</code> + <code>DBMS_LOB</code> to bucket</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <span class="card-num">P4</span>
+      <span class="card-title">Connect &amp; Ingest</span>
+      <span class="card-meta">Replaces the OCI modal</span>
+    </div>
+    <p class="card-sub">Admin-only. Configure bucket, view ingest health, kick scans manually. Most of the time you won't open this.</p>
+    <table>
+      <thead><tr><th>UI element</th><th>APEX binding</th></tr></thead>
+      <tbody>
+        <tr><td>Credential status (OCI$RESOURCE_PRINCIPAL)</td><td>Display from <code>USER_CREDENTIALS</code></td></tr>
+        <tr><td>Bucket URL</td><td>Static — currently hardcoded in <code>FRP_INGEST.C_BUCKET_BASE</code>; lift to <code>FRP_CONFIG</code> table</td></tr>
+        <tr><td>Folder list with counts</td><td>Report grouped by <code>PREFIX</code> from <code>FRP_DOCS</code></td></tr>
+        <tr><td>Run scan</td><td><span class="badge proc">PROCESS</span> <code>FRP_INGEST.scan_all_prefixes</code> with progress via DBMS_OUTPUT → APEX collection</td></tr>
+        <tr><td>Failed-doc log</td><td>Add <code>FRP_INGEST_LOG</code> table; report on it</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <span class="card-num">P5</span>
+      <span class="card-title">Bulk Upload Helper</span>
+      <span class="card-meta">The 3,000-doc problem</span>
+    </div>
+    <p class="card-sub">OCI Console makes you upload one folder at a time. APEX page that accepts a multi-file drop, stages to <code>APEX_APPLICATION_TEMP_FILES</code>, and pushes to OCI in one go via <code>DBMS_CLOUD.PUT_OBJECT</code> in a background job.</p>
+    <ul>
+      <li>File browse item with <code>multiple</code> attribute.</li>
+      <li>Region: queue table showing pending / uploaded / failed per file.</li>
+      <li>Background process via <code>DBMS_SCHEDULER</code> chains uploads → triggers <code>FRP_INGEST.ingest_one</code> per object.</li>
+      <li>Polling Dynamic Action refreshes the queue every 3s.</li>
+    </ul>
+  </div>
+
+  <h2>Schema additions needed</h2>
+  <p>Three small additions to make the UI bindings clean:</p>
+<pre><span class="c">-- Link table for "attached" docs on a proposal (currently mocked in UI)</span>
+<span class="k">CREATE TABLE</span> FRP_PROPOSAL_ATTACHMENTS (
+  PROPOSAL_ID  <span class="k">VARCHAR2</span>(64) <span class="k">NOT NULL REFERENCES</span> FRP_PROPOSALS,
+  DOC_ID       <span class="k">VARCHAR2</span>(64) <span class="k">NOT NULL REFERENCES</span> FRP_DOCS,
+  ROLE         <span class="k">VARCHAR2</span>(32),  <span class="c">-- 'rfp' | 'reference' | 'template'</span>
+  ADDED_AT     <span class="k">TIMESTAMP</span> <span class="k">DEFAULT</span> CURRENT_TIMESTAMP,
+  <span class="k">PRIMARY KEY</span> (PROPOSAL_ID, DOC_ID, ROLE)
+);
+
+<span class="c">-- Ingest log so the UI can show which files failed and why</span>
+<span class="k">CREATE TABLE</span> FRP_INGEST_LOG (
+  LOG_ID       <span class="k">VARCHAR2</span>(64) <span class="k">DEFAULT</span> SYS_GUID() <span class="k">PRIMARY KEY</span>,
+  RUN_AT       <span class="k">TIMESTAMP</span> <span class="k">DEFAULT</span> CURRENT_TIMESTAMP,
+  BUCKET_PATH  <span class="k">VARCHAR2</span>(1024),
+  STATUS       <span class="k">VARCHAR2</span>(16),  <span class="c">-- 'OK' | 'FAILED' | 'SKIPPED'</span>
+  MESSAGE      <span class="k">VARCHAR2</span>(4000)
+);
+
+<span class="c">-- Replace the hardcoded constant in FRP_INGEST</span>
+<span class="k">CREATE TABLE</span> FRP_CONFIG (
+  KEY          <span class="k">VARCHAR2</span>(64) <span class="k">PRIMARY KEY</span>,
+  VALUE        <span class="k">VARCHAR2</span>(1024)
+);
+<span class="k">INSERT INTO</span> FRP_CONFIG <span class="k">VALUES</span> (
+  <span class="s">'BUCKET_BASE'</span>,
+  <span class="s">'https://objectstorage.ap-mumbai-1.oraclecloud.com/n/bmi3vxyqnzrv/b/FRPStudio/o/'</span>
+);</pre>
+
+  <h2>Visual tokens for the APEX theme</h2>
+  <p>Build a custom theme style on top of Universal Theme so the APEX pages match the mockup. Drop these into Theme Roller or a CSS file in <code>#APP_FILES#</code>:</p>
+<pre>--ut-palette-primary:    #0E1A38;  <span class="c">/* navy ink */</span>
+--ut-palette-accent:     #E8652B;  <span class="c">/* orange */</span>
+--ut-page-background:    #FAF8F3;  <span class="c">/* warm paper */</span>
+--ut-region-background:  #FFFFFF;
+--ut-region-border:      #E3DBC8;
+--ut-body-text-color:    #0E1A38;
+--ut-muted-text-color:   #6B6555;
+
+font-family-display: 'Instrument Serif', Georgia, serif;
+font-family-body:    'Inter', system-ui, sans-serif;
+font-family-mono:    'JetBrains Mono', monospace;</pre>
+
+  <div class="next">
+    <h2>Next <em>steps</em></h2>
+    <p>In rough order. Each is a short session.</p>
+    <ul class="checklist">
+      <li>Run the three <code>CREATE TABLE</code> statements above in <code>ITERIA_AI</code>.</li>
+      <li>Spin up an empty APEX app — pick "From scratch", Universal Theme, blank home page.</li>
+      <li>Apply the color tokens via Theme Roller; upload Inter + Instrument Serif as application static files.</li>
+      <li>Build P1 (Library) first — fastest validation that your data is queryable from APEX.</li>
+      <li>Build P5 (Bulk Upload) next so you can actually load the 3,000 docs.</li>
+      <li>Build P2 + P3 (Proposal Editor + Preview) — the main flow.</li>
+      <li>P4 (Connect &amp; Ingest) last — admin/diagnostics, low priority once the rest works.</li>
+    </ul>
+  </div>
+
+</div>
+</body>
+</html>

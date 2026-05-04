@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>FRP Studio — APEX Embed Pattern</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink:#0E1A38; --ink-2:#1a2749; --ink-3:#2a3a63;
+    --paper:#FAF8F3; --paper-2:#F3EFE6; --paper-3:#EAE4D5;
+    --line:#E3DBC8; --muted:#6B6555; --muted-2:#8E8773;
+    --accent:#E8652B; --accent-2:#C9511C; --accent-soft:#FBE3D3;
+    --leaf:#2F6B4F; --leaf-soft:#DAEAD9;
+    --sky:#3A6FA8; --sky-soft:#DCE8F4;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Inter',system-ui,sans-serif;background:var(--paper);color:var(--ink);font-size:14px;line-height:1.55;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:920px;margin:0 auto;padding:56px 48px 120px}
+  .eyebrow{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-2);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+  .eyebrow::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--accent)}
+  h1{font-family:'Instrument Serif',serif;font-size:48px;line-height:1.05;font-weight:400;letter-spacing:-0.02em;margin-bottom:12px}
+  h1 em{font-style:italic;color:var(--accent)}
+  .lede{font-size:16px;color:var(--muted);max-width:640px;margin-bottom:32px}
+  h2{font-family:'Instrument Serif',serif;font-size:28px;font-weight:400;letter-spacing:-0.01em;margin:48px 0 8px;padding-top:28px;border-top:1px solid var(--line)}
+  h2:first-of-type{border-top:none;padding-top:0}
+  h3{font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);margin:24px 0 10px}
+  p{margin-bottom:12px;color:var(--ink-2)}
+  ul,ol{padding-left:22px;margin-bottom:12px}
+  li{margin-bottom:5px;color:var(--ink-2)}
+  code{font-family:'JetBrains Mono',monospace;font-size:12px;background:var(--paper-2);border:1px solid var(--line);padding:1px 6px;border-radius:3px;color:var(--ink)}
+  pre{font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.6;background:var(--ink);color:#f5efe1;padding:16px 20px;border-radius:8px;overflow-x:auto;margin:12px 0 20px}
+  pre .k{color:#f0a878}
+  pre .c{color:#8e8773;font-style:italic}
+  pre .s{color:#b9d4a3}
+  .step{background:#fff;border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:8px;padding:20px 24px;margin:16px 0}
+  .step-head{display:flex;align-items:baseline;gap:12px;margin-bottom:8px}
+  .step-num{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:var(--accent-2);background:var(--accent-soft);padding:2px 7px;border-radius:3px}
+  .step-title{font-family:'Instrument Serif',serif;font-size:22px;font-weight:400;flex:1}
+  .step-meta{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted-2)}
+  .callout{background:linear-gradient(180deg,#fff,var(--paper-2));border:1px solid var(--line);border-radius:8px;padding:16px 20px;margin:16px 0;display:flex;gap:14px;align-items:flex-start}
+  .callout-mark{font-family:'Instrument Serif',serif;font-style:italic;color:var(--accent);font-size:24px;line-height:1;flex-shrink:0}
+  .callout-body{flex:1;font-size:13px;color:var(--ink-2)}
+  table{width:100%;border-collapse:collapse;font-size:12.5px;margin:8px 0 18px;background:#fff;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+  th{text-align:left;padding:10px 14px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);background:var(--paper-2);border-bottom:1px solid var(--line);font-family:'JetBrains Mono',monospace}
+  td{padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  td code{font-size:11px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="eyebrow">Handoff · Embed pattern · v1</div>
+  <h1>Drop <em>FRP Studio</em> into APEX</h1>
+  <p class="lede">Same pattern you used for the validate component: upload the existing HTML as a Shared Component (Static Application File), reference it from a single APEX page, and wire its fetch calls to PL/SQL via AJAX callbacks. <strong>No rewriting the UI in APEX-native pages.</strong></p>
+
+  <div class="callout">
+    <div class="callout-mark">★</div>
+    <div class="callout-body">If your validate component pattern was different (e.g. a Page Template or a Plug-in), tell me and I'll re-spec to match exactly. Defaults below are the most common APEX-shared-component path for a self-contained HTML/JS app.</div>
+  </div>
+
+  <h2>Step 1 — Upload the HTML as a Shared Component</h2>
+  <div class="step">
+    <div class="step-head"><span class="step-num">1.1</span><span class="step-title">Static Application File</span><span class="step-meta">App Builder → Shared Components</span></div>
+    <ul>
+      <li>Open your APEX app → <strong>Shared Components</strong> → <strong>Static Application Files</strong>.</li>
+      <li>Click <strong>Upload File</strong>.</li>
+      <li>Upload <code>FRP Studio.html</code> exactly as it sits in this project — the Google Fonts CDN link works fine, no other external assets to bundle.</li>
+      <li>After upload, APEX gives you a substitution string like <code>#APP_FILES#FRP%20Studio.html</code>. Copy it.</li>
+    </ul>
+  </div>
+
+  <div class="step">
+    <div class="step-head"><span class="step-num">1.2</span><span class="step-title">Host page</span><span class="step-meta">Single blank APEX page</span></div>
+    <ul>
+      <li>Create a new page, type <strong>Blank Page</strong>, name it <code>FRP Studio</code>.</li>
+      <li>Add a single <strong>Static Content</strong> region. Set its source to:</li>
+    </ul>
+<pre>&lt;iframe
+  src=<span class="s">"#APP_FILES#FRP%20Studio.html"</span>
+  style=<span class="s">"width:100%;height:calc(100vh - 90px);border:0"</span>
+  allow=<span class="s">"clipboard-read;clipboard-write"</span>&gt;
+&lt;/iframe&gt;</pre>
+    <p>An iframe is the cleanest container — keeps the Studio's CSS isolated from APEX Universal Theme and avoids ID/class collisions. Same pattern most embedded Claude artifacts use.</p>
+  </div>
+
+  <h2>Step 2 — Wire fetch() to PL/SQL via AJAX callbacks</h2>
+  <p>Right now the Studio's buttons are mocked (sample data, simulated progress). Replace those with calls to APEX AJAX callbacks defined on the host page.</p>
+
+  <h3>On the host APEX page</h3>
+  <p>Add these <strong>AJAX Callback processes</strong> (Page Designer → Pre-Rendering → Processes — change Type to <em>AJAX Callback</em>):</p>
+
+  <table>
+    <thead><tr><th>Process Name</th><th>Calls</th><th>Returns</th></tr></thead>
+    <tbody>
+      <tr><td><code>LIBRARY_LIST</code></td><td><code>SELECT … FROM FRP_DOCS</code></td><td>JSON array of docs</td></tr>
+      <tr><td><code>LIBRARY_SCAN</code></td><td><code>FRP_INGEST.scan_all_prefixes</code></td><td>JSON status + counts</td></tr>
+      <tr><td><code>PROPOSAL_CREATE</code></td><td><code>INSERT INTO FRP_PROPOSALS</code></td><td>new <code>proposal_id</code></td></tr>
+      <tr><td><code>PROPOSAL_GENERATE</code></td><td><code>FRP_PIPELINE.run_proposal(:p_id)</code></td><td>JSON draft + matrix</td></tr>
+      <tr><td><code>BUCKET_UPLOAD</code></td><td><code>DBMS_CLOUD.PUT_OBJECT</code></td><td>JSON ok/err per file</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Example AJAX Callback body</h3>
+<pre><span class="c">-- Process: LIBRARY_LIST  (Type: AJAX Callback)</span>
+<span class="k">DECLARE</span>
+  l_out CLOB;
+<span class="k">BEGIN</span>
+  APEX_JSON.initialize_clob_output;
+  APEX_JSON.open_array;
+  <span class="k">FOR</span> r <span class="k">IN</span> (
+    <span class="k">SELECT</span> doc_id, filename, prefix, deal_status,
+           client_name, ingested_at, size_bytes
+      <span class="k">FROM</span> frp_docs
+     <span class="k">ORDER BY</span> ingested_at <span class="k">DESC</span>
+     <span class="k">FETCH FIRST</span> 200 <span class="k">ROWS ONLY</span>
+  ) <span class="k">LOOP</span>
+    APEX_JSON.open_object;
+    APEX_JSON.write(<span class="s">'doc_id'</span>,      r.doc_id);
+    APEX_JSON.write(<span class="s">'filename'</span>,    r.filename);
+    APEX_JSON.write(<span class="s">'prefix'</span>,      r.prefix);
+    APEX_JSON.write(<span class="s">'deal_status'</span>, r.deal_status);
+    APEX_JSON.write(<span class="s">'client'</span>,      r.client_name);
+    APEX_JSON.write(<span class="s">'ingested_at'</span>, r.ingested_at);
+    APEX_JSON.write(<span class="s">'size_bytes'</span>,  r.size_bytes);
+    APEX_JSON.close_object;
+  <span class="k">END LOOP</span>;
+  APEX_JSON.close_array;
+  l_out := APEX_JSON.get_clob_output;
+  APEX_JSON.free_output;
+  HTP.p(l_out);
+<span class="k">END</span>;</pre>
+
+  <h3>In the Studio HTML — the bridge</h3>
+  <p>Add a tiny shim near the top of <code>FRP Studio.html</code> so its existing fetch calls find APEX. Because it's iframed, it talks to the parent page's APEX session via <code>window.parent.apex.server.process</code>:</p>
+<pre><span class="k">const</span> apexCall = (name, data) =&gt;
+  <span class="k">new</span> Promise((res, rej) =&gt; {
+    <span class="k">const</span> apex = (window.parent &amp;&amp; window.parent.apex) || window.apex;
+    <span class="k">if</span> (!apex) <span class="k">return</span> rej(<span class="k">new</span> Error(<span class="s">'APEX bridge not available'</span>));
+    apex.server.process(name, { x01: JSON.stringify(data || {}) }, {
+      success: (r) =&gt; res(r),
+      error:   (e) =&gt; rej(e)
+    });
+  });
+
+<span class="c">// then replace mock data calls with:</span>
+<span class="k">const</span> docs = <span class="k">await</span> apexCall(<span class="s">'LIBRARY_LIST'</span>);
+renderLibrary(docs);</pre>
+
+  <p>In each AJAX Callback, read the payload with <code>APEX_APPLICATION.G_X01</code> and parse with <code>APEX_JSON.parse</code>.</p>
+
+  <h2>Step 3 — Authentication &amp; session</h2>
+  <ul>
+    <li>The iframe inherits the parent APEX session automatically (same origin, same cookie). No extra auth wiring needed.</li>
+    <li>If you ever serve the Studio from a different origin, switch to ORDS REST + JWT. Not needed for the embedded pattern.</li>
+  </ul>
+
+  <h2>Step 4 — Iterating</h2>
+  <p>To update the UI: edit <code>FRP Studio.html</code> here, re-upload to Static Application Files (overwrite). APEX bumps a cache-buster automatically. The host page doesn't need any changes.</p>
+
+  <div class="callout">
+    <div class="callout-mark">★</div>
+    <div class="callout-body"><strong>Iframe vs. inline:</strong> If you'd rather the Studio inherit Universal Theme styling (and not be iframed), instead set the host page's region to <em>HTML Expression</em> and inline the file via <code>#APP_FILES#FRP%20Studio.html</code> served as a <code>&lt;link rel=stylesheet&gt;</code> for CSS + a <code>&lt;script&gt;</code> tag for JS. Iframe is safer because the Studio has its own full layout including a top bar — it'll fight Universal Theme's chrome.</div>
+  </div>
+
+  <h2>What I'll do next</h2>
+  <ul>
+    <li>Add the <code>apexCall</code> bridge to <code>FRP Studio.html</code> so the wiring is one-line per call when you're ready.</li>
+    <li>Write the 5 AJAX Callback PL/SQL bodies as a single <code>.sql</code> file you can paste into APEX.</li>
+  </ul>
+  <p>Tell me when to start, and whether you want the bridge inlined into the existing file or in a separate <code>frp-apex-bridge.js</code> snippet.</p>
+
+</div>
+</body>
+</html>
