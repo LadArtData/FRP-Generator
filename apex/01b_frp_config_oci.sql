@@ -39,11 +39,17 @@ MERGE INTO FRP_CONFIG c USING (
          || 'NOTE: 04_frp_ingest_body.sql currently calls cohere.embed-v4.0 (1536-dim) — '
          || 'reconcile after confirming FRP_CHUNKS.embedding dimension.' FROM dual
   UNION ALL
-  SELECT 'oci.writer_model_ocid',
+  SELECT 'oci.gemini_pro_ocid',
          'ocid1.generativeaimodel.oc1.us-chicago-1.amaaaaaask7dceya5decawi4guyah3nf2tbv3fzhzb3kbagjn7nqxatuwxzq',
          'string',
-         'FRP draft writer model OCID (user-labeled "gemini pro"; uses GenericChatRequest path '
-         || '— actual model in OCI catalog is Llama/Grok family). Maps to draft.writer_model.' FROM dual
+         'User-labeled "gemini pro" model OCID (used for FRP narrative drafting). '
+         || 'GenericChatRequest path. Sample params: maxTokens=6000, temp=1, topP=0.95, topK=1.' FROM dual
+  UNION ALL
+  SELECT 'oci.grok_ocid',
+         'ocid1.generativeaimodel.oc1.us-chicago-1.amaaaaaask7dceya4fxp5zjj27q24rjxk46l43die7u6nclgwfbemklsdvoa',
+         'string',
+         'xAI Grok model OCID. GenericChatRequest path. '
+         || 'Sample params: maxTokens=600, temp=1, topP=1, topK=0.' FROM dual
 ) src
 ON (c.cfg_key = src.k)
 WHEN MATCHED THEN UPDATE SET c.cfg_value = src.v, c.cfg_type = src.t,
