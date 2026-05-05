@@ -38,6 +38,12 @@ MERGE INTO FRP_CONFIG c USING (
          'Cohere embedding model name (per OCI EmbedText sample) — 384-dim. '
          || 'NOTE: 04_frp_ingest_body.sql currently calls cohere.embed-v4.0 (1536-dim) — '
          || 'reconcile after confirming FRP_CHUNKS.embedding dimension.' FROM dual
+  UNION ALL
+  SELECT 'oci.writer_model_ocid',
+         'ocid1.generativeaimodel.oc1.us-chicago-1.amaaaaaask7dceya5decawi4guyah3nf2tbv3fzhzb3kbagjn7nqxatuwxzq',
+         'string',
+         'FRP draft writer model OCID (user-labeled "gemini pro"; uses GenericChatRequest path '
+         || '— actual model in OCI catalog is Llama/Grok family). Maps to draft.writer_model.' FROM dual
 ) src
 ON (c.cfg_key = src.k)
 WHEN MATCHED THEN UPDATE SET c.cfg_value = src.v, c.cfg_type = src.t,
