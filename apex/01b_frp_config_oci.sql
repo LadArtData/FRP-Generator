@@ -32,6 +32,12 @@ MERGE INTO FRP_CONFIG c USING (
          'ocid1.generativeaimodel.oc1.us-chicago-1.amaaaaaask7dceya2xrydihzvu5pk6vlvfhtbnfapcvwhhugzo7jez4zcnaa',
          'string',
          'Meta Llama model OCID — used by rfp.parser_model for document tagging' FROM dual
+  UNION ALL
+  SELECT 'oci.embed.model_name',
+         'cohere.embed-english-light-v3.0', 'string',
+         'Cohere embedding model name (per OCI EmbedText sample) — 384-dim. '
+         || 'NOTE: 04_frp_ingest_body.sql currently calls cohere.embed-v4.0 (1536-dim) — '
+         || 'reconcile after confirming FRP_CHUNKS.embedding dimension.' FROM dual
 ) src
 ON (c.cfg_key = src.k)
 WHEN MATCHED THEN UPDATE SET c.cfg_value = src.v, c.cfg_type = src.t,
