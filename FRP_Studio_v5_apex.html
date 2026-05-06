@@ -1212,8 +1212,8 @@ textarea { min-height: 72px; resize: vertical; font-family: inherit; line-height
         <span class="cp-dot"></span>
         OCI
       </span>
-      <span>Cohere · Llama · Claude</span>
-      <span class="chip-copilot-count">· 142 indexed</span>
+      <span id="chip-copilot-models">Cohere · Llama · Grok</span>
+      <span class="chip-copilot-count" id="chip-copilot-count">· — indexed</span>
     </button>
     <button class="tb-btn" onclick="toggleTweaks()" title="Tweaks">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg>
@@ -2334,6 +2334,8 @@ async function loadLibraryStats() {
     if (counts) counts.textContent = (s.total_docs || 0) + ' docs · ' + (s.total_chunks || 0) + ' chunks';
     const allBadge = document.getElementById('lib-count-all');
     if (allBadge) allBadge.textContent = s.total_docs || 0;
+    const chipCount = document.getElementById('chip-copilot-count');
+    if (chipCount) chipCount.textContent = '· ' + (s.total_chunks || 0).toLocaleString() + ' indexed';
     (s.by_status || []).forEach(b => {
       const id = 'lib-count-' + (b.status || '').toLowerCase();
       const el = document.getElementById(id);
