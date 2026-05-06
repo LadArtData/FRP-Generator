@@ -97,7 +97,9 @@ CREATE OR REPLACE PACKAGE BODY FRP_INGEST AS
     j_serving.put('servingType', 'ON_DEMAND');
     j_serving.put('modelId',     C_EMBED_MODEL);
 
-    j_inputs.append(SUBSTR(p_chunk, 1, 30000));
+    -- Cohere v3 family caps at ~512 tokens (~2000 chars). 8000 is generous
+    -- but stays well within VARCHAR2(32767) even with multi-byte UTF-8.
+    j_inputs.append(DBMS_LOB.SUBSTR(p_chunk, 8000, 1));
 
     j_root.put('compartmentId', C_OCI_COMPARTMENT_ID);
     j_root.put('servingMode',   j_serving);
