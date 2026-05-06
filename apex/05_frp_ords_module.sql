@@ -204,6 +204,9 @@ END;');
   l_total_docs   NUMBER := 0;
   l_total_chunks NUMBER := 0;
   l_first        BOOLEAN := TRUE;
+  l_embed_model  VARCHAR2(200);
+  l_parser_model VARCHAR2(200);
+  l_writer_model VARCHAR2(200);
 BEGIN
   BEGIN SELECT api_key INTO l_api_key FROM iteria_ai.api_configuration
         WHERE is_active=''Y'' AND ROWNUM=1;
@@ -215,9 +218,16 @@ BEGIN
   BEGIN SELECT COUNT(*) INTO l_total_docs   FROM iteria_ai.frp_docs;   EXCEPTION WHEN OTHERS THEN l_total_docs := 0; END;
   BEGIN SELECT COUNT(*) INTO l_total_chunks FROM iteria_ai.frp_chunks; EXCEPTION WHEN OTHERS THEN l_total_chunks := 0; END;
 
+  BEGIN SELECT cfg_value INTO l_embed_model  FROM iteria_ai.frp_config WHERE cfg_key=''embed.model'';        EXCEPTION WHEN OTHERS THEN l_embed_model  := NULL; END;
+  BEGIN SELECT cfg_value INTO l_parser_model FROM iteria_ai.frp_config WHERE cfg_key=''rfp.parser_model'';   EXCEPTION WHEN OTHERS THEN l_parser_model := NULL; END;
+  BEGIN SELECT cfg_value INTO l_writer_model FROM iteria_ai.frp_config WHERE cfg_key=''draft.writer_model''; EXCEPTION WHEN OTHERS THEN l_writer_model := NULL; END;
+
   HTP.P(''{"ok":true,"total_docs":'' || l_total_docs
        || '',"total_chunks":''       || l_total_chunks
-       || '',"by_status":['' );
+       || '',"models":{"embed":''    || APEX_JSON.STRINGIFY(NVL(l_embed_model,''''))
+       || '',"parser":''             || APEX_JSON.STRINGIFY(NVL(l_parser_model,''''))
+       || '',"writer":''             || APEX_JSON.STRINGIFY(NVL(l_writer_model,''''))
+       || ''},"by_status":['' );
 
   FOR r IN (
     SELECT NVL(LOWER(deal_status),''unknown'') AS deal_status,

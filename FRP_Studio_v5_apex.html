@@ -2336,6 +2336,24 @@ async function loadLibraryStats() {
     if (allBadge) allBadge.textContent = s.total_docs || 0;
     const chipCount = document.getElementById('chip-copilot-count');
     if (chipCount) chipCount.textContent = '· ' + (s.total_chunks || 0).toLocaleString() + ' indexed';
+    const chipModels = document.getElementById('chip-copilot-models');
+    if (chipModels && s.models) {
+      const labelize = (m) => {
+        if (!m) return null;
+        m = m.toLowerCase();
+        if (m.startsWith('cohere')) return 'Cohere';
+        if (m.startsWith('llama'))  return 'Llama';
+        if (m.startsWith('grok'))   return 'Grok';
+        if (m.includes('claude'))   return 'Claude';
+        if (m.includes('gemini'))   return 'Gemini';
+        return m.split('.')[0].split('-')[0].replace(/^\w/, c => c.toUpperCase());
+      };
+      const labels = [s.models.embed, s.models.parser, s.models.writer]
+        .map(labelize).filter(Boolean);
+      const seen = new Set();
+      const dedup = labels.filter(l => seen.has(l) ? false : (seen.add(l), true));
+      if (dedup.length) chipModels.textContent = dedup.join(' · ');
+    }
     (s.by_status || []).forEach(b => {
       const id = 'lib-count-' + (b.status || '').toLowerCase();
       const el = document.getElementById(id);
