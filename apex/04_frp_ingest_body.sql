@@ -1,30 +1,27 @@
 -- ═══════════════════════════════════════════════════════════════════
--- FRP_INGEST — package body, clean rewrite
+-- FRP_INGEST — package body
+-- Run AFTER 00_frp_ingest_spec.sql.
 --
--- Each step is its own named function so failures point at exactly one thing:
+-- Two changes from the in-DB version (which was INVALID):
 --
---   fetch_blob(path)             → BLOB
---   extract_text(blob)           → CLOB
---   persist_doc(...)             → row in FRP_DOCS
---   chunk_text(text)             → SYS.ODCIVARCHAR2LIST  (just strings)
---   embed_one(chunk)             → VECTOR
---   embed_and_persist(doc, text) → loops chunks, embeds one at a time, inserts one at a time
---   ingest_object(path)          → orchestrator
---   scan_all_prefixes            → bulk driver
---   deal_status_for(path)        → prefix → status mapping
---   stable_doc_id(path)          → md5 of path
+-- 1. embed_one rewritten to use DBMS_CLOUD.SEND_REQUEST directly.
+--    The previous version used DBMS_VECTOR_CHAIN.UTL_TO_EMBEDDING,
+--    whose constructed request body OCI rejects with HTTP 400
+--    "Please pass in correct format of request." — verified against
+--    both cohere.embed-v4.0 and cohere.embed-english-light-v3.0.
+--    Direct call against the same endpoint with the same auth returns
+--    HTTP 200 + a 384-dim vector.
 --
--- Why one-chunk-at-a-time? Because when an embed fails, we know which chunk,
--- which model call, which row. The old "TABLE(UTL_TO_EMBEDDINGS) + JSON_TABLE
--- + INSERT" mega-statement gives ORA-51804 with no clue which chunk caused it.
+-- 2. scan_all_prefixes EXCEPTION handler captures FORMAT_ERROR_BACKTRACE
+--    into a local variable before the INSERT. Inline use in a SQL
+--    VALUES clause causes ORA-00984 ("column not allowed here") on
+--    compile in this Oracle version.
 -- ═══════════════════════════════════════════════════════════════════
 
 ALTER SESSION SET CURRENT_SCHEMA = ITERIA_AI;
 
 CREATE OR REPLACE PACKAGE BODY FRP_INGEST AS
 
-  -- ─────────────────────────────────────────────────────────
-  -- Map a bucket prefix to a deal status
   -- ─────────────────────────────────────────────────────────
   FUNCTION deal_status_for(p_object_name IN VARCHAR2) RETURN VARCHAR2 IS
   BEGIN
@@ -43,8 +40,6 @@ CREATE OR REPLACE PACKAGE BODY FRP_INGEST AS
   END;
 
   -- ─────────────────────────────────────────────────────────
-  -- Stable, deterministic doc_id from the bucket path
-  -- ─────────────────────────────────────────────────────────
   FUNCTION stable_doc_id(p_object_name IN VARCHAR2) RETURN VARCHAR2 IS
     l_hash VARCHAR2(64);
   BEGIN
@@ -54,28 +49,19 @@ CREATE OR REPLACE PACKAGE BODY FRP_INGEST AS
   END stable_doc_id;
 
   -- ─────────────────────────────────────────────────────────
-  -- Step 1: pull a file from the bucket as a BLOB
-  -- ─────────────────────────────────────────────────────────
   FUNCTION fetch_blob(p_object_name IN VARCHAR2) RETURN BLOB IS
   BEGIN
     RETURN DBMS_CLOUD.GET_OBJECT(
       credential_name => 'OCI$RESOURCE_PRINCIPAL',
-      object_uri      => C_BUCKET_BASE || p_object_name
-    );
+      object_uri      => C_BUCKET_BASE || p_object_name);
   END;
 
-  -- ─────────────────────────────────────────────────────────
-  -- Step 2: extract plain text from any supported binary
-  -- (PDF, DOCX, XLSX, HTML, TXT — handled by 23ai natively)
   -- ─────────────────────────────────────────────────────────
   FUNCTION extract_text(p_blob IN BLOB) RETURN CLOB IS
   BEGIN
     RETURN DBMS_VECTOR_CHAIN.UTL_TO_TEXT(p_blob, JSON('{ "plaintext": "true" }'));
   END;
 
-  -- ─────────────────────────────────────────────────────────
-  -- Step 3: upsert the FRP_DOCS row (delete-then-insert, by design —
-  -- avoids a PL/SQL→SQL identifier-resolution quirk we hit with MERGE)
   -- ─────────────────────────────────────────────────────────
   PROCEDURE persist_doc(
     p_doc_id      IN VARCHAR2,
@@ -94,8 +80,6 @@ CREATE OR REPLACE PACKAGE BODY FRP_INGEST AS
   END persist_doc;
 
   -- ─────────────────────────────────────────────────────────
-  -- Step 4a: chunk text into a list of strings (no embedding yet)
-  -- ─────────────────────────────────────────────────────────
   FUNCTION chunk_text(p_text IN CLOB) RETURN SYS.ODCIVARCHAR2LIST IS
     l_chunks SYS.ODCIVARCHAR2LIST := SYS.ODCIVARCHAR2LIST();
   BEGIN
@@ -109,31 +93,57 @@ CREATE OR REPLACE PACKAGE BODY FRP_INGEST AS
         ) t
     ) LOOP
       l_chunks.EXTEND;
-      -- UTL_TO_CHUNKS returns each chunk wrapped as JSON: {"chunk_id":N,"chunk_data":"..."}
       l_chunks(l_chunks.COUNT) := JSON_VALUE(rec.chunk_str, '$.chunk_data');
     END LOOP;
     RETURN l_chunks;
   END chunk_text;
 
   -- ─────────────────────────────────────────────────────────
-  -- Step 4b: embed ONE chunk → VECTOR
-  -- Single round-trip to OCI Generative AI per chunk. Slower than batching,
-  -- but errors point at one chunk, not a whole batch.
+  -- Direct OCI HTTP call — bypasses DBMS_VECTOR_CHAIN.UTL_TO_EMBEDDING
+  -- because the wrapper sends a body OCI returns HTTP 400 on.
+  -- Verified working: cohere.embed-english-light-v3.0 → 384-dim vector.
   -- ─────────────────────────────────────────────────────────
   FUNCTION embed_one(p_chunk IN CLOB) RETURN VECTOR IS
-    l_vec VECTOR;
+    l_resp     DBMS_CLOUD_TYPES.RESP;
+    l_body     CLOB;
+    l_text     CLOB;
+    l_status   NUMBER;
+    l_vec      VECTOR;
   BEGIN
-    SELECT DBMS_VECTOR_CHAIN.UTL_TO_EMBEDDING(
-             p_chunk,
-             JSON('{"provider":"ocigenai","credential_name":"OCI$RESOURCE_PRINCIPAL","url":"https://inference.generativeai.us-chicago-1.oci.oraclecloud.com/20231130/actions/embedText","model":"cohere.embed-v4.0","input_type":"search_document"}')
-           )
-      INTO l_vec
-      FROM dual;
+    l_body := JSON_OBJECT(
+      'compartmentId' VALUE C_OCI_COMPARTMENT_ID,
+      'servingMode'   VALUE JSON_OBJECT(
+                              'servingType' VALUE 'ON_DEMAND',
+                              'modelId'     VALUE C_EMBED_MODEL),
+      'inputs'        VALUE JSON_ARRAY(p_chunk),
+      'truncate'      VALUE 'END',
+      'inputType'     VALUE 'SEARCH_DOCUMENT'
+      RETURNING CLOB
+    );
+
+    l_resp := DBMS_CLOUD.SEND_REQUEST(
+      credential_name => 'OCI$RESOURCE_PRINCIPAL',
+      uri             => C_GENAI_EMBED_URL,
+      method          => 'POST',
+      headers         => JSON_OBJECT('Content-Type' VALUE 'application/json'),
+      body            => UTL_RAW.CAST_TO_RAW(l_body)
+    );
+
+    l_status := DBMS_CLOUD.GET_RESPONSE_STATUS_CODE(l_resp);
+    l_text   := DBMS_CLOUD.GET_RESPONSE_TEXT(l_resp);
+
+    IF l_status != 200 THEN
+      RAISE_APPLICATION_ERROR(-20100,
+        'OCI embed call failed (HTTP ' || l_status || '): ' ||
+        SUBSTR(l_text, 1, 2000));
+    END IF;
+
+    SELECT TO_VECTOR(JSON_QUERY(l_text, '$.embeddings[0]' RETURNING CLOB))
+      INTO l_vec FROM dual;
+
     RETURN l_vec;
   END embed_one;
 
-  -- ─────────────────────────────────────────────────────────
-  -- Step 4c: chunk + embed + insert, one chunk at a time
   -- ─────────────────────────────────────────────────────────
   PROCEDURE embed_and_persist(
     p_doc_id IN VARCHAR2,
@@ -145,12 +155,9 @@ CREATE OR REPLACE PACKAGE BODY FRP_INGEST AS
     l_chunk_id VARCHAR2(64);
   BEGIN
     DELETE FROM FRP_CHUNKS WHERE doc_id = p_doc_id;
-
     l_chunks := chunk_text(p_text);
 
-    IF l_chunks.COUNT = 0 THEN
-      RETURN;  -- empty doc, nothing to embed
-    END IF;
+    IF l_chunks.COUNT = 0 THEN RETURN; END IF;
 
     FOR i IN 1 .. l_chunks.COUNT LOOP
       l_chunk := l_chunks(i);
@@ -166,8 +173,6 @@ CREATE OR REPLACE PACKAGE BODY FRP_INGEST AS
     END LOOP;
   END embed_and_persist;
 
-  -- ─────────────────────────────────────────────────────────
-  -- Orchestrator
   -- ─────────────────────────────────────────────────────────
   PROCEDURE ingest_object(p_object_name IN VARCHAR2) IS
     v_blob   BLOB;
@@ -186,14 +191,12 @@ CREATE OR REPLACE PACKAGE BODY FRP_INGEST AS
   END ingest_object;
 
   -- ─────────────────────────────────────────────────────────
-  -- Bulk driver — scan every prefix, ingest each object,
-  -- log success or failure to FRP_INGEST_LOG, commit per file.
-  -- ─────────────────────────────────────────────────────────
   PROCEDURE scan_all_prefixes IS
     l_started TIMESTAMP;
     l_doc_id  VARCHAR2(64);
     l_chunks  NUMBER;
     l_size    NUMBER;
+    l_err     VARCHAR2(4000);
   BEGIN
     FOR rec IN (
       SELECT object_name
@@ -214,8 +217,8 @@ CREATE OR REPLACE PACKAGE BODY FRP_INGEST AS
         ingest_object(rec.object_name);
         l_doc_id := stable_doc_id(rec.object_name);
 
-        SELECT COUNT(*)        INTO l_chunks FROM FRP_CHUNKS WHERE doc_id = l_doc_id;
-        SELECT NVL(size_bytes,0) INTO l_size  FROM FRP_DOCS  WHERE doc_id = l_doc_id;
+        SELECT COUNT(*)          INTO l_chunks FROM FRP_CHUNKS WHERE doc_id = l_doc_id;
+        SELECT NVL(size_bytes,0) INTO l_size   FROM FRP_DOCS  WHERE doc_id = l_doc_id;
 
         INSERT INTO FRP_INGEST_LOG
           (bucket_path, doc_id, status, size_bytes, chunks, duration_ms, started_at, finished_at)
@@ -225,11 +228,10 @@ CREATE OR REPLACE PACKAGE BODY FRP_INGEST AS
         COMMIT;
       EXCEPTION WHEN OTHERS THEN
         ROLLBACK;
+        l_err := SUBSTR(SQLERRM || ' || ' || DBMS_UTILITY.FORMAT_ERROR_BACKTRACE, 1, 4000);
         INSERT INTO FRP_INGEST_LOG
           (bucket_path, status, error_msg, started_at, finished_at)
-          VALUES (rec.object_name, 'failed',
-                  SUBSTR(SQLERRM || ' || ' || DBMS_UTILITY.FORMAT_ERROR_BACKTRACE, 1, 4000),
-                  l_started, SYSTIMESTAMP);
+          VALUES (rec.object_name, 'failed', l_err, l_started, SYSTIMESTAMP);
         COMMIT;
       END;
     END LOOP;
@@ -237,3 +239,5 @@ CREATE OR REPLACE PACKAGE BODY FRP_INGEST AS
 
 END FRP_INGEST;
 /
+
+SHOW ERRORS PACKAGE BODY FRP_INGEST;
