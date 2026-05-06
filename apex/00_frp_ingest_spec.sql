@@ -23,7 +23,7 @@ CREATE OR REPLACE PACKAGE FRP_INGEST AS
     'https://inference.generativeai.us-chicago-1.oci.oraclecloud.com/20231130/actions/embedText';
 
   C_EMBED_MODEL CONSTANT VARCHAR2(64) :=
-    'cohere.embed-english-light-v3.0';
+    'cohere.embed-english-v3.0';
 
   FUNCTION  deal_status_for(p_object_name IN VARCHAR2) RETURN VARCHAR2;
   FUNCTION  stable_doc_id  (p_object_name IN VARCHAR2) RETURN VARCHAR2;
