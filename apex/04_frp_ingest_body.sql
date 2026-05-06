@@ -144,8 +144,8 @@ CREATE OR REPLACE PACKAGE BODY FRP_INGEST AS
     l_body     VARCHAR2(32767);
     l_text     CLOB;
     l_status   NUMBER;
-    l_input    VARCHAR2(20000);
-    l_prompt   VARCHAR2(22000);
+    l_input    VARCHAR2(8000 CHAR);
+    l_prompt   VARCHAR2(10000 CHAR);
     l_result   CLOB;
 
     j_root     JSON_OBJECT_T := JSON_OBJECT_T();
@@ -156,7 +156,7 @@ CREATE OR REPLACE PACKAGE BODY FRP_INGEST AS
     j_content  JSON_ARRAY_T  := JSON_ARRAY_T();
     j_part     JSON_OBJECT_T := JSON_OBJECT_T();
   BEGIN
-    l_input := SUBSTR(p_text, 1, 20000);
+    l_input := DBMS_LOB.SUBSTR(p_text, 8000, 1);
 
     l_prompt :=
       'Extract structured fields from this RFP as JSON. ' ||
