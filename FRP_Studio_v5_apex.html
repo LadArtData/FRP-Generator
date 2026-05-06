@@ -1296,8 +1296,8 @@ textarea { min-height: 72px; resize: vertical; font-family: inherit; line-height
             <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"></path></svg>
           </span>
           <div>
-            <div class="autoparse-title">Cohere parsed the RFP and pre-filled 11 fields from your library</div>
-            <div class="autoparse-sub">parsed Main solicitation.pdf · vector-matched 12 past proposals · 3.2s</div>
+            <div class="autoparse-title" id="autoparse-title">Llama parsed the RFP and pre-filled fields from your library</div>
+            <div class="autoparse-sub" id="autoparse-sub">parsed · matched ·</div>
           </div>
           <button class="autoparse-action" onclick="toggleAutoparse()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:11px;height:11px"><polyline points="6 9 12 15 18 9"></polyline></svg>
@@ -1374,13 +1374,13 @@ textarea { min-height: 72px; resize: vertical; font-family: inherit; line-height
         <p class="section-sub">Basic organization profile. This shapes tone, industry voice, and which case studies Claude pulls from the library.</p>
         <div class="section-body">
           <div class="field-grid">
-            <div class="field"><label>Client name <span class="req">*</span> <span class="hint" style="color:var(--accent-2)">• from RFP</span></label><input type="text" placeholder="e.g. City of ——, State Agency of ——"></div>
+            <div class="field"><label>Client name <span class="req">*</span> <span class="hint" style="color:var(--accent-2)">• from RFP</span></label><input type="text" id="frp-field-client-name" placeholder="e.g. City of ——, State Agency of ——"></div>
             <div class="field"><label>Industry <span class="req">*</span></label>
-              <select><option>Select…</option><option>City / Municipality</option><option>County Government</option><option>State Agency</option><option>Federal</option><option>K-12 / Higher Ed</option><option>Utility / Special District</option></select>
+              <select id="frp-field-industry"><option value="">Select…</option><option>City / Municipality</option><option>County Government</option><option>State Agency</option><option>Federal</option><option>K-12 / Higher Ed</option><option>Utility / Special District</option></select>
             </div>
-            <div class="field"><label>Primary contact <span class="hint" style="color:var(--accent-2)">• from RFP</span></label><input type="text" placeholder="Name, title"></div>
-            <div class="field"><label>Annual budget / revenue <span class="hint" style="color:var(--accent-2)">• from RFP</span></label><input type="text" placeholder="e.g. $——M operating budget"></div>
-            <div class="field full"><label>Current ERP / systems <span class="hint" style="color:var(--accent-2)">• from RFP</span></label><input type="text" placeholder="e.g. legacy platform ——, supporting systems ——"></div>
+            <div class="field"><label>Primary contact <span class="hint" style="color:var(--accent-2)">• from RFP</span></label><input type="text" id="frp-field-contact" placeholder="Name, title"></div>
+            <div class="field"><label>Annual budget / revenue <span class="hint" style="color:var(--accent-2)">• from RFP</span></label><input type="text" id="frp-field-budget" placeholder="e.g. $——M operating budget"></div>
+            <div class="field full"><label>Current ERP / systems <span class="hint" style="color:var(--accent-2)">• from RFP</span></label><input type="text" id="frp-field-erp" placeholder="e.g. legacy platform ——, supporting systems ——"></div>
             <div class="field full"><label>Top pain points <span class="hint">select all that apply</span></label>
               <div class="tag-group">
                 <label class="tag-option sel"><input type="checkbox" checked="">Manual processes</label>
@@ -1406,29 +1406,12 @@ textarea { min-height: 72px; resize: vertical; font-family: inherit; line-height
         <p class="section-sub">Attach the RFP and any requirements workbooks from the OCI bucket. OCI Document Understanding extracts text, then Claude reads it for client statistics, due dates, and the requirements matrix.</p>
         <div class="section-body">
           <div class="field-grid">
-            <div class="field"><label>RFP number <span class="hint" style="color:var(--accent-2)">• from RFP</span></label><input type="text" placeholder="e.g. RFP ——"></div>
-            <div class="field"><label>Due date <span class="hint" style="color:var(--accent-2)">• from RFP</span></label><input type="date"></div>
+            <div class="field"><label>RFP number <span class="hint" style="color:var(--accent-2)">• from RFP</span></label><input type="text" id="frp-field-rfp-number" placeholder="e.g. RFP ——"></div>
+            <div class="field"><label>Due date <span class="hint" style="color:var(--accent-2)">• from RFP</span></label><input type="date" id="frp-field-due-date"></div>
           </div>
 
-          <label style="margin-bottom:6px;display:block">Attached documents <span class="hint">drag from library ←</span></label>
-          <div class="attached">
-            <div class="attached-item">
-              <div class="lib-ico pdf">PDF</div>
-              <div class="attached-item-body">
-                <div class="attached-item-name">Main solicitation.pdf</div>
-                <div class="attached-item-source"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.1V12a10 10 0 1 1-5.9-9.1"></path><path d="M22 4L12 14l-3-3"></path></svg>Uploaded · parsed · <span style="color:var(--accent-2)">189 shall-statements extracted</span></div>
-              </div>
-              <button class="attached-x" title="Remove"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"></path></svg></button>
-            </div>
-            <div class="attached-item">
-              <div class="lib-ico xlsx">XLS</div>
-              <div class="attached-item-body">
-                <div class="attached-item-name">Requirement workbooks (5 files)</div>
-                <div class="attached-item-source"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.1V12a10 10 0 1 1-5.9-9.1"></path><path d="M22 4L12 14l-3-3"></path></svg>Uploaded · <span style="color:var(--accent-2)">Y/C/F/3/N format detected</span> · 2,222 rows mapped</div>
-              </div>
-              <button class="attached-x" title="Remove"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"></path></svg></button>
-            </div>
-          </div>
+          <label style="margin-bottom:6px;display:block">Attached documents <span class="hint">click a library item ←</span></label>
+          <div class="attached" id="frp-attachments"></div>
           <div class="dropzone" style="margin-top:8px">
             <div class="dropzone-ico">
               <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="M17 8l-5-5-5 5"></path><path d="M12 3v12"></path></svg>
@@ -2308,6 +2291,119 @@ function renderLibrary(docs) {
 function onLibItemClick(el) {
   document.querySelectorAll('.lib-item').forEach(i => i.classList.remove('active'));
   el.classList.add('active');
+  const docId    = el.getAttribute('data-doc-id');
+  const filename = (el.querySelector('.lib-item-name') || {}).textContent || docId;
+  if (docId) attachAndParse(docId, filename.trim());
+}
+
+const _frpAttached = new Set();
+
+function attachAndParse(docId, filename) {
+  if (!window.FRP) { console.warn('FRP bridge not loaded'); return; }
+  if (_frpAttached.has(docId)) return;
+  _frpAttached.add(docId);
+
+  const host = document.getElementById('frp-attachments');
+  if (!host) return;
+
+  const cls = libIconClass(filename);
+  const itemId = 'frp-att-' + docId;
+  const item = document.createElement('div');
+  item.className = 'attached-item';
+  item.id = itemId;
+  item.innerHTML =
+    '<div class="lib-ico ' + cls + '">' + libIconLabel(cls) + '</div>' +
+    '<div class="attached-item-body">' +
+      '<div class="attached-item-name">' + escapeHtml(filename) + '</div>' +
+      '<div class="attached-item-source" id="' + itemId + '-status">' +
+        'Llama parsing…' +
+      '</div>' +
+    '</div>' +
+    '<button class="attached-x" title="Remove" onclick="removeAttachment(\'' + docId + '\')">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"></path></svg>' +
+    '</button>';
+  host.appendChild(item);
+
+  window.FRP.parseRfp(docId).then(resp => {
+    const statusEl = document.getElementById(itemId + '-status');
+    let parsed = {};
+    try { parsed = JSON.parse(resp.parsed_fields); }
+    catch (e) { parsed = {}; }
+    const matchCount = (resp.match_data && resp.match_data.match_count) || 0;
+    const filled = populateFormFromParsed(parsed);
+    showAutoparseBanner(resp.filename || filename, filled, matchCount, resp.elapsed_ms);
+    if (statusEl) {
+      statusEl.innerHTML = 'parsed · ' + filled + ' fields filled · ' +
+                          matchCount + ' similar past proposals · ' +
+                          (resp.elapsed_ms || 0) + 'ms';
+    }
+  }).catch(err => {
+    console.error('parseRfp failed', err);
+    const statusEl = document.getElementById(itemId + '-status');
+    if (statusEl) {
+      statusEl.innerHTML = '<span style="color:var(--red)">parse failed: ' +
+                          escapeHtml(err.message || 'unknown') + '</span>';
+    }
+  });
+}
+
+function removeAttachment(docId) {
+  _frpAttached.delete(docId);
+  const el = document.getElementById('frp-att-' + docId);
+  if (el) el.remove();
+}
+
+function populateFormFromParsed(p) {
+  let filled = 0;
+  const setVal = (id, v) => {
+    if (v === null || v === undefined || v === '') return;
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.value = String(v);
+    filled++;
+  };
+  setVal('frp-field-client-name', p.client_name);
+  setVal('frp-field-rfp-number',  p.rfp_number);
+  setVal('frp-field-budget',      p.annual_budget);
+  setVal('frp-field-erp',         p.current_erp);
+  if (p.primary_contact && (p.primary_contact.name || p.primary_contact.title)) {
+    const parts = [p.primary_contact.name, p.primary_contact.title].filter(Boolean);
+    setVal('frp-field-contact', parts.join(', '));
+  }
+  if (p.due_date && /^\d{4}-\d{2}-\d{2}$/.test(p.due_date)) {
+    setVal('frp-field-due-date', p.due_date);
+  }
+  if (p.industry) {
+    const sel = document.getElementById('frp-field-industry');
+    if (sel) {
+      const want = String(p.industry).toLowerCase();
+      let matched = false;
+      for (let i = 0; i < sel.options.length; i++) {
+        if (sel.options[i].text.toLowerCase().includes(want) ||
+            want.includes(sel.options[i].text.toLowerCase())) {
+          sel.selectedIndex = i; matched = true; filled++; break;
+        }
+      }
+      if (!matched && sel.options.length > 0) {
+        // Industry didn't match an existing option — leave default
+      }
+    }
+  }
+  return filled;
+}
+
+function showAutoparseBanner(filename, fieldsFilled, matchCount, elapsedMs) {
+  const callout = document.getElementById('autoparse-callout');
+  const title   = document.getElementById('autoparse-title');
+  const sub     = document.getElementById('autoparse-sub');
+  if (!callout) return;
+  callout.style.display = '';
+  if (title) title.textContent = 'Llama parsed the RFP and pre-filled ' +
+                                 fieldsFilled + ' field' + (fieldsFilled === 1 ? '' : 's') +
+                                 ' from your library';
+  if (sub) sub.textContent = 'parsed ' + filename + ' · vector-matched ' +
+                             matchCount + ' past proposal' + (matchCount === 1 ? '' : 's') +
+                             ' · ' + ((elapsedMs || 0) / 1000).toFixed(1) + 's';
 }
 
 let _libCurrentTab = 'all';

@@ -144,7 +144,17 @@
     },
 
     /** Per-prefix histogram for the admin Connect / Ingest page. */
-    bucketFolders() { return call('GET', '/bucket/folders'); }
+    bucketFolders() { return call('GET', '/bucket/folders'); },
+
+    /**
+     * Parse an RFP doc with Llama + vector-match against past proposals.
+     * Returns {ok, doc_id, filename, parsed_fields, match_data, elapsed_ms}.
+     * parsed_fields is the raw JSON CLOB string returned by the parser.
+     * match_data is an object with {match_count, matches[]}.
+     */
+    parseRfp(docId) {
+      return call('POST', '/rfp/parse', { body: { doc_id: docId } });
+    }
   };
 
   // Expose for the inline Studio script.
