@@ -131,6 +131,92 @@ CREATE OR REPLACE PACKAGE BODY FRP_INGEST AS
   END embed_one;
 
   -- ─────────────────────────────────────────────────────────
+  -- ─────────────────────────────────────────────────────────
+  -- parse_rfp — extract structured fields from RFP text via Llama.
+  -- Returns a JSON CLOB with client_name, industry, primary_contact,
+  -- annual_budget, current_erp, pain_points[], rfp_number, due_date,
+  -- scope_summary. Unknown fields come back as null.
+  -- Input is truncated to 20000 chars to keep request body within
+  -- VARCHAR2(32767) ceiling after JSON-escape overhead.
+  -- ─────────────────────────────────────────────────────────
+  FUNCTION parse_rfp(p_text IN CLOB) RETURN CLOB IS
+    l_resp     DBMS_CLOUD_TYPES.RESP;
+    l_body     VARCHAR2(32767);
+    l_text     CLOB;
+    l_status   NUMBER;
+    l_input    VARCHAR2(20000);
+    l_prompt   VARCHAR2(22000);
+    l_result   CLOB;
+
+    j_root     JSON_OBJECT_T := JSON_OBJECT_T();
+    j_serving  JSON_OBJECT_T := JSON_OBJECT_T();
+    j_chat     JSON_OBJECT_T := JSON_OBJECT_T();
+    j_messages JSON_ARRAY_T  := JSON_ARRAY_T();
+    j_msg      JSON_OBJECT_T := JSON_OBJECT_T();
+    j_content  JSON_ARRAY_T  := JSON_ARRAY_T();
+    j_part     JSON_OBJECT_T := JSON_OBJECT_T();
+  BEGIN
+    l_input := SUBSTR(p_text, 1, 20000);
+
+    l_prompt :=
+      'Extract structured fields from this RFP as JSON. ' ||
+      'Required fields: client_name, industry, ' ||
+      'primary_contact {name, title, email}, annual_budget, current_erp, ' ||
+      'pain_points (array of short strings), rfp_number, ' ||
+      'due_date (YYYY-MM-DD or null), scope_summary (one paragraph). ' ||
+      'Use null for any field you cannot confirm from the text. ' ||
+      'Return only valid JSON, no preamble, no markdown fences.' || CHR(10) || CHR(10) ||
+      'RFP TEXT:' || CHR(10) ||
+      l_input || CHR(10) || CHR(10) ||
+      'JSON:';
+
+    j_part.put('type', 'TEXT');
+    j_part.put('text', l_prompt);
+    j_content.append(j_part);
+
+    j_msg.put('role',    'USER');
+    j_msg.put('content', j_content);
+    j_messages.append(j_msg);
+
+    j_chat.put('apiFormat',   'GENERIC');
+    j_chat.put('messages',    j_messages);
+    j_chat.put('maxTokens',   1500);
+    j_chat.put('temperature', 0.1);
+    j_chat.put('topP',        0.9);
+    j_chat.put('isStream',    FALSE);
+
+    j_serving.put('servingType', 'ON_DEMAND');
+    j_serving.put('modelId',     C_PARSER_MODEL_OCID);
+
+    j_root.put('compartmentId', C_OCI_COMPARTMENT_ID);
+    j_root.put('servingMode',   j_serving);
+    j_root.put('chatRequest',   j_chat);
+
+    l_body := j_root.to_string;
+
+    l_resp := DBMS_CLOUD.SEND_REQUEST(
+      credential_name => 'OCI$RESOURCE_PRINCIPAL',
+      uri             => C_GENAI_CHAT_URL,
+      method          => 'POST',
+      headers         => '{"Content-Type":"application/json"}',
+      body            => UTL_RAW.CAST_TO_RAW(l_body)
+    );
+
+    l_status := DBMS_CLOUD.GET_RESPONSE_STATUS_CODE(l_resp);
+    l_text   := DBMS_CLOUD.GET_RESPONSE_TEXT(l_resp);
+
+    IF l_status != 200 THEN
+      RAISE_APPLICATION_ERROR(-20101,
+        'OCI chat (parse_rfp) failed (HTTP ' || l_status || '): ' ||
+        SUBSTR(l_text, 1, 2000));
+    END IF;
+
+    l_result := JSON_VALUE(l_text,
+      '$.chatResponse.choices[0].message.content[0].text' RETURNING CLOB);
+
+    RETURN l_result;
+  END parse_rfp;
+
   -- Chunk + embed + insert in a single pass — no intermediate collection.
   -- Chunks held only in CLOB locals so 800-word chunks (~5-6KB) don't hit
   -- VARCHAR2(4000) limits inside SYS.ODCIVARCHAR2LIST.

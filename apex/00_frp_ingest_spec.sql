@@ -22,12 +22,19 @@ CREATE OR REPLACE PACKAGE FRP_INGEST AS
   C_GENAI_EMBED_URL CONSTANT VARCHAR2(256) :=
     'https://inference.generativeai.us-chicago-1.oci.oraclecloud.com/20231130/actions/embedText';
 
+  C_GENAI_CHAT_URL CONSTANT VARCHAR2(256) :=
+    'https://inference.generativeai.us-chicago-1.oci.oraclecloud.com/20231130/actions/chat';
+
   C_EMBED_MODEL CONSTANT VARCHAR2(64) :=
     'cohere.embed-english-v3.0';
+
+  C_PARSER_MODEL_OCID CONSTANT VARCHAR2(256) :=
+    'ocid1.generativeaimodel.oc1.us-chicago-1.amaaaaaask7dceya2xrydihzvu5pk6vlvfhtbnfapcvwhhugzo7jez4zcnaa';
 
   FUNCTION  deal_status_for(p_object_name IN VARCHAR2) RETURN VARCHAR2;
   FUNCTION  stable_doc_id  (p_object_name IN VARCHAR2) RETURN VARCHAR2;
   FUNCTION  embed_one      (p_chunk       IN CLOB)     RETURN VECTOR;
+  FUNCTION  parse_rfp      (p_text        IN CLOB)     RETURN CLOB;
   PROCEDURE ingest_object  (p_object_name IN VARCHAR2);
   PROCEDURE scan_all_prefixes;
 
