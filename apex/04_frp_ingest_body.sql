@@ -80,25 +80,6 @@ CREATE OR REPLACE PACKAGE BODY FRP_INGEST AS
   END persist_doc;
 
   -- ─────────────────────────────────────────────────────────
-  FUNCTION chunk_text(p_text IN CLOB) RETURN SYS.ODCIVARCHAR2LIST IS
-    l_chunks SYS.ODCIVARCHAR2LIST := SYS.ODCIVARCHAR2LIST();
-  BEGIN
-    FOR rec IN (
-      SELECT t.column_value AS chunk_str
-        FROM TABLE(
-          DBMS_VECTOR_CHAIN.UTL_TO_CHUNKS(
-            p_text,
-            JSON('{"by":"words","max":"800","overlap":"80","split":"recursively","language":"english","normalize":"all"}')
-          )
-        ) t
-    ) LOOP
-      l_chunks.EXTEND;
-      l_chunks(l_chunks.COUNT) := JSON_VALUE(rec.chunk_str, '$.chunk_data');
-    END LOOP;
-    RETURN l_chunks;
-  END chunk_text;
-
-  -- ─────────────────────────────────────────────────────────
   -- Direct OCI HTTP call — bypasses DBMS_VECTOR_CHAIN.UTL_TO_EMBEDDING
   -- because the wrapper sends a body OCI returns HTTP 400 on.
   -- Verified working: cohere.embed-english-light-v3.0 → 384-dim vector.
@@ -150,31 +131,45 @@ CREATE OR REPLACE PACKAGE BODY FRP_INGEST AS
   END embed_one;
 
   -- ─────────────────────────────────────────────────────────
+  -- Chunk + embed + insert in a single pass — no intermediate collection.
+  -- Chunks held only in CLOB locals so 800-word chunks (~5-6KB) don't hit
+  -- VARCHAR2(4000) limits inside SYS.ODCIVARCHAR2LIST.
   PROCEDURE embed_and_persist(
     p_doc_id IN VARCHAR2,
     p_text   IN CLOB
   ) IS
-    l_chunks   SYS.ODCIVARCHAR2LIST;
     l_chunk    CLOB;
     l_vec      VECTOR;
     l_chunk_id VARCHAR2(64);
+    l_idx      NUMBER := 0;
   BEGIN
     DELETE FROM FRP_CHUNKS WHERE doc_id = p_doc_id;
-    l_chunks := chunk_text(p_text);
 
-    IF l_chunks.COUNT = 0 THEN RETURN; END IF;
+    FOR rec IN (
+      SELECT t.column_value AS chunk_str
+        FROM TABLE(
+          DBMS_VECTOR_CHAIN.UTL_TO_CHUNKS(
+            p_text,
+            JSON('{"by":"words","max":"800","overlap":"80","split":"recursively","language":"english","normalize":"all"}')
+          )
+        ) t
+    ) LOOP
+      l_idx := l_idx + 1;
+      l_chunk := JSON_VALUE(rec.chunk_str, '$.chunk_data' RETURNING CLOB);
 
-    FOR i IN 1 .. l_chunks.COUNT LOOP
-      l_chunk := l_chunks(i);
-      l_vec   := embed_one(l_chunk);
+      IF l_chunk IS NULL OR DBMS_LOB.GETLENGTH(l_chunk) = 0 THEN
+        CONTINUE;
+      END IF;
 
-      SELECT LOWER(STANDARD_HASH(p_doc_id || ':' || i, 'MD5'))
+      l_vec := embed_one(l_chunk);
+
+      SELECT LOWER(STANDARD_HASH(p_doc_id || ':' || l_idx, 'MD5'))
         INTO l_chunk_id FROM dual;
 
       INSERT INTO FRP_CHUNKS
         (chunk_id, doc_id, chunk_index, chunk_text, token_count, embedding)
       VALUES
-        (l_chunk_id, p_doc_id, i, TO_CLOB(l_chunk), LENGTH(l_chunk), l_vec);
+        (l_chunk_id, p_doc_id, l_idx, l_chunk, DBMS_LOB.GETLENGTH(l_chunk), l_vec);
     END LOOP;
   END embed_and_persist;
 
