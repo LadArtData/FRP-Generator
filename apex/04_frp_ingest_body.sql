@@ -105,27 +105,32 @@ CREATE OR REPLACE PACKAGE BODY FRP_INGEST AS
   -- ─────────────────────────────────────────────────────────
   FUNCTION embed_one(p_chunk IN CLOB) RETURN VECTOR IS
     l_resp     DBMS_CLOUD_TYPES.RESP;
-    l_body     CLOB;
+    l_body     VARCHAR2(32767);
     l_text     CLOB;
     l_status   NUMBER;
     l_vec      VECTOR;
+    j_root     JSON_OBJECT_T := JSON_OBJECT_T();
+    j_serving  JSON_OBJECT_T := JSON_OBJECT_T();
+    j_inputs   JSON_ARRAY_T  := JSON_ARRAY_T();
   BEGIN
-    l_body := JSON_OBJECT(
-      'compartmentId' VALUE C_OCI_COMPARTMENT_ID,
-      'servingMode'   VALUE JSON_OBJECT(
-                              'servingType' VALUE 'ON_DEMAND',
-                              'modelId'     VALUE C_EMBED_MODEL),
-      'inputs'        VALUE JSON_ARRAY(p_chunk),
-      'truncate'      VALUE 'END',
-      'inputType'     VALUE 'SEARCH_DOCUMENT'
-      RETURNING CLOB
-    );
+    j_serving.put('servingType', 'ON_DEMAND');
+    j_serving.put('modelId',     C_EMBED_MODEL);
+
+    j_inputs.append(SUBSTR(p_chunk, 1, 30000));
+
+    j_root.put('compartmentId', C_OCI_COMPARTMENT_ID);
+    j_root.put('servingMode',   j_serving);
+    j_root.put('inputs',        j_inputs);
+    j_root.put('truncate',      'END');
+    j_root.put('inputType',     'SEARCH_DOCUMENT');
+
+    l_body := j_root.to_string;
 
     l_resp := DBMS_CLOUD.SEND_REQUEST(
       credential_name => 'OCI$RESOURCE_PRINCIPAL',
       uri             => C_GENAI_EMBED_URL,
       method          => 'POST',
-      headers         => JSON_OBJECT('Content-Type' VALUE 'application/json'),
+      headers         => '{"Content-Type":"application/json"}',
       body            => UTL_RAW.CAST_TO_RAW(l_body)
     );
 
