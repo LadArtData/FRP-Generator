@@ -35,6 +35,8 @@ CREATE OR REPLACE PACKAGE FRP_INGEST AS
   FUNCTION  stable_doc_id  (p_object_name IN VARCHAR2) RETURN VARCHAR2;
   FUNCTION  embed_one      (p_chunk       IN CLOB)     RETURN VECTOR;
   FUNCTION  parse_rfp      (p_text        IN CLOB)     RETURN CLOB;
+  FUNCTION  match_past_rfps(p_text        IN CLOB,
+                            p_top_k       IN NUMBER DEFAULT 12) RETURN CLOB;
   PROCEDURE ingest_object  (p_object_name IN VARCHAR2);
   PROCEDURE scan_all_prefixes;
 

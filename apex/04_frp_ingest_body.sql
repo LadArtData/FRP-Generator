@@ -217,6 +217,57 @@ CREATE OR REPLACE PACKAGE BODY FRP_INGEST AS
     RETURN l_result;
   END parse_rfp;
 
+  -- ─────────────────────────────────────────────────────────
+  -- match_past_rfps — vector search across FRP_CHUNKS to find the
+  -- top-K most similar past proposals to the input text.
+  -- Excludes deal_status no_bid / tool_output (so we don't echo our
+  -- own AI drafts or non-bids). Returns a JSON CLOB:
+  --   {"match_count": N, "matches": [{doc_id, filename, deal_status,
+  --     prefix, score, chunks_matched}, ...]}
+  -- score = 1 - cosine_distance, so 1.0 = identical, 0 = orthogonal.
+  -- ─────────────────────────────────────────────────────────
+  FUNCTION match_past_rfps(
+    p_text  IN CLOB,
+    p_top_k IN NUMBER DEFAULT 12
+  ) RETURN CLOB IS
+    l_qvec    VECTOR;
+    j_root    JSON_OBJECT_T := JSON_OBJECT_T();
+    j_matches JSON_ARRAY_T  := JSON_ARRAY_T();
+    j_match   JSON_OBJECT_T;
+    l_count   NUMBER := 0;
+  BEGIN
+    l_qvec := embed_one(p_text);
+
+    FOR rec IN (
+      SELECT doc_id, filename, deal_status, prefix, best_dist, chunks_matched
+        FROM (
+          SELECT d.doc_id, d.filename, d.deal_status, d.prefix,
+                 MIN(VECTOR_DISTANCE(c.embedding, l_qvec, COSINE)) AS best_dist,
+                 COUNT(*) AS chunks_matched
+            FROM iteria_ai.frp_chunks c
+            JOIN iteria_ai.frp_docs   d ON d.doc_id = c.doc_id
+           WHERE d.deal_status NOT IN ('no_bid', 'tool_output')
+           GROUP BY d.doc_id, d.filename, d.deal_status, d.prefix
+           ORDER BY 5
+        )
+       WHERE ROWNUM <= p_top_k
+    ) LOOP
+      j_match := JSON_OBJECT_T();
+      j_match.put('doc_id',         rec.doc_id);
+      j_match.put('filename',       rec.filename);
+      j_match.put('deal_status',    rec.deal_status);
+      j_match.put('prefix',         rec.prefix);
+      j_match.put('score',          ROUND(1 - rec.best_dist, 4));
+      j_match.put('chunks_matched', rec.chunks_matched);
+      j_matches.append(j_match);
+      l_count := l_count + 1;
+    END LOOP;
+
+    j_root.put('match_count', l_count);
+    j_root.put('matches',     j_matches);
+    RETURN j_root.to_clob;
+  END match_past_rfps;
+
   -- Chunk + embed + insert in a single pass — no intermediate collection.
   -- Chunks held only in CLOB locals so 800-word chunks (~5-6KB) don't hit
   -- VARCHAR2(4000) limits inside SYS.ODCIVARCHAR2LIST.
