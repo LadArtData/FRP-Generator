@@ -826,6 +826,81 @@ EXCEPTION WHEN OTHERS THEN
   HTP.P(''{"ok":false,"error":"'' || REPLACE(SUBSTR(SQLERRM,1,300),''"'',''`'') || ''"}'');
 END;');
 
+  -- ─────────────────────────────────────────────────────────
+  -- POST rfp/parse
+  -- Body: {"doc_id": "<frp_docs.doc_id>"}
+  -- Calls FRP_INGEST.parse_rfp + FRP_INGEST.match_past_rfps and
+  -- returns a single combined JSON for the autoparse banner /
+  -- field pre-fill flow.
+  -- ─────────────────────────────────────────────────────────
+  ORDS.DEFINE_TEMPLATE(
+      p_module_name => 'frp-hooks',
+      p_pattern     => 'rfp/parse',
+      p_priority    => 0,
+      p_etag_type   => 'NONE',
+      p_comments    => 'Parse RFP fields + match past proposals');
+
+  ORDS.DEFINE_HANDLER(
+      p_module_name   => 'frp-hooks',
+      p_pattern       => 'rfp/parse',
+      p_method        => 'POST',
+      p_source_type   => 'plsql/block',
+      p_mimes_allowed => 'application/json',
+      p_comments      => 'Returns {parsed_fields, match_data, elapsed_ms}',
+      p_source        =>
+'DECLARE
+  l_api_key  VARCHAR2(200);
+  l_req_key  VARCHAR2(200) := :api_key;
+  l_body     CLOB := :body_text;
+  l_doc_id   VARCHAR2(64);
+  l_text     CLOB;
+  l_filename VARCHAR2(512);
+  l_parsed   CLOB;
+  l_matches  CLOB;
+  l_started  TIMESTAMP := SYSTIMESTAMP;
+  l_elapsed  NUMBER;
+BEGIN
+  BEGIN SELECT api_key INTO l_api_key FROM iteria_ai.api_configuration
+        WHERE is_active=''Y'' AND ROWNUM=1;
+  EXCEPTION WHEN NO_DATA_FOUND THEN l_api_key := NULL; END;
+  IF l_api_key IS NOT NULL AND NVL(l_req_key,''__none__'') != l_api_key THEN
+    :status := 403; HTP.P(''{"ok":false,"error":"unauthorized"}''); RETURN;
+  END IF;
+
+  l_doc_id := JSON_VALUE(l_body, ''$.doc_id'');
+  IF l_doc_id IS NULL THEN
+    :status := 400; HTP.P(''{"ok":false,"error":"doc_id required"}''); RETURN;
+  END IF;
+
+  BEGIN
+    SELECT raw_text, filename INTO l_text, l_filename
+      FROM iteria_ai.frp_docs WHERE doc_id = l_doc_id;
+  EXCEPTION WHEN NO_DATA_FOUND THEN
+    :status := 404;
+    HTP.P(''{"ok":false,"error":"doc not found: '' || l_doc_id || ''"}'');
+    RETURN;
+  END;
+
+  IF l_text IS NULL OR DBMS_LOB.GETLENGTH(l_text) < 100 THEN
+    :status := 422;
+    HTP.P(''{"ok":false,"error":"doc has no extracted text"}'');
+    RETURN;
+  END IF;
+
+  l_parsed  := iteria_ai.frp_ingest.parse_rfp(l_text);
+  l_matches := iteria_ai.frp_ingest.match_past_rfps(l_text, 12);
+  l_elapsed := EXTRACT(SECOND FROM (SYSTIMESTAMP - l_started)) * 1000;
+
+  HTP.P(''{"ok":true,"doc_id":'' || APEX_JSON.STRINGIFY(l_doc_id)
+     || '',"filename":''         || APEX_JSON.STRINGIFY(l_filename)
+     || '',"parsed_fields":''    || l_parsed
+     || '',"match_data":''       || l_matches
+     || '',"elapsed_ms":''       || ROUND(l_elapsed) || ''}'');
+EXCEPTION WHEN OTHERS THEN
+  :status := 500;
+  HTP.P(''{"ok":false,"error":"'' || REPLACE(SUBSTR(SQLERRM,1,500),''"'',''`'') || ''"}'');
+END;');
+
 COMMIT;
 
 EXCEPTION
