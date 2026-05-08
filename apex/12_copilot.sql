@@ -83,20 +83,21 @@ CREATE OR REPLACE PACKAGE BODY FRP_COPILOT AS
 
   -- ─────────────────────────────────────────────────────────
   PROCEDURE save_message(
-    p_conv_id       IN VARCHAR2,
-    p_role          IN VARCHAR2,
-    p_content       IN CLOB,
-    p_input_tokens  IN NUMBER   DEFAULT NULL,
-    p_output_tokens IN NUMBER   DEFAULT NULL,
-    p_provider      IN VARCHAR2 DEFAULT NULL,
-    p_model         IN VARCHAR2 DEFAULT NULL
+    p_conv_id        IN VARCHAR2,
+    p_role           IN VARCHAR2,
+    p_content        IN CLOB,
+    p_tool_calls_json IN CLOB    DEFAULT NULL,
+    p_input_tokens   IN NUMBER   DEFAULT NULL,
+    p_output_tokens  IN NUMBER   DEFAULT NULL,
+    p_provider       IN VARCHAR2 DEFAULT NULL,
+    p_model          IN VARCHAR2 DEFAULT NULL
   ) IS
   BEGIN
     INSERT INTO FRP_COPILOT_MESSAGES
-      (conversation_id, role, content,
+      (conversation_id, role, content, tool_calls_json,
        input_tokens, output_tokens, provider, model)
     VALUES
-      (p_conv_id, p_role, p_content,
+      (p_conv_id, p_role, p_content, p_tool_calls_json,
        p_input_tokens, p_output_tokens, p_provider, p_model);
 
     UPDATE FRP_COPILOT_CONVERSATIONS
@@ -104,6 +105,165 @@ CREATE OR REPLACE PACKAGE BODY FRP_COPILOT AS
            updated_at    = CURRENT_TIMESTAMP
      WHERE conversation_id = p_conv_id;
   END save_message;
+
+  -- ─────────────────────────────────────────────────────────
+  -- Extract <tool_call>{...}</tool_call> blocks from the model's
+  -- response. Returns a JSON array of {index, tool, args} objects;
+  -- the markers are stripped from p_text in place (so the answer
+  -- displayed to the user doesn't have raw JSON garbage in it).
+  -- ─────────────────────────────────────────────────────────
+  PROCEDURE parse_tool_calls(
+    p_text       IN OUT NOCOPY CLOB,
+    p_tool_calls IN OUT NOCOPY JSON_ARRAY_T
+  ) IS
+    l_match_count NUMBER := 0;
+    l_match       VARCHAR2(8000);
+    l_inner       VARCHAR2(8000);
+    l_idx         NUMBER := 0;
+    j_tc          JSON_OBJECT_T;
+    j_parsed      JSON_OBJECT_T;
+  BEGIN
+    p_tool_calls := JSON_ARRAY_T();
+
+    -- Iteratively find each <tool_call>...</tool_call>; both extract
+    -- and strip from the running text.
+    LOOP
+      l_match := REGEXP_SUBSTR(p_text, '<tool_call>(.*?)</tool_call>', 1, 1, 'n');
+      EXIT WHEN l_match IS NULL OR l_match_count > 20;
+      l_match_count := l_match_count + 1;
+      l_inner := REGEXP_REPLACE(l_match, '<tool_call>(.*?)</tool_call>', '\1', 1, 1, 'n');
+      BEGIN
+        j_parsed := JSON_OBJECT_T.parse(l_inner);
+        j_tc := JSON_OBJECT_T();
+        j_tc.put('index', l_idx);
+        j_tc.put('tool',  j_parsed.get_string('tool'));
+        IF j_parsed.has('args') THEN
+          j_tc.put('args', j_parsed.get_object('args'));
+        ELSE
+          j_tc.put('args', JSON_OBJECT_T());
+        END IF;
+        p_tool_calls.append(j_tc);
+        l_idx := l_idx + 1;
+      EXCEPTION WHEN OTHERS THEN
+        -- Malformed JSON inside the tag — skip it but still strip
+        NULL;
+      END;
+      p_text := REGEXP_REPLACE(p_text, '<tool_call>(.*?)</tool_call>', '', 1, 1, 'n');
+    END LOOP;
+
+    -- Tidy up the resulting answer text
+    p_text := REGEXP_REPLACE(p_text, '\n{3,}', CHR(10) || CHR(10));
+    p_text := TRIM(p_text);
+  END parse_tool_calls;
+
+  -- ─────────────────────────────────────────────────────────
+  -- Rolling gist — every 10 messages, ask Grok to summarize the
+  -- conversation in ~200 words and save it to FRP_COPILOT_CONVERSATIONS.gist.
+  -- The gist gets injected into future ask() calls so older context
+  -- survives the 10-turn history window.
+  -- ─────────────────────────────────────────────────────────
+  PROCEDURE maybe_update_gist(p_conv_id IN VARCHAR2) IS
+    l_count       NUMBER;
+    l_transcript  CLOB;
+    l_line        VARCHAR2(8000);
+    l_resp        DBMS_CLOUD_TYPES.RESP;
+    l_body        VARCHAR2(32767);
+    l_resp_txt    CLOB;
+    l_status      NUMBER;
+    l_summary     CLOB;
+    l_last_msg_id VARCHAR2(64);
+
+    j_root      JSON_OBJECT_T := JSON_OBJECT_T();
+    j_serving   JSON_OBJECT_T := JSON_OBJECT_T();
+    j_chat      JSON_OBJECT_T := JSON_OBJECT_T();
+    j_messages  JSON_ARRAY_T  := JSON_ARRAY_T();
+    j_msg       JSON_OBJECT_T;
+    j_content   JSON_ARRAY_T;
+    j_part      JSON_OBJECT_T;
+  BEGIN
+    SELECT message_count INTO l_count
+      FROM FRP_COPILOT_CONVERSATIONS WHERE conversation_id = p_conv_id;
+
+    -- Trigger every 10 messages; first eligible point is count = 10
+    IF l_count < 10 OR MOD(l_count, 10) != 0 THEN RETURN; END IF;
+
+    -- Build transcript from all user/assistant turns
+    DBMS_LOB.CREATETEMPORARY(l_transcript, TRUE);
+    FOR rec IN (
+      SELECT role, DBMS_LOB.SUBSTR(content, 2000, 1) AS preview
+        FROM FRP_COPILOT_MESSAGES
+       WHERE conversation_id = p_conv_id
+         AND role IN ('user','assistant')
+       ORDER BY created_at
+    ) LOOP
+      l_line := UPPER(rec.role) || ': ' || rec.preview || CHR(10) || CHR(10);
+      DBMS_LOB.WRITEAPPEND(l_transcript, LENGTH(l_line), l_line);
+    END LOOP;
+
+    -- Latest message id (anchor for the next gist trigger)
+    SELECT message_id INTO l_last_msg_id
+      FROM (SELECT message_id FROM FRP_COPILOT_MESSAGES
+             WHERE conversation_id = p_conv_id
+             ORDER BY created_at DESC FETCH FIRST 1 ROWS ONLY);
+
+    -- Ask Grok to summarize
+    j_part := JSON_OBJECT_T();
+    j_part.put('type', 'TEXT');
+    j_part.put('text',
+      'Summarize the following FRP Studio assistant conversation in ' ||
+      'about 200 words. Focus on: key facts about the client, decisions ' ||
+      'made, action items still open, and anything the user might want ' ||
+      'to recall later. Write it as a third-person note (e.g., ' ||
+      '"User asked about X. Assistant explained Y."). No preamble, just ' ||
+      'the summary.' || CHR(10) || CHR(10) || 'CONVERSATION:' || CHR(10) ||
+      DBMS_LOB.SUBSTR(l_transcript, 24000, 1));
+    j_content := JSON_ARRAY_T();
+    j_content.append(j_part);
+    j_msg := JSON_OBJECT_T();
+    j_msg.put('role', 'USER');
+    j_msg.put('content', j_content);
+    j_messages.append(j_msg);
+
+    j_chat.put('apiFormat',   'GENERIC');
+    j_chat.put('messages',    j_messages);
+    j_chat.put('maxTokens',   400);
+    j_chat.put('temperature', 0.2);
+    j_chat.put('topP',        0.9);
+    j_chat.put('isStream',    FALSE);
+
+    j_serving.put('servingType', 'ON_DEMAND');
+    j_serving.put('modelId',     C_GROK_OCID);
+
+    j_root.put('compartmentId', C_OCI_COMPARTMENT_ID);
+    j_root.put('servingMode',   j_serving);
+    j_root.put('chatRequest',   j_chat);
+
+    l_body := j_root.to_string;
+
+    l_resp := DBMS_CLOUD.SEND_REQUEST(
+      credential_name => 'OCI$RESOURCE_PRINCIPAL',
+      uri             => C_GENAI_CHAT_URL,
+      method          => 'POST',
+      headers         => '{"Content-Type":"application/json"}',
+      body            => UTL_RAW.CAST_TO_RAW(l_body)
+    );
+    l_status   := DBMS_CLOUD.GET_RESPONSE_STATUS_CODE(l_resp);
+    l_resp_txt := DBMS_CLOUD.GET_RESPONSE_TEXT(l_resp);
+
+    IF l_status = 200 THEN
+      l_summary := JSON_VALUE(l_resp_txt,
+        '$.chatResponse.choices[0].message.content[0].text' RETURNING CLOB);
+      UPDATE FRP_COPILOT_CONVERSATIONS
+         SET gist                   = l_summary,
+             gist_anchor_message_id = l_last_msg_id,
+             updated_at             = CURRENT_TIMESTAMP
+       WHERE conversation_id = p_conv_id;
+    END IF;
+
+    DBMS_LOB.FREETEMPORARY(l_transcript);
+  EXCEPTION
+    WHEN OTHERS THEN NULL;  -- gist failure is non-fatal
+  END maybe_update_gist;
 
   -- ─────────────────────────────────────────────────────────
   -- Top-K library chunks most relevant to the user's question.
@@ -213,7 +373,6 @@ CREATE OR REPLACE PACKAGE BODY FRP_COPILOT AS
     -- 1. Find/create conversation, save user message
     l_conv_id := ensure_conversation(p_user_id, p_proposal_id, p_conversation_id);
     save_message(l_conv_id, 'user', p_message);
-
     -- 2. Get gist (rolling summary, written every 10th turn — added later)
     BEGIN
       SELECT gist INTO l_gist
@@ -234,7 +393,15 @@ CREATE OR REPLACE PACKAGE BODY FRP_COPILOT AS
       'When you reference content from past proposals, cite the doc_id in brackets like [doc_id=abc123...]. ' ||
       'Quote exact language from the library when answering "what did we say about X" questions. ' ||
       'Be concise. ' ||
-      'If a fact is not in the form state or library excerpts, say you do not know rather than guessing.';
+      'If a fact is not in the form state or library excerpts, say you do not know rather than guessing.' || CHR(10) || CHR(10) ||
+      'WRITE TOOLS: when you want to change the form or attachments, ' ||
+      'emit a tool_call block on its own line. Don''t ask permission first; ' ||
+      'the user will see Apply / Reject buttons before any change happens.' || CHR(10) ||
+      '<tool_call>{"tool":"set_form_field","args":{"field":"client_name","value":"City of Madison"}}</tool_call>' || CHR(10) ||
+      '<tool_call>{"tool":"set_form_fields","args":{"updates":[{"field":"client_name","value":"X"},{"field":"industry","value":"Y"}]}}</tool_call>' || CHR(10) ||
+      '<tool_call>{"tool":"attach_doc","args":{"doc_id":"<full doc_id from library citations>"}}</tool_call>' || CHR(10) ||
+      '<tool_call>{"tool":"detach_doc","args":{"doc_id":"<doc_id>"}}</tool_call>' || CHR(10) ||
+      'Valid form fields: client_name, industry, primary_contact, annual_budget, current_erp, rfp_number, due_date.';
 
     l_user_prompt := '';
     IF l_gist IS NOT NULL AND DBMS_LOB.GETLENGTH(l_gist) > 0 THEN
@@ -324,34 +491,48 @@ CREATE OR REPLACE PACKAGE BODY FRP_COPILOT AS
         'Grok call failed (HTTP ' || l_status || '): ' || SUBSTR(l_resp_txt, 1, 2000));
     END IF;
 
-    -- 8. Parse response, save assistant turn
+    -- 8. Parse response
     l_answer  := JSON_VALUE(l_resp_txt,
                    '$.chatResponse.choices[0].message.content[0].text' RETURNING CLOB);
     l_in_tok  := JSON_VALUE(l_resp_txt, '$.chatResponse.usage.promptTokens'     RETURNING NUMBER);
     l_out_tok := JSON_VALUE(l_resp_txt, '$.chatResponse.usage.completionTokens' RETURNING NUMBER);
     l_elapsed := EXTRACT(SECOND FROM (SYSTIMESTAMP - l_started)) * 1000;
 
-    save_message(
-      p_conv_id       => l_conv_id,
-      p_role          => 'assistant',
-      p_content       => l_answer,
-      p_input_tokens  => l_in_tok,
-      p_output_tokens => l_out_tok,
-      p_provider      => 'oci',
-      p_model         => 'grok'
-    );
+    -- Extract tool_calls from the answer (modifies l_answer in place)
+    DECLARE
+      l_tool_calls JSON_ARRAY_T;
+    BEGIN
+      parse_tool_calls(l_answer, l_tool_calls);
 
-    -- 9. Return result envelope
-    j_response := JSON_OBJECT_T();
-    j_response.put('ok',              TRUE);
-    j_response.put('conversation_id', l_conv_id);
-    j_response.put('answer',          l_answer);
-    j_response.put('input_tokens',    l_in_tok);
-    j_response.put('output_tokens',   l_out_tok);
-    j_response.put('provider',        'oci');
-    j_response.put('model',           'grok');
-    j_response.put('elapsed_ms',      ROUND(l_elapsed));
-    RETURN j_response.to_clob;
+      -- Save assistant turn (with tool_calls if any)
+      save_message(
+        p_conv_id         => l_conv_id,
+        p_role            => 'assistant',
+        p_content         => l_answer,
+        p_tool_calls_json => CASE WHEN l_tool_calls.get_size > 0
+                                  THEN l_tool_calls.to_clob ELSE NULL END,
+        p_input_tokens    => l_in_tok,
+        p_output_tokens   => l_out_tok,
+        p_provider        => 'oci',
+        p_model           => 'grok'
+      );
+
+      -- Maybe roll up the gist
+      maybe_update_gist(l_conv_id);
+
+      -- 9. Return result envelope
+      j_response := JSON_OBJECT_T();
+      j_response.put('ok',              TRUE);
+      j_response.put('conversation_id', l_conv_id);
+      j_response.put('answer',          l_answer);
+      j_response.put('tool_calls',      l_tool_calls);
+      j_response.put('input_tokens',    l_in_tok);
+      j_response.put('output_tokens',   l_out_tok);
+      j_response.put('provider',        'oci');
+      j_response.put('model',           'grok');
+      j_response.put('elapsed_ms',      ROUND(l_elapsed));
+      RETURN j_response.to_clob;
+    END;
   END ask;
 
 END FRP_COPILOT;

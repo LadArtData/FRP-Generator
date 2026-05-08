@@ -1281,6 +1281,42 @@ textarea { min-height: 72px; resize: vertical; font-family: inherit; line-height
 }
 .copilot-citation-pill:hover { background: var(--paper-2); }
 
+.copilot-toolcall {
+  margin-top: 6px; padding: 8px 10px;
+  background: #fff; border: 1px solid var(--accent);
+  border-left: 3px solid var(--accent);
+  border-radius: 6px; font-size: 11.5px;
+}
+.copilot-toolcall-head {
+  display: flex; align-items: center; gap: 6px;
+  font-weight: 600; color: var(--accent-2);
+  font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em;
+  margin-bottom: 4px;
+}
+.copilot-toolcall-head svg { width: 11px; height: 11px; }
+.copilot-toolcall-body { color: var(--ink); margin-bottom: 8px; line-height: 1.4; }
+.copilot-toolcall-body code {
+  background: var(--paper-2); padding: 1px 4px; border-radius: 3px;
+  font-size: 11px;
+}
+.copilot-toolcall-actions { display: flex; gap: 6px; }
+.copilot-toolcall-btn {
+  border: 0; border-radius: 5px; padding: 4px 10px; font-size: 11px;
+  font-weight: 600; cursor: pointer;
+}
+.copilot-toolcall-btn.apply  { background: var(--accent); color: #fff; }
+.copilot-toolcall-btn.reject { background: var(--paper-2); color: var(--muted); }
+.copilot-toolcall-btn:hover { opacity: 0.9; }
+.copilot-toolcall.applied  { border-color: var(--leaf); border-left-color: var(--leaf); opacity: 0.7; }
+.copilot-toolcall.rejected { border-color: var(--paper-3); border-left-color: var(--paper-3); opacity: 0.5; }
+.copilot-toolcall.applied  .copilot-toolcall-actions,
+.copilot-toolcall.rejected .copilot-toolcall-actions { display: none; }
+.copilot-toolcall-status {
+  display: none; font-size: 10.5px; font-weight: 600; margin-top: 4px;
+}
+.copilot-toolcall.applied  .copilot-toolcall-status.applied  { display: block; color: var(--leaf); }
+.copilot-toolcall.rejected .copilot-toolcall-status.rejected { display: block; color: var(--muted); }
+
 .copilot-typing {
   align-self: flex-start;
   font-size: 11px; color: var(--muted); font-style: italic;
@@ -2712,21 +2748,128 @@ function copilotJumpToDoc(docId) {
   }
 }
 
-function copilotAppendMessage(role, content, citations) {
+function copilotAppendMessage(role, content, citations, toolCalls) {
   const empty = document.getElementById('copilot-empty');
   if (empty) empty.remove();
   const t = document.getElementById('copilot-thread');
   if (!t) return;
   const wrap = document.createElement('div');
   wrap.className = 'copilot-msg ' + role;
-  wrap.innerHTML =
+  let html =
     '<div class="copilot-bubble">' +
       (role === 'assistant' ? copilotRenderMarkdown(content) : copilotEscape(content)) +
-    '</div>' +
-    (role === 'assistant' ? copilotRenderCitations(citations || copilotExtractCitations(content)) : '');
+    '</div>';
+  if (role === 'assistant') {
+    html += copilotRenderCitations(citations || copilotExtractCitations(content));
+    html += copilotRenderToolCalls(toolCalls);
+  }
+  wrap.innerHTML = html;
   t.appendChild(wrap);
   copilotScrollToBottom();
   return wrap;
+}
+
+const COPILOT_FIELD_MAP = {
+  client_name:     'frp-field-client-name',
+  industry:        'frp-field-industry',
+  primary_contact: 'frp-field-contact',
+  annual_budget:   'frp-field-budget',
+  current_erp:     'frp-field-erp',
+  rfp_number:      'frp-field-rfp-number',
+  due_date:        'frp-field-due-date'
+};
+
+function copilotDescribeToolCall(tc) {
+  const t = (tc && tc.tool) || ''; const a = (tc && tc.args) || {};
+  if (t === 'set_form_field') {
+    return 'Set <code>' + copilotEscape(a.field) + '</code> to <code>' + copilotEscape(a.value) + '</code>';
+  }
+  if (t === 'set_form_fields') {
+    const updates = a.updates || [];
+    return 'Set ' + updates.length + ' field' + (updates.length === 1 ? '' : 's') + ': ' +
+      updates.map(u => '<code>' + copilotEscape(u.field) + '</code>=<code>' + copilotEscape(u.value) + '</code>').join(', ');
+  }
+  if (t === 'attach_doc') return 'Attach library doc <code>' + copilotEscape((a.doc_id || '').slice(0, 16)) + '…</code>';
+  if (t === 'detach_doc') return 'Detach library doc <code>' + copilotEscape((a.doc_id || '').slice(0, 16)) + '…</code>';
+  return 'Run <code>' + copilotEscape(t) + '</code>';
+}
+
+function copilotRenderToolCalls(toolCalls) {
+  if (!toolCalls || !toolCalls.length) return '';
+  return toolCalls.map((tc, i) =>
+    '<div class="copilot-toolcall" data-tc-index="' + i + '">' +
+      '<div class="copilot-toolcall-head">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">' +
+          '<path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"></path></svg>' +
+        'Suggested change' +
+      '</div>' +
+      '<div class="copilot-toolcall-body">' + copilotDescribeToolCall(tc) + '</div>' +
+      '<div class="copilot-toolcall-actions">' +
+        '<button class="copilot-toolcall-btn apply"  onclick="copilotApplyToolCall(this, ' +
+          copilotEscapeAttr(JSON.stringify(tc)) + ')">Apply</button>' +
+        '<button class="copilot-toolcall-btn reject" onclick="copilotRejectToolCall(this)">Reject</button>' +
+      '</div>' +
+      '<div class="copilot-toolcall-status applied">✓ Applied</div>' +
+      '<div class="copilot-toolcall-status rejected">Rejected</div>' +
+    '</div>'
+  ).join('');
+}
+
+function copilotEscapeAttr(s) {
+  return '&quot;' + String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;') + '&quot;';
+}
+
+function copilotApplyToolCall(btn, tcJsonStr) {
+  let tc;
+  try { tc = JSON.parse(tcJsonStr); }
+  catch (e) { console.error('bad tool_call json', e); return; }
+  const card = btn.closest('.copilot-toolcall');
+  const tool = tc.tool; const args = tc.args || {};
+
+  try {
+    if (tool === 'set_form_field') {
+      const id = COPILOT_FIELD_MAP[args.field];
+      if (!id) throw new Error('Unknown field: ' + args.field);
+      const el = document.getElementById(id);
+      if (!el) throw new Error('Field not found in DOM: ' + id);
+      el.value = args.value;
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    else if (tool === 'set_form_fields') {
+      (args.updates || []).forEach(u => {
+        const id = COPILOT_FIELD_MAP[u.field];
+        if (id) {
+          const el = document.getElementById(id);
+          if (el) {
+            el.value = u.value;
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+        }
+      });
+    }
+    else if (tool === 'attach_doc') {
+      const libItem = document.querySelector('[data-doc-id="' + args.doc_id + '"]');
+      const filename = libItem ?
+        (libItem.querySelector('.lib-item-name')?.textContent || args.doc_id).trim() :
+        args.doc_id;
+      attachAndParse(args.doc_id, filename);
+    }
+    else if (tool === 'detach_doc') {
+      removeAttachment(args.doc_id);
+    }
+    else {
+      throw new Error('Unsupported tool: ' + tool);
+    }
+    if (card) card.classList.add('applied');
+  } catch (e) {
+    console.error('Apply tool_call failed', e);
+    alert('Apply failed: ' + e.message);
+  }
+}
+
+function copilotRejectToolCall(btn) {
+  const card = btn.closest('.copilot-toolcall');
+  if (card) card.classList.add('rejected');
 }
 
 function copilotShowTyping() {
@@ -2784,7 +2927,7 @@ async function sendCopilotMessage() {
     });
     _copilotConvId = resp.conversation_id || _copilotConvId;
     copilotHideTyping();
-    copilotAppendMessage('assistant', resp.answer || '(no answer)');
+    copilotAppendMessage('assistant', resp.answer || '(no answer)', null, resp.tool_calls);
     const sub = document.getElementById('copilot-header-sub');
     if (sub) sub.textContent = (resp.provider || 'oci') + ' · ' +
                               (resp.model || 'grok') + ' · ' +
@@ -2807,7 +2950,11 @@ async function copilotLoadHistory(convId) {
     if (!r.messages || !r.messages.length) return;
     const empty = document.getElementById('copilot-empty');
     if (empty) empty.remove();
-    r.messages.forEach(m => copilotAppendMessage(m.role, m.content || ''));
+    r.messages.forEach(m => {
+      let tcs = null;
+      try { tcs = (m.tool_calls && m.tool_calls.length) ? m.tool_calls : null; } catch (e) {}
+      copilotAppendMessage(m.role, m.content || '', null, tcs);
+    });
   } catch (e) { console.warn('copilotLoadHistory failed', e); }
 }
 
