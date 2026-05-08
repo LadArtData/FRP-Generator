@@ -2929,10 +2929,17 @@ async function sendCopilotMessage() {
     copilotHideTyping();
     copilotAppendMessage('assistant', resp.answer || '(no answer)', null, resp.tool_calls);
     const sub = document.getElementById('copilot-header-sub');
-    if (sub) sub.textContent = (resp.provider || 'oci') + ' · ' +
-                              (resp.model || 'grok') + ' · ' +
-                              ((resp.elapsed_ms || 0) / 1000).toFixed(1) + 's · ' +
-                              ((resp.input_tokens || 0) + (resp.output_tokens || 0)) + ' tokens';
+    if (sub) {
+      const providerLabel = (resp.provider === 'anthropic') ? 'Claude' :
+                           (resp.provider === 'oci')       ? 'Grok' :
+                           (resp.provider || 'Grok');
+      let label = providerLabel + ' · ' +
+                  ((resp.elapsed_ms || 0) / 1000).toFixed(1) + 's · ' +
+                  ((resp.input_tokens || 0) + (resp.output_tokens || 0)) + ' tokens';
+      if (resp.fallback_reason) label += ' · fell back';
+      sub.textContent = label;
+      sub.title = resp.fallback_reason || '';
+    }
   } catch (e) {
     console.error('copilotAsk failed', e);
     copilotHideTyping();

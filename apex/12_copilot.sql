@@ -358,6 +358,11 @@ CREATE OR REPLACE PACKAGE BODY FRP_COPILOT AS
     l_out_tok  NUMBER;
     l_elapsed  NUMBER;
 
+    l_used_anthropic  BOOLEAN := FALSE;
+    l_provider        VARCHAR2(32) := 'oci';
+    l_model           VARCHAR2(64) := 'grok';
+    l_fallback_reason VARCHAR2(500);
+
     l_system_prompt VARCHAR2(2000);
     l_user_prompt   VARCHAR2(28000);
 
@@ -418,7 +423,99 @@ CREATE OR REPLACE PACKAGE BODY FRP_COPILOT AS
       DBMS_LOB.SUBSTR(l_context, 16000, 1) || CHR(10) || CHR(10) ||
       'My question: ' || DBMS_LOB.SUBSTR(p_message, 4000, 1);
 
+    -- ─────────────────────────────────────────────────────────
+    -- 5b. Try Anthropic if user has saved a key. On any error
+    -- (bad key, ACL not granted, network, rate limit) we silently
+    -- fall through to the OCI Grok path with a fallback_reason
+    -- recorded for observability.
+    -- ─────────────────────────────────────────────────────────
+    IF iteria_ai.frp_user.has_anthropic_key(p_user_id) THEN
+      DECLARE
+        l_key       VARCHAR2(200);
+        l_a_resp    DBMS_CLOUD_TYPES.RESP;
+        l_a_body    CLOB;
+        l_a_resp_t  CLOB;
+        l_a_status  NUMBER;
+        l_a_headers CLOB;
+        ja_root     JSON_OBJECT_T := JSON_OBJECT_T();
+        ja_msgs     JSON_ARRAY_T  := JSON_ARRAY_T();
+        ja_msg      JSON_OBJECT_T;
+      BEGIN
+        l_key := iteria_ai.frp_user.get_anthropic_key(p_user_id);
+
+        -- Anthropic message format: history + final user message,
+        -- string content (not OCI's content-parts array). System
+        -- prompt is a top-level "system" field, not a SYSTEM role.
+        FOR i IN 0 .. l_history.get_size - 1 LOOP
+          DECLARE
+            j_h    JSON_OBJECT_T := TREAT(l_history.get(i) AS JSON_OBJECT_T);
+            l_role VARCHAR2(20)  := LOWER(j_h.get_string('role'));
+          BEGIN
+            ja_msg := JSON_OBJECT_T();
+            ja_msg.put('role',
+              CASE WHEN l_role = 'assistant' THEN 'assistant' ELSE 'user' END);
+            ja_msg.put('content', j_h.get_string('content'));
+            ja_msgs.append(ja_msg);
+          END;
+        END LOOP;
+
+        ja_msg := JSON_OBJECT_T();
+        ja_msg.put('role', 'user');
+        ja_msg.put('content', l_user_prompt);
+        ja_msgs.append(ja_msg);
+
+        ja_root.put('model',      'claude-sonnet-4-6');
+        ja_root.put('max_tokens', 1500);
+        ja_root.put('system',     l_system_prompt);
+        ja_root.put('messages',   ja_msgs);
+
+        l_a_body := ja_root.to_clob;
+
+        l_a_headers := '{"x-api-key":' || APEX_JSON.STRINGIFY(l_key)
+                    || ',"anthropic-version":"2023-06-01"'
+                    || ',"content-type":"application/json"}';
+
+        l_a_resp := DBMS_CLOUD.SEND_REQUEST(
+          credential_name => 'OCI$RESOURCE_PRINCIPAL',
+          uri             => 'https://api.anthropic.com/v1/messages',
+          method          => 'POST',
+          headers         => l_a_headers,
+          body            => UTL_RAW.CAST_TO_RAW(DBMS_LOB.SUBSTR(l_a_body, 32000, 1))
+        );
+        l_a_status := DBMS_CLOUD.GET_RESPONSE_STATUS_CODE(l_a_resp);
+        l_a_resp_t := DBMS_CLOUD.GET_RESPONSE_TEXT(l_a_resp);
+
+        IF l_a_status = 200 THEN
+          l_answer  := JSON_VALUE(l_a_resp_t,
+                         '$.content[0].text' RETURNING CLOB);
+          l_in_tok  := JSON_VALUE(l_a_resp_t, '$.usage.input_tokens'  RETURNING NUMBER);
+          l_out_tok := JSON_VALUE(l_a_resp_t, '$.usage.output_tokens' RETURNING NUMBER);
+          l_used_anthropic := TRUE;
+          l_provider := 'anthropic';
+          l_model    := 'claude-sonnet-4-6';
+          iteria_ai.frp_user.touch_last_used(p_user_id);
+          BEGIN
+            iteria_ai.frp_user.record_usage(
+              p_user_id      => p_user_id,
+              p_provider     => 'anthropic',
+              p_model        => 'claude-sonnet-4-6',
+              p_action_desc  => 'copilot.ask',
+              p_context_ref  => l_conv_id,
+              p_input_tokens => l_in_tok,
+              p_output_tokens=> l_out_tok,
+              p_cost_usd     => NULL);
+          EXCEPTION WHEN OTHERS THEN NULL; END;
+        ELSE
+          l_fallback_reason := 'Anthropic HTTP ' || l_a_status || ': ' ||
+                               SUBSTR(l_a_resp_t, 1, 300);
+        END IF;
+      EXCEPTION WHEN OTHERS THEN
+        l_fallback_reason := 'Anthropic error: ' || SUBSTR(SQLERRM, 1, 300);
+      END;
+    END IF;
+
     -- 6. Build OCI chat messages array: system + history + new prompt
+   IF NOT l_used_anthropic THEN
     j_msg := JSON_OBJECT_T();
     j_part := JSON_OBJECT_T();
     j_content := JSON_ARRAY_T();
@@ -496,6 +593,8 @@ CREATE OR REPLACE PACKAGE BODY FRP_COPILOT AS
                    '$.chatResponse.choices[0].message.content[0].text' RETURNING CLOB);
     l_in_tok  := JSON_VALUE(l_resp_txt, '$.chatResponse.usage.promptTokens'     RETURNING NUMBER);
     l_out_tok := JSON_VALUE(l_resp_txt, '$.chatResponse.usage.completionTokens' RETURNING NUMBER);
+    END IF;  -- end NOT l_used_anthropic
+
     l_elapsed := EXTRACT(SECOND FROM (SYSTIMESTAMP - l_started)) * 1000;
 
     -- Extract tool_calls from the answer (modifies l_answer in place)
@@ -513,8 +612,8 @@ CREATE OR REPLACE PACKAGE BODY FRP_COPILOT AS
                                   THEN l_tool_calls.to_clob ELSE NULL END,
         p_input_tokens    => l_in_tok,
         p_output_tokens   => l_out_tok,
-        p_provider        => 'oci',
-        p_model           => 'grok'
+        p_provider        => l_provider,
+        p_model           => l_model
       );
 
       -- Maybe roll up the gist
@@ -528,9 +627,12 @@ CREATE OR REPLACE PACKAGE BODY FRP_COPILOT AS
       j_response.put('tool_calls',      l_tool_calls);
       j_response.put('input_tokens',    l_in_tok);
       j_response.put('output_tokens',   l_out_tok);
-      j_response.put('provider',        'oci');
-      j_response.put('model',           'grok');
+      j_response.put('provider',        l_provider);
+      j_response.put('model',           l_model);
       j_response.put('elapsed_ms',      ROUND(l_elapsed));
+      IF l_fallback_reason IS NOT NULL THEN
+        j_response.put('fallback_reason', l_fallback_reason);
+      END IF;
       RETURN j_response.to_clob;
     END;
   END ask;
