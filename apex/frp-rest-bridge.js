@@ -154,6 +154,33 @@
      */
     parseRfp(docId) {
       return call('POST', '/rfp/parse', { body: { doc_id: docId } });
+    },
+
+    /**
+     * Studio Copilot — send a message.
+     * Returns {ok, conversation_id, answer, input_tokens, output_tokens,
+     *   provider, model, elapsed_ms}.
+     * @param {object} args
+     * @param {string} args.user_id           required (e.g. iteria email)
+     * @param {string} args.message           required
+     * @param {object} [args.form_state]      JSON of current form values
+     * @param {string} [args.proposal_id]
+     * @param {string} [args.conversation_id] reuse an existing thread
+     */
+    copilotAsk(args) {
+      return call('POST', '/copilot/ask', { body: args });
+    },
+
+    /** List a user's copilot conversations. */
+    copilotConversations(userId, proposalId, limit) {
+      return call('GET', '/copilot/conversations', { query: {
+        user_id: userId, proposal_id: proposalId, limit_: limit
+      }});
+    },
+
+    /** Load message history for one conversation. */
+    copilotMessages(conversationId) {
+      return call('GET', '/copilot/conversations/' + encodeURIComponent(conversationId) + '/messages');
     }
   };
 
