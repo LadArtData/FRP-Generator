@@ -1190,6 +1190,125 @@ textarea { min-height: 72px; resize: vertical; font-family: inherit; line-height
   .editor-inner { padding: 24px 32px 120px; }
   .run-bar { margin: 0 -32px; padding-left: 32px; padding-right: 32px; }
 }
+
+/* ═══ STUDIO COPILOT ═══ */
+.copilot-fab {
+  position: fixed; right: 20px; bottom: 20px; z-index: 998;
+  width: 52px; height: 52px; border-radius: 50%; border: 0;
+  background: var(--accent); color: #fff; cursor: pointer;
+  box-shadow: 0 6px 20px rgba(0,0,0,.18);
+  display: flex; align-items: center; justify-content: center;
+  transition: transform .15s, box-shadow .15s;
+}
+.copilot-fab:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(0,0,0,.22); }
+.copilot-fab svg { width: 22px; height: 22px; }
+.copilot-fab.hidden { display: none; }
+
+.copilot-drawer {
+  position: fixed; right: 0; top: 0; bottom: 0; z-index: 999;
+  width: 420px; max-width: 92vw; background: #fff;
+  border-left: 1px solid var(--paper-3);
+  box-shadow: -8px 0 32px rgba(0,0,0,.12);
+  transform: translateX(100%); transition: transform .22s ease-out;
+  display: flex; flex-direction: column;
+}
+.copilot-drawer.open { transform: translateX(0); }
+
+.copilot-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 16px; border-bottom: 1px solid var(--paper-3);
+  background: var(--paper);
+}
+.copilot-header-icon {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--accent); color: #fff;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.copilot-header-icon svg { width: 14px; height: 14px; }
+.copilot-header-title { font-weight: 600; font-size: 13px; flex: 1; }
+.copilot-header-sub  { font-size: 11px; color: var(--muted); margin-top: 1px; }
+.copilot-close {
+  background: none; border: 0; cursor: pointer; color: var(--muted);
+  padding: 4px; border-radius: 4px;
+}
+.copilot-close:hover { background: var(--paper-2); color: var(--ink); }
+.copilot-close svg { width: 14px; height: 14px; }
+
+.copilot-thread {
+  flex: 1; overflow-y: auto; padding: 14px 16px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.copilot-empty {
+  margin: auto 0; text-align: center; color: var(--muted); font-size: 12px;
+  padding: 32px 24px; line-height: 1.6;
+}
+.copilot-empty strong { color: var(--ink); display: block; margin-bottom: 6px; }
+
+.copilot-msg { display: flex; flex-direction: column; gap: 4px; max-width: 92%; }
+.copilot-msg.user      { align-self: flex-end;   align-items: flex-end; }
+.copilot-msg.assistant { align-self: flex-start; align-items: flex-start; }
+.copilot-bubble {
+  padding: 8px 12px; border-radius: 12px; font-size: 12.5px; line-height: 1.5;
+  word-wrap: break-word; white-space: pre-wrap;
+}
+.copilot-msg.user .copilot-bubble {
+  background: var(--accent); color: #fff;
+  border-bottom-right-radius: 4px;
+}
+.copilot-msg.assistant .copilot-bubble {
+  background: var(--paper); color: var(--ink);
+  border: 1px solid var(--paper-3);
+  border-bottom-left-radius: 4px;
+}
+.copilot-msg.assistant .copilot-bubble strong { color: var(--accent-2); }
+.copilot-msg.assistant .copilot-bubble blockquote {
+  margin: 6px 0; padding: 4px 10px; border-left: 3px solid var(--paper-3);
+  color: var(--muted-2); font-style: italic;
+}
+.copilot-msg.assistant .copilot-bubble code {
+  background: var(--paper-2); padding: 1px 4px; border-radius: 3px;
+  font-size: 11px; font-family: 'JetBrains Mono', monospace;
+}
+.copilot-msg.error .copilot-bubble {
+  background: var(--red-soft); color: var(--red); border: 1px solid var(--red);
+}
+
+.copilot-citations { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.copilot-citation-pill {
+  font-size: 10px; font-family: 'JetBrains Mono', monospace;
+  background: var(--sky-soft); color: #1e4b75; border-radius: 4px;
+  padding: 2px 6px; cursor: pointer; border: 0;
+}
+.copilot-citation-pill:hover { background: var(--paper-2); }
+
+.copilot-typing {
+  align-self: flex-start;
+  font-size: 11px; color: var(--muted); font-style: italic;
+  padding: 6px 12px;
+}
+.copilot-typing::after { content: '…'; animation: dots 1.4s infinite; }
+@keyframes dots { 0%, 20% { content: '.'; } 40% { content: '..'; } 60%, 100% { content: '…'; } }
+
+.copilot-input-row {
+  border-top: 1px solid var(--paper-3); padding: 10px 12px;
+  background: var(--paper);
+  display: flex; gap: 8px; align-items: flex-end;
+}
+.copilot-input {
+  flex: 1; min-height: 36px; max-height: 120px; resize: none;
+  border: 1px solid var(--paper-3); border-radius: 8px;
+  padding: 8px 10px; font-size: 12.5px; font-family: inherit;
+  background: #fff; color: var(--ink); outline: none;
+}
+.copilot-input:focus { border-color: var(--accent); }
+.copilot-send {
+  background: var(--accent); color: #fff; border: 0; border-radius: 8px;
+  padding: 8px 12px; font-size: 12px; font-weight: 600; cursor: pointer;
+  display: flex; align-items: center; gap: 4px;
+}
+.copilot-send:disabled { opacity: 0.4; cursor: not-allowed; }
+.copilot-send svg { width: 13px; height: 13px; }
+
 </style>
 <style data-designer-overlay="1"></style></head>
 <body data-screen-label="FRP Studio — Workspace">
@@ -2492,7 +2611,217 @@ document.addEventListener('DOMContentLoaded', function () {
   }
   loadLibraryStats();
   loadLibrary();
+  initCopilot();
 });
+
+
+/* ═══ STUDIO COPILOT ═══ */
+
+// User identity. APEX hasn't injected this into the iframe yet — for now
+// pick up from URL ?user_id=, parent window if same-origin, or fallback.
+function getCopilotUserId() {
+  try {
+    const fromQuery = new URLSearchParams(location.search).get('user_id');
+    if (fromQuery) return fromQuery;
+    if (window.parent && window.parent !== window && window.parent.FRP_USER_ID) {
+      return window.parent.FRP_USER_ID;
+    }
+  } catch (e) { /* cross-origin parent — fall through */ }
+  return window.FRP_USER_ID || 'unknown@iteria.us';
+}
+
+let _copilotConvId = null;
+let _copilotBusy = false;
+
+function toggleCopilot() {
+  const drawer = document.getElementById('copilot-drawer');
+  const fab    = document.getElementById('copilot-fab');
+  if (!drawer) return;
+  const opening = !drawer.classList.contains('open');
+  drawer.classList.toggle('open');
+  drawer.setAttribute('aria-hidden', opening ? 'false' : 'true');
+  if (fab) fab.classList.toggle('hidden', opening);
+  if (opening) {
+    setTimeout(() => document.getElementById('copilot-input')?.focus(), 250);
+  }
+}
+
+function onCopilotKey(e) {
+  // Enter sends, Shift+Enter newline
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendCopilotMessage();
+  }
+}
+
+function copilotScrollToBottom() {
+  const t = document.getElementById('copilot-thread');
+  if (t) t.scrollTop = t.scrollHeight;
+}
+
+function copilotEscape(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+// Light markdown: **bold**, > blockquotes, `code`, paragraph breaks
+function copilotRenderMarkdown(text) {
+  let s = copilotEscape(text);
+  // Strip [doc_id=...] markers (rendered separately as pills)
+  s = s.replace(/\[doc_id=[a-f0-9]+\]/gi, '');
+  // Bold
+  s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  // Inline code
+  s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
+  // Blockquote lines (^&gt; ...)
+  s = s.replace(/(^|\n)&gt; ?(.*)/g, '$1<blockquote>$2</blockquote>');
+  // Headings ### → h4 inline
+  s = s.replace(/(^|\n)###\s+(.+)/g, '$1<strong>$2</strong>');
+  return s;
+}
+
+function copilotExtractCitations(text) {
+  const out = []; const seen = new Set();
+  const re = /\[doc_id=([a-f0-9]+)\]/gi;
+  let m;
+  while ((m = re.exec(text || '')) !== null) {
+    if (!seen.has(m[1])) { seen.add(m[1]); out.push(m[1]); }
+  }
+  return out;
+}
+
+function copilotRenderCitations(docIds) {
+  if (!docIds || !docIds.length) return '';
+  return '<div class="copilot-citations">' +
+    docIds.map(id =>
+      '<button class="copilot-citation-pill" title="Open ' + id + '" ' +
+              'onclick="copilotJumpToDoc(\'' + id + '\')">' +
+        id.slice(0, 10) + '…' +
+      '</button>'
+    ).join('') + '</div>';
+}
+
+function copilotJumpToDoc(docId) {
+  // Highlight the doc in the library rail (best-effort)
+  const items = document.querySelectorAll('[data-doc-id="' + docId + '"]');
+  if (items.length) {
+    items[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+    items[0].classList.add('active');
+    setTimeout(() => items[0].classList.remove('active'), 2000);
+  }
+}
+
+function copilotAppendMessage(role, content, citations) {
+  const empty = document.getElementById('copilot-empty');
+  if (empty) empty.remove();
+  const t = document.getElementById('copilot-thread');
+  if (!t) return;
+  const wrap = document.createElement('div');
+  wrap.className = 'copilot-msg ' + role;
+  wrap.innerHTML =
+    '<div class="copilot-bubble">' +
+      (role === 'assistant' ? copilotRenderMarkdown(content) : copilotEscape(content)) +
+    '</div>' +
+    (role === 'assistant' ? copilotRenderCitations(citations || copilotExtractCitations(content)) : '');
+  t.appendChild(wrap);
+  copilotScrollToBottom();
+  return wrap;
+}
+
+function copilotShowTyping() {
+  const t = document.getElementById('copilot-thread');
+  if (!t) return null;
+  const el = document.createElement('div');
+  el.className = 'copilot-typing'; el.id = 'copilot-typing';
+  el.textContent = 'Copilot is thinking';
+  t.appendChild(el);
+  copilotScrollToBottom();
+  return el;
+}
+function copilotHideTyping() {
+  const el = document.getElementById('copilot-typing');
+  if (el) el.remove();
+}
+
+function copilotScrapeFormState() {
+  const get = id => (document.getElementById(id) || {}).value || null;
+  return {
+    client_name:    get('frp-field-client-name'),
+    industry:       get('frp-field-industry'),
+    primary_contact:get('frp-field-contact'),
+    annual_budget:  get('frp-field-budget'),
+    current_erp:    get('frp-field-erp'),
+    rfp_number:     get('frp-field-rfp-number'),
+    due_date:       get('frp-field-due-date'),
+    attachments:    Array.from(_frpAttached || [])
+  };
+}
+
+async function sendCopilotMessage() {
+  if (_copilotBusy) return;
+  if (!window.FRP || !window.FRP.copilotAsk) {
+    copilotAppendMessage('error', 'Copilot bridge not loaded.');
+    return;
+  }
+  const input = document.getElementById('copilot-input');
+  const send  = document.getElementById('copilot-send');
+  const text  = (input.value || '').trim();
+  if (!text) return;
+
+  _copilotBusy = true;
+  send.disabled = true;
+  copilotAppendMessage('user', text);
+  input.value = ''; input.style.height = '';
+  copilotShowTyping();
+
+  try {
+    const resp = await window.FRP.copilotAsk({
+      user_id:         getCopilotUserId(),
+      message:         text,
+      form_state:      copilotScrapeFormState(),
+      conversation_id: _copilotConvId
+    });
+    _copilotConvId = resp.conversation_id || _copilotConvId;
+    copilotHideTyping();
+    copilotAppendMessage('assistant', resp.answer || '(no answer)');
+    const sub = document.getElementById('copilot-header-sub');
+    if (sub) sub.textContent = (resp.provider || 'oci') + ' · ' +
+                              (resp.model || 'grok') + ' · ' +
+                              ((resp.elapsed_ms || 0) / 1000).toFixed(1) + 's · ' +
+                              ((resp.input_tokens || 0) + (resp.output_tokens || 0)) + ' tokens';
+  } catch (e) {
+    console.error('copilotAsk failed', e);
+    copilotHideTyping();
+    copilotAppendMessage('error', 'Copilot error: ' + (e.message || 'unknown'));
+  } finally {
+    _copilotBusy = false;
+    send.disabled = false;
+    input.focus();
+  }
+}
+
+async function copilotLoadHistory(convId) {
+  try {
+    const r = await window.FRP.copilotMessages(convId);
+    if (!r.messages || !r.messages.length) return;
+    const empty = document.getElementById('copilot-empty');
+    if (empty) empty.remove();
+    r.messages.forEach(m => copilotAppendMessage(m.role, m.content || ''));
+  } catch (e) { console.warn('copilotLoadHistory failed', e); }
+}
+
+async function initCopilot() {
+  if (!window.FRP || !window.FRP.copilotConversations) return;
+  // Try to find an existing conversation for this user (no proposal yet)
+  try {
+    const r = await window.FRP.copilotConversations(getCopilotUserId(), null, 1);
+    if (r && r.conversations && r.conversations.length) {
+      _copilotConvId = r.conversations[0].conversation_id;
+      copilotLoadHistory(_copilotConvId);
+    }
+  } catch (e) { /* first-time user — fine */ }
+}
 
 </script>
 
@@ -2676,5 +3005,50 @@ document.addEventListener('DOMContentLoaded', function () {
 </div>
 
 
+
+<!-- ═══ STUDIO COPILOT ═══ -->
+<button class="copilot-fab" id="copilot-fab" onclick="toggleCopilot()" title="Studio Copilot">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+  </svg>
+</button>
+
+<aside class="copilot-drawer" id="copilot-drawer" aria-hidden="true">
+  <div class="copilot-header">
+    <div class="copilot-header-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+      </svg>
+    </div>
+    <div style="flex:1">
+      <div class="copilot-header-title">Studio Copilot</div>
+      <div class="copilot-header-sub" id="copilot-header-sub">Grok · ready</div>
+    </div>
+    <button class="copilot-close" onclick="toggleCopilot()" title="Close">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M18 6L6 18M6 6l12 12"></path>
+      </svg>
+    </button>
+  </div>
+
+  <div class="copilot-thread" id="copilot-thread">
+    <div class="copilot-empty" id="copilot-empty">
+      <strong>Ask the copilot anything.</strong>
+      Find similar past proposals, pull boilerplate, ask what's missing
+      from the form, or get suggested rewrites for the current draft.
+    </div>
+  </div>
+
+  <div class="copilot-input-row">
+    <textarea class="copilot-input" id="copilot-input" rows="1"
+              placeholder="Ask the copilot…"
+              onkeydown="onCopilotKey(event)"></textarea>
+    <button class="copilot-send" id="copilot-send" onclick="sendCopilotMessage()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+        <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path>
+      </svg>
+    </button>
+  </div>
+</aside>
 
 </body></html>
