@@ -63,16 +63,17 @@ CREATE OR REPLACE PACKAGE BODY FRP_COPILOT AS
       END;
     END IF;
 
-    IF p_proposal_id IS NOT NULL THEN
-      BEGIN
-        SELECT conversation_id INTO l_id
-          FROM FRP_COPILOT_CONVERSATIONS
-         WHERE user_id = p_user_id
-           AND proposal_id = p_proposal_id;
-        RETURN l_id;
-      EXCEPTION WHEN NO_DATA_FOUND THEN NULL;
-      END;
-    END IF;
+    -- Find existing (user_id, proposal_id) row. Has to handle NULL
+    -- proposal_id explicitly because '= NULL' never matches in SQL.
+    BEGIN
+      SELECT conversation_id INTO l_id
+        FROM FRP_COPILOT_CONVERSATIONS
+       WHERE user_id = p_user_id
+         AND ((p_proposal_id IS NOT NULL AND proposal_id = p_proposal_id)
+           OR (p_proposal_id IS NULL     AND proposal_id IS NULL));
+      RETURN l_id;
+    EXCEPTION WHEN NO_DATA_FOUND THEN NULL;
+    END;
 
     INSERT INTO FRP_COPILOT_CONVERSATIONS(user_id, proposal_id)
       VALUES (p_user_id, p_proposal_id)
