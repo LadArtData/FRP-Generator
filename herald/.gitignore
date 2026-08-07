@@ -1,0 +1,28 @@
+# The ADB wallet. These files are credentials: anyone holding them plus the
+# database password has ADMIN on the production database. They belong in the
+# container at deploy time, never in version control.
+wallet/
+*.zip
+tnsnames.ora
+cwallet.sso
+ewallet.p12
+ewallet.pem
+keystore.jks
+truststore.jks
+
+# Real environment values. .env.example is committed; .env is not.
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Generated output
+*.docx
+*.pdf
+!library_seed/*.docx

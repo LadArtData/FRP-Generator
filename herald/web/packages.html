@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FRP Studio — Packages</title>
+<link rel="preconnect" href="https://fonts.googleapis.com/">
+<link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/harald.css">
+</head>
+<body>
+<div id="nav"></div>
+<div class="h-wrap wide" id="screen"></div>
+<script src="/harald.js"></script>
+<script>
+(function () {
+  "use strict";
+  var H = window.Harald;
+  var esc = H.escapeHtml;
+  var GATES = ["internal", "pink", "red", "final"];
+
+  var state = { opps: [], opp: null, packages: [], pkg: null, reviews: [],
+                pricing: null, view: "list" };
+
+  function on(sel, evt, fn) {
+    document.querySelectorAll(sel).forEach(function (n) { n.addEventListener(evt, fn); });
+  }
+  function label(v) { return String(v || "").replace(/_/g, " "); }
+
+  async function boot() {
+    document.getElementById("nav").innerHTML = H.nav("/packages");
+    H.bindNav();
+    if (!H.requireSession()) return;
+    state.opps = await H.api.get("/api/opportunities");
+    var requested = new URLSearchParams(location.search).get("opp");
+    if (requested) return openOpp(+requested);
+    render();
+  }
+
+  async function openOpp(id) {
+    try {
+      state.opp = await H.api.get("/api/opportunities/" + id);
+      state.rollup = await H.api.get("/api/opportunities/" + id + "/rollup");
+      state.packages = await H.api.get("/api/opportunities/" + id + "/packages");
+      state.pricing = null;
+      if (H.session.is("approver")) {
+        try { state.pricing = await H.api.get("/api/opportunities/" + id + "/pricing"); }
+        catch (e) { state.pricing = null; }
+      }
+      state.view = "opp";
+      render();
+    } catch (error) { H.toast(error.message, "error"); }
+  }
+
+  async function openPackage(id) {
+    try {
+      state.pkg = await H.api.get("/api/packages/" + id);
+      state.reviews = await H.api.get("/api/packages/" + id + "/reviews");
+      state.view = "pkg";
+      render();
+    } catch (error) { H.toast(error.message, "error"); }
+  }
+
+  function render() {
+    if (state.view === "list") return renderList();
+    if (state.view === "pkg") return renderPackage();
+    return renderOpp();
+  }
+
+  function renderList() {
+    var rows = state.opps.length ? state.opps.map(function (o) {
+      return '<div class="h-listrow click" data-open="' + o.opp_id + '">' +
+        '<div style="flex:1"><div class="name">' + esc(o.title || o.client_name) + "</div>" +
+        '<div class="meta">' + esc(o.client_name || "") + " &middot; " + o.req_count +
+        " requirements &middot; " + (o.package_count || 0) + " package(s)</div></div>" +
+        '<span class="h-pill ' + o.status + '">' + label(o.status) + "</span></div>";
+    }).join("") : '<div class="h-empty"><span class="serif">No bids yet.</span>' +
+      '<div class="h-sub" style="margin:0 auto">Create a bid in Bids &amp; Compliance first.</div></div>';
+
+    document.getElementById("screen").innerHTML =
+      '<div class="h-h1">Packages</div><div class="h-sub">Assemble the submission in the ' +
+      "agency's required format, run it through review, and let the approver attach pricing " +
+      "and give the final sign-off. A submitted package returns to the library so the next bid " +
+      'starts from it.</div><div style="margin-top:24px">' + rows + "</div>";
+    on("[data-open]", "click", function (e) { openOpp(+e.currentTarget.getAttribute("data-open")); });
+  }
+
+  function renderOpp() {
+    var o = state.opp;
+    var r = state.rollup || {};
+    var isApprover = H.session.is("approver");
+
+    var packageRows = state.packages.length ? state.packages.map(function (p) {
+      return '<div class="h-listrow"><span class="h-pill ' + p.status + '">' +
+        label(p.status) + "</span>" +
+        '<div style="flex:1;min-width:0"><div style="font-weight:600">Version ' + p.version +
+        "</div>" +
+        '<div class="mono" style="font-size:10px;color:var(--muted);margin-top:2px">' +
+        esc(p.filename || "") + (p.approved_by ? " &middot; approved by " + esc(p.approved_by) : "") +
+        (p.submitted_at ? " &middot; submitted" : "") + "</div></div>" +
+        '<button class="h-btn ghost sm" data-openpkg="' + p.package_id + '">Open</button>' +
+        '<button class="h-btn ghost sm" data-dl="' + p.package_id + '" data-kind="docx">DOCX</button>' +
+        (p.has_pdf
+          ? '<button class="h-btn ghost sm" data-dl="' + p.package_id + '" data-kind="pdf">PDF</button>'
+          : "") + "</div>";
+    }).join("") : '<div class="h-hint">No packages yet. Assemble one when the requirements are ' +
+      "drafted.</div>";
+
+    var pricingPanel;
+    if (!isApprover) {
+      pricingPanel = '<div class="h-hint">Pricing is restricted to the approver. HARALD never ' +
+        "generates pricing, and it is not visible here under your role.</div>";
+    } else {
+      var current = state.pricing && state.pricing.current;
+      pricingPanel = current
+        ? '<div class="h-listrow"><span class="h-pill ' + current.status + '">' +
+          current.status + "</span>" +
+          '<div style="flex:1;min-width:0"><div style="font-weight:600">' +
+          esc(current.filename) + " (v" + current.version + ")</div>" +
+          '<div class="mono" style="font-size:10px;color:var(--muted);margin-top:2px">owner ' +
+          esc(current.owner) + " &middot; " + H.bytes(current.size_bytes) +
+          (current.locked === "Y" ? " &middot; locked" : "") + "</div></div>" +
+          '<button class="h-btn ghost sm" id="price-dl">Download</button>' +
+          (current.status !== "approved"
+            ? '<button class="h-btn sm" id="price-approve">Mark approved</button>' : "") +
+          "</div>"
+        : '<div class="h-hint warn">No pricing attached. A package cannot be approved until you ' +
+          "attach the cost proposal and mark it approved.</div>";
+      pricingPanel += '<div class="h-row" style="margin-top:10px">' +
+        '<label class="h-btn ghost sm" style="cursor:pointer">Upload pricing' +
+        '<input type="file" style="display:none" id="price-file"></label></div>';
+    }
+
+    document.getElementById("screen").innerHTML =
+      '<div class="h-row" style="margin-bottom:6px">' +
+      '<a class="h-navlink" href="#" id="back" style="padding-left:0">&larr; All bids</a></div>' +
+      '<div class="h-row" style="justify-content:space-between;align-items:flex-start">' +
+      '<div><div class="h-eyebrow">Opportunity ' + o.opp_id + "</div>" +
+      '<div class="h-h1">' + esc(o.title || o.client_name) + "</div>" +
+      '<div class="h-sub">' + esc(o.client_name || "") + "</div></div>" +
+      '<button class="h-btn" id="assemble">Assemble package</button></div>' +
+      '<div class="h-metrics"><div class="h-metric"><div class="v">' + (r.total || 0) +
+      '</div><div class="l">Requirements</div></div>' +
+      '<div class="h-metric good"><div class="v">' + (r.complete || 0) +
+      '</div><div class="l">Complete</div></div>' +
+      '<div class="h-metric' + (r.mandatory_gaps ? " warn" : "") + '"><div class="v">' +
+      (r.mandatory_gaps || 0) + '</div><div class="l">Mandatory gaps</div></div>' +
+      '<div class="h-metric"><div class="v">' + state.packages.length +
+      '</div><div class="l">Versions</div></div></div>' +
+      (r.mandatory_gaps
+        ? '<div class="h-hint warn">' + r.mandatory_gaps + " mandatory requirement(s) are still " +
+          "open. A package can be assembled, but it cannot be approved until they are complete.</div>"
+        : "") +
+      '<div class="h-section">Packages</div>' + packageRows +
+      '<div class="h-section">Cost proposal</div>' + pricingPanel;
+
+    on("#back", "click", function (e) {
+      e.preventDefault();
+      state.view = "list";
+      render();
+    });
+    on("#assemble", "click", assemble);
+    on("[data-openpkg]", "click", function (e) {
+      openPackage(+e.currentTarget.getAttribute("data-openpkg"));
+    });
+    on("[data-dl]", "click", function (e) {
+      var node = e.currentTarget;
+      H.api.download("/api/packages/" + node.getAttribute("data-dl") + "/download?kind=" +
+                     node.getAttribute("data-kind"))
+        .catch(function (err) { H.toast(err.message, "error"); });
+    });
+    on("#price-file", "change", function (e) { uploadPricing(e.target); });
+    on("#price-dl", "click", function () {
+      H.api.download("/api/pricing/" + state.pricing.current.price_id + "/download")
+        .catch(function (err) { H.toast(err.message, "error"); });
+    });
+    on("#price-approve", "click", async function () {
+      try {
+        await H.api.post("/api/pricing/" + state.pricing.current.price_id + "/status",
+                         { status: "approved" });
+        await openOpp(o.opp_id);
+        H.toast("Pricing approved and locked.");
+      } catch (error) { H.toast(error.message, "error"); }
+    });
+  }
+
+  function renderPackage() {
+    var p = state.pkg;
+    var isApprover = H.session.is("approver");
+    var canReview = H.session.is("reviewer");
+
+    var sections = p.sections.map(function (s) {
+      return '<div class="h-card" style="padding:16px 18px;margin-bottom:10px">' +
+        '<div class="h-row" style="justify-content:space-between">' +
+        '<div style="font-weight:600">' + esc(s.title) + "</div>" +
+        '<span class="h-tag">' + esc(s.source) + "</span></div>" +
+        '<textarea class="h-input" style="margin-top:10px;min-height:110px;font-size:12.5px" ' +
+        'data-section="' + s.section_id + '">' + esc(s.body || "") + "</textarea></div>";
+    }).join("");
+
+    var reviewRows = state.reviews.length ? state.reviews.map(function (rv) {
+      return '<div class="h-listrow"><span class="h-tag">' + rv.gate + "</span>" +
+        '<span class="h-pill ' + rv.status + '">' + label(rv.status) + "</span>" +
+        '<div style="flex:1;min-width:0"><div style="font-size:12px">' +
+        (rv.reviewer ? esc(rv.reviewer) : "unassigned") +
+        (rv.comments ? " &middot; " + esc(rv.comments) : "") + "</div></div>" +
+        (rv.status === "pending" && canReview &&
+          (rv.gate !== "final" || isApprover)
+          ? '<button class="h-btn sm" data-pass="' + rv.review_id + '">Pass</button>' +
+            '<button class="h-btn ghost sm" data-changes="' + rv.review_id + '">Changes</button>'
+          : "") + "</div>";
+    }).join("") : '<div class="h-hint">No review gates opened yet.</div>';
+
+    document.getElementById("screen").innerHTML =
+      '<div class="h-row" style="margin-bottom:6px">' +
+      '<a class="h-navlink" href="#" id="back-opp" style="padding-left:0">&larr; Back</a></div>' +
+      '<div class="h-row" style="justify-content:space-between;align-items:flex-start">' +
+      '<div><div class="h-eyebrow">Package ' + p.package_id + " &middot; version " + p.version +
+      "</div>" +
+      '<div class="h-h1" style="font-size:26px">' + esc(p.filename || "Package") + "</div>" +
+      '<div class="h-sub"><span class="h-pill ' + p.status + '">' + label(p.status) + "</span> " +
+      p.sections.length + " sections &middot; " + H.bytes(p.docx_bytes) + " DOCX" +
+      (p.pdf_bytes ? " &middot; " + H.bytes(p.pdf_bytes) + " PDF" : " &middot; no PDF") +
+      "</div></div>" +
+      '<div class="h-row"><button class="h-btn ghost" id="re-render">Re-render</button>' +
+      '<button class="h-btn ghost" id="dl-docx">DOCX</button>' +
+      (p.pdf_bytes ? '<button class="h-btn ghost" id="dl-pdf">PDF</button>' : "") +
+      (isApprover && p.status !== "submitted"
+        ? '<button class="h-btn ink" id="approve">Approve</button>' : "") +
+      (isApprover && p.status === "approved"
+        ? '<button class="h-btn" id="submit">Mark submitted</button>' : "") +
+      "</div></div>" +
+      (p.compliance && p.compliance.mandatory_gaps
+        ? '<div class="h-hint warn">Snapshot at assembly: ' + p.compliance.mandatory_gaps +
+          " mandatory gap(s). Approval is blocked until they are closed.</div>"
+        : "") +
+      '<div class="h-section">Review gates</div>' + reviewRows +
+      '<div class="h-row" style="margin-top:10px"><select class="h-select" id="gate-pick">' +
+      GATES.map(function (g) { return '<option value="' + g + '">' + g + "</option>"; }).join("") +
+      "</select>" +
+      '<button class="h-btn ghost sm" id="open-gate">Open gate</button></div>' +
+      '<div class="h-section">Sections</div>' + sections +
+      '<div class="h-hint">Edit any section and press Re-render to rebuild the DOCX and PDF. ' +
+      "The compliance matrix is appended automatically from the requirements traceability " +
+      "matrix.</div>";
+
+    on("#back-opp", "click", function (e) { e.preventDefault(); openOpp(p.opp_id); });
+    on("#re-render", "click", reRender);
+    on("#dl-docx", "click", function () {
+      H.api.download("/api/packages/" + p.package_id + "/download?kind=docx")
+        .catch(function (err) { H.toast(err.message, "error"); });
+    });
+    on("#dl-pdf", "click", function () {
+      H.api.download("/api/packages/" + p.package_id + "/download?kind=pdf")
+        .catch(function (err) { H.toast(err.message, "error"); });
+    });
+    on("#approve", "click", approve);
+    on("#submit", "click", submitPackage);
+    on("#open-gate", "click", async function () {
+      try {
+        await H.api.post("/api/packages/" + p.package_id + "/reviews",
+                         { gate: document.getElementById("gate-pick").value });
+        await openPackage(p.package_id);
+        H.toast("Gate opened.");
+      } catch (error) { H.toast(error.message, "error"); }
+    });
+    on("[data-pass]", "click", function (e) {
+      decide(+e.currentTarget.getAttribute("data-pass"), "passed");
+    });
+    on("[data-changes]", "click", function (e) {
+      decide(+e.currentTarget.getAttribute("data-changes"), "changes_requested");
+    });
+    on("[data-section]", "change", function (e) {
+      var node = e.currentTarget;
+      H.api.patch("/api/package-sections/" + node.getAttribute("data-section"),
+                  { body: node.value })
+        .then(function () { H.toast("Section saved. Re-render to rebuild the file."); })
+        .catch(function (err) { H.toast(err.message, "error"); });
+    });
+  }
+
+  async function assemble() {
+    var button = document.getElementById("assemble");
+    button.disabled = true;
+    button.innerHTML = '<span class="h-spin"></span> Assembling...';
+    try {
+      var pkg = await H.api.post("/api/opportunities/" + state.opp.opp_id + "/packages");
+      H.toast("Package version " + pkg.version + " assembled.");
+      await openPackage(pkg.package_id);
+    } catch (error) {
+      H.toast(error.message, "error");
+      button.disabled = false;
+      button.textContent = "Assemble package";
+    }
+  }
+
+  async function reRender() {
+    try {
+      var result = await H.api.post("/api/packages/" + state.pkg.package_id + "/render");
+      await openPackage(state.pkg.package_id);
+      H.toast(result.pdf_error
+        ? "DOCX rebuilt. PDF unavailable: " + result.pdf_error
+        : "DOCX and PDF rebuilt.");
+    } catch (error) { H.toast(error.message, "error"); }
+  }
+
+  async function decide(reviewId, status) {
+    var comments = status === "changes_requested"
+      ? prompt("What needs to change?") : null;
+    if (status === "changes_requested" && comments === null) return;
+    try {
+      await H.api.post("/api/reviews/" + reviewId + "/decide", { status: status, comments: comments });
+      await openPackage(state.pkg.package_id);
+      H.toast("Gate decided.");
+    } catch (error) { H.toast(error.message, "error"); }
+  }
+
+  async function approve() {
+    try {
+      await H.api.post("/api/packages/" + state.pkg.package_id + "/approve");
+      await openPackage(state.pkg.package_id);
+      H.toast("Package approved.");
+    } catch (error) { H.toast(error.message, "error"); }
+  }
+
+  async function submitPackage() {
+    if (!confirm("Mark this package submitted? Its narrative is promoted into the library so " +
+                 "future bids retrieve from it.")) return;
+    try {
+      var result = await H.api.post("/api/packages/" + state.pkg.package_id + "/submit");
+      await openPackage(state.pkg.package_id);
+      H.toast("Submitted. " + result.library.chunks + " passages added to the library.");
+    } catch (error) { H.toast(error.message, "error"); }
+  }
+
+  function uploadPricing(input) {
+    var file = input.files[0];
+    if (!file) return;
+    input.value = "";
+    var form = new FormData();
+    form.append("file", file);
+    H.api.upload("/api/opportunities/" + state.opp.opp_id + "/pricing", form)
+      .then(function (result) {
+        H.toast("Pricing version " + result.version + " uploaded.");
+        return openOpp(state.opp.opp_id);
+      })
+      .catch(function (error) { H.toast(error.message, "error"); });
+  }
+
+  boot();
+})();
+</script>
+</body>
+</html>

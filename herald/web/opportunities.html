@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FRP Studio — Bids &amp; Compliance</title>
+<link rel="preconnect" href="https://fonts.googleapis.com/">
+<link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/harald.css">
+</head>
+<body>
+<div id="nav"></div>
+<div id="screen"></div>
+<script src="/harald.js"></script>
+<script>
+(function () {
+  "use strict";
+  var H = window.Harald;
+  var esc = H.escapeHtml;
+
+  var MODULE_LABEL = { FIN: "Financials", HCM: "Human Resources", PAYROLL: "Payroll",
+    PROC: "Procurement", BUDGET: "Budget", INV: "Inventory", TECH: "Technical", GENERAL: "General" };
+  var DOC_ROLES = ["rfp", "addendum", "exhibit", "form", "cost_workbook", "questionnaire",
+    "attachment", "reference", "iteria_response"];
+  var REQ_STATUS = ["not_started", "in_progress", "drafted", "reviewed", "complete", "gap"];
+  var OPP_STATUS = ["evaluating", "bidding", "submitted", "won", "lost", "no_bid"];
+  var FALLBACK_CODES = ["Standard", "Configuration", "Modification", "Third Party",
+    "Not Available", "Future Release"];
+
+  var state = { view: "list", opps: [], opp: null, rollup: null, questionnaires: [],
+                questionnaire: null, busy: false, poll: null };
+
+  function screen() { return document.getElementById("screen"); }
+  function label(v) { return String(v || "").replace(/_/g, " "); }
+  function on(sel, evt, fn) {
+    document.querySelectorAll(sel).forEach(function (n) { n.addEventListener(evt, fn); });
+  }
+
+  async function boot() {
+    document.getElementById("nav").innerHTML = H.nav("/opportunities");
+    H.bindNav();
+    if (!H.requireSession()) return;
+    await loadList();
+    render();
+  }
+
+  async function loadList() {
+    try { state.opps = await H.api.get("/api/opportunities"); }
+    catch (e) { state.opps = []; H.toast(e.message, "error"); }
+  }
+
+  async function openOpp(id) {
+    try {
+      state.opp = await H.api.get("/api/opportunities/" + id);
+      state.rollup = await H.api.get("/api/opportunities/" + id + "/rollup");
+      state.questionnaires = await H.api.get("/api/opportunities/" + id + "/questionnaires");
+      state.view = "opp";
+      render();
+    } catch (e) { H.toast(e.message, "error"); }
+  }
+
+  async function refresh() {
+    if (!state.opp) return;
+    var id = state.opp.opp_id;
+    state.opp = await H.api.get("/api/opportunities/" + id);
+    state.rollup = await H.api.get("/api/opportunities/" + id + "/rollup");
+    state.questionnaires = await H.api.get("/api/opportunities/" + id + "/questionnaires");
+  }
+
+  function render() {
+    if (state.view === "list") return renderList();
+    if (state.view === "questionnaire") return renderQuestionnaire();
+    return renderOpp();
+  }
+
+  function renderList() {
+    var body;
+    if (!state.opps.length) {
+      body = '<div class="h-empty"><span class="serif">No bids yet.</span>' +
+        '<div class="h-sub" style="margin:0 auto 18px">Create an opportunity, load its full ' +
+        'document set, and shred the solicitation into a tracked requirements matrix.</div>' +
+        '<button class="h-btn" id="new-opp2">New opportunity</button></div>';
+    } else {
+      body = state.opps.map(function (o) {
+        var pct = o.req_count ? Math.round(100 * o.req_complete / o.req_count) : 0;
+        return '<div class="h-listrow click" data-open="' + o.opp_id + '">' +
+          '<div style="flex:1;min-width:0"><div class="name">' + esc(o.title || o.client_name) +
+          '</div><div class="meta">' + esc(o.client_name || "") +
+          (o.agency ? " &middot; " + esc(o.agency) : "") +
+          (o.solicitation_no ? " &middot; " + esc(o.solicitation_no) : "") +
+          " &middot; " + o.doc_count + " docs &middot; " + o.req_count + " requirements" +
+          (o.package_count ? " &middot; " + o.package_count + " package(s)" : "") +
+          (o.due_date ? " &middot; due " + esc(o.due_date) : "") + "</div></div>" +
+          '<div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">' + pct +
+          '% complete</div><div class="h-bar"><i style="width:' + pct + '%"></i></div></div>' +
+          '<span class="h-pill ' + o.status + '">' + label(o.status) + "</span></div>";
+      }).join("");
+    }
+    screen().innerHTML = '<div class="h-wrap">' +
+      '<div class="h-row" style="justify-content:space-between;align-items:flex-start">' +
+      '<div><div class="h-h1">Bids &amp; Compliance</div><div class="h-sub">Every solicitation ' +
+      'as a complete document set, shredded into a requirements matrix in the agency\'s own ' +
+      'wording, tracked to zero gaps.</div></div>' +
+      '<button class="h-btn" id="new-opp">New opportunity</button></div>' +
+      '<div style="margin-top:24px">' + body + "</div></div>";
+    on("#new-opp, #new-opp2", "click", newOpportunity);
+    on("[data-open]", "click", function (e) {
+      openOpp(+e.currentTarget.getAttribute("data-open"));
+    });
+  }
+
+  function renderOpp() {
+    var o = state.opp;
+    var r = state.rollup || {};
+
+    var docs = o.documents.length ? o.documents.map(function (d) {
+      var actions = "";
+      if (d.doc_role === "rfp" || d.doc_role === "addendum") {
+        actions += '<button class="h-btn ghost sm" data-shred="' + d.doc_id + '"' +
+          (state.busy ? " disabled" : "") + ">Shred</button>";
+      }
+      if (/\.(xlsx|xlsm)$/i.test(d.filename)) {
+        actions += '<button class="h-btn ghost sm" data-import="' + d.doc_id + '"' +
+          (state.busy ? " disabled" : "") + ">Import questions</button>";
+      }
+      if (d.doc_role === "iteria_response" && d.promoted_to_lib !== "Y") {
+        actions += '<button class="h-btn ghost sm" data-promote="' + d.doc_id +
+          '">Add to library</button>';
+      }
+      actions += '<button class="h-btn ghost sm" data-dl="' + d.doc_id + '">Download</button>';
+      return '<div class="h-listrow"><span class="h-tag">' + label(d.doc_role) + "</span>" +
+        '<div style="flex:1;min-width:0"><div style="font-weight:500;font-size:13px">' +
+        esc(d.filename) +
+        (d.version > 1 ? ' <span class="mono" style="color:var(--muted);font-size:10px">v' +
+          d.version + "</span>" : "") + "</div>" +
+        '<div class="mono" style="font-size:10px;color:var(--muted);margin-top:2px">' +
+        H.bytes(d.size_bytes) +
+        (d.effective_date ? " &middot; eff " + esc(d.effective_date) : "") +
+        (d.promoted_to_lib === "Y" ? " &middot; in library" : "") + "</div></div>" +
+        actions + "</div>";
+    }).join("") : '<div class="h-hint">No documents yet. Upload the solicitation and its ' +
+      "exhibits, forms, and questionnaire workbooks.</div>";
+
+    var rtm;
+    if (!o.requirements.length) {
+      rtm = '<div class="h-hint">No requirements yet. Upload the solicitation above and press ' +
+        "Shred to extract them, verbatim, into the matrix.</div>";
+    } else {
+      rtm = '<table class="h-table"><thead><tr><th>Ref</th><th>Requirement (verbatim)</th>' +
+        "<th>Module</th><th>Answered in</th><th>Owner</th><th>Status</th></tr></thead><tbody>" +
+        o.requirements.map(function (q) {
+          return '<tr><td class="mono" style="font-size:10px;color:var(--muted);white-space:nowrap">' +
+            esc(q.rfp_ref || "") +
+            (q.from_amendment === "Y"
+              ? '<br><span style="color:var(--accent-dark)">amended</span>' : "") + "</td>" +
+            '<td style="max-width:420px;line-height:1.5">' + esc(q.req_text) +
+            (q.mandatory === "Y"
+              ? ' <span style="font-size:10px;font-weight:700;color:var(--bad)">MUST</span>' : "") +
+            (q.draft
+              ? '<div style="margin-top:6px;font-size:11px;color:var(--ok)">&#10003; drafted</div>'
+              : "") + "</td>" +
+            '<td><span class="h-tag">' + (MODULE_LABEL[q.module] || q.module) + "</span>" +
+            '<div class="mono" style="font-size:9px;color:var(--muted);margin-top:3px">' +
+            esc(q.response_type) + "</div></td>" +
+            '<td><input class="h-input" style="padding:4px 7px;font-size:11px;min-width:110px" ' +
+            'value="' + esc(q.section_ref || "") + '" placeholder="section" data-req="' +
+            q.req_id + '" data-field="section_ref"></td>' +
+            '<td><input class="h-input" style="padding:4px 7px;font-size:11px;width:90px" ' +
+            'value="' + esc(q.owner || "") + '" placeholder="owner" data-req="' + q.req_id +
+            '" data-field="owner"></td>' +
+            '<td><select class="h-select" data-req="' + q.req_id + '" data-field="status">' +
+            REQ_STATUS.map(function (s) {
+              return '<option value="' + s + '"' + (q.status === s ? " selected" : "") + ">" +
+                label(s) + "</option>";
+            }).join("") + "</select></td></tr>";
+        }).join("") + "</tbody></table>";
+    }
+
+    var gaps = r.mandatory_gaps || 0;
+    var generating = o.gen_status === "generating";
+
+    screen().innerHTML = '<div class="h-wrap wide">' +
+      '<div class="h-row" style="margin-bottom:6px">' +
+      '<a class="h-navlink" href="#" id="back" style="padding-left:0">&larr; All bids</a></div>' +
+      '<div class="h-row" style="justify-content:space-between;align-items:flex-start">' +
+      '<div><div class="h-eyebrow">Opportunity ' + o.opp_id +
+      (o.solicitation_no ? " &middot; " + esc(o.solicitation_no) : "") + "</div>" +
+      '<div class="h-h1">' + esc(o.title || o.client_name) + "</div>" +
+      '<div class="h-sub">' + esc(o.client_name || "") +
+      (o.agency ? " &middot; " + esc(o.agency) : "") +
+      (o.due_date ? " &middot; due " + esc(o.due_date) : "") + "</div></div>" +
+      '<div class="h-row"><select class="h-select" style="padding:6px 10px" id="opp-status">' +
+      OPP_STATUS.map(function (s) {
+        return '<option value="' + s + '"' + (o.status === s ? " selected" : "") + ">" +
+          label(s) + "</option>";
+      }).join("") + "</select>" +
+      '<a class="h-btn ghost" href="/packages?opp=' + o.opp_id + '">Packages</a></div></div>' +
+      '<div class="h-metrics">' +
+      '<div class="h-metric"><div class="v">' + (r.total || 0) +
+      '</div><div class="l">Requirements</div></div>' +
+      '<div class="h-metric good"><div class="v">' + (r.complete || 0) +
+      '</div><div class="l">Complete</div></div>' +
+      '<div class="h-metric' + (gaps ? " warn" : "") + '"><div class="v">' + gaps +
+      '</div><div class="l">Mandatory gaps</div></div>' +
+      '<div class="h-metric"><div class="v">' + o.documents.length +
+      '</div><div class="l">Documents</div></div></div>' +
+      (o.gen_error ? '<div class="h-hint bad">Generation error: ' + esc(o.gen_error) + "</div>" : "") +
+      (r.submittable
+        ? '<div class="h-hint">Every mandatory requirement is complete. This bid can go to a package.</div>'
+        : "") +
+      '<div class="h-row" style="justify-content:space-between">' +
+      '<div class="h-section" style="margin:0">Document set</div><div class="h-row">' +
+      '<label class="h-btn ghost sm" style="cursor:pointer">Upload amendment' +
+      '<input type="file" style="display:none" id="amend-file"></label>' +
+      '<label class="h-btn sm" style="cursor:pointer">Add document' +
+      '<input type="file" style="display:none" id="doc-file"></label></div></div>' +
+      '<div style="margin-top:10px">' + docs + "</div>" +
+      questionnaireSection() +
+      '<div class="h-row" style="justify-content:space-between;margin-top:22px">' +
+      '<div class="h-section" style="margin:0">Requirements traceability matrix</div>' +
+      '<div class="h-row"><button class="h-btn ghost sm" id="add-req">Add requirement</button>' +
+      '<button class="h-btn sm" id="gen-all"' + (generating ? " disabled" : "") + ">" +
+      (generating ? '<span class="h-spin"></span> Drafting...' : "Draft all requirements") +
+      "</button></div></div>" +
+      '<div style="margin-top:10px">' + rtm + "</div>" +
+      (r.by_module && r.by_module.length
+        ? '<div class="h-hint">By module: ' + r.by_module.map(function (m) {
+            return (MODULE_LABEL[m.module] || m.module) + " " + m.complete + "/" + m.total;
+          }).join(" &middot; ") + "</div>"
+        : "") + "</div>";
+
+    bindOpp();
+    if (generating || state.questionnaires.some(function (q) { return q.status === "filling"; })) {
+      schedulePoll();
+    }
+  }
+
+  function questionnaireSection() {
+    if (!state.questionnaires.length) return "";
+    return '<div class="h-section">Excel questionnaires</div>' +
+      state.questionnaires.map(function (q) {
+        var filling = q.status === "filling";
+        return '<div class="h-listrow"><span class="h-pill ' + q.status + '">' +
+          label(q.status) + "</span>" +
+          '<div style="flex:1;min-width:0"><div style="font-weight:500;font-size:13px">' +
+          esc(q.filename) + "</div>" +
+          '<div class="mono" style="font-size:10px;color:var(--muted);margin-top:2px">' +
+          q.item_count + " questions &middot; " + q.answered + " answered" +
+          (q.needs_review ? " &middot; " + q.needs_review + " need review" : "") +
+          "</div></div>" +
+          '<button class="h-btn ghost sm" data-openq="' + q.q_id + '">View</button>' +
+          '<button class="h-btn sm" data-fillq="' + q.q_id + '"' + (filling ? " disabled" : "") +
+          ">" + (filling ? '<span class="h-spin"></span> Filling...' : "Fill") + "</button>" +
+          '<button class="h-btn ghost sm" data-exportq="' + q.q_id + '">Export .xlsx</button></div>';
+      }).join("") +
+      '<div class="h-hint">Fill answers every row from the approved answer library first and ' +
+      "retrieval second, with a confidence score. Export writes the answers back into the " +
+      "agency's own workbook with its dropdowns and formatting intact.</div>";
+  }
+
+  function renderQuestionnaire() {
+    var q = state.questionnaire;
+    var answered = q.items.filter(function (i) { return i.response_code || i.response_text; }).length;
+    var filling = q.status === "filling";
+
+    var rows = q.items.map(function (item) {
+      var codes = (item.allowed_codes && item.allowed_codes.length)
+        ? item.allowed_codes : FALLBACK_CODES;
+      var pct = item.confidence != null ? Math.round(item.confidence * 100) : null;
+      var colour = pct == null ? "var(--muted)"
+        : pct >= 70 ? "var(--ok)" : pct >= 45 ? "var(--warn)" : "var(--bad)";
+      return '<tr><td class="mono" style="font-size:9px;color:var(--muted);white-space:nowrap">' +
+        esc(item.sheet) + ":" + item.row + "</td>" +
+        '<td style="max-width:340px;line-height:1.5">' + esc(item.question) + "</td>" +
+        '<td><select class="h-select" data-qi="' + item.qi_id + '" data-field="response_code">' +
+        '<option value="">&mdash;</option>' +
+        codes.map(function (c) {
+          return '<option value="' + esc(c) + '"' +
+            (item.response_code === c ? " selected" : "") + ">" + esc(c) + "</option>";
+        }).join("") + "</select></td>" +
+        '<td style="max-width:330px"><textarea class="h-input" ' +
+        'style="min-height:46px;font-size:11.5px;padding:6px 8px" data-qi="' + item.qi_id +
+        '" data-field="response_text">' + esc(item.response_text || "") + "</textarea></td>" +
+        '<td style="text-align:center;color:' + colour + ';font-weight:600;font-size:11px">' +
+        (pct == null ? "&mdash;" : pct + "%") + "</td>" +
+        '<td><select class="h-select" data-qi="' + item.qi_id + '" data-field="status">' +
+        ["todo", "drafted", "needs_review", "approved"].map(function (s) {
+          return '<option value="' + s + '"' + (item.status === s ? " selected" : "") + ">" +
+            label(s) + "</option>";
+        }).join("") + "</select></td></tr>";
+    }).join("");
+
+    screen().innerHTML = '<div class="h-wrap wide">' +
+      '<div class="h-row" style="margin-bottom:6px">' +
+      '<a class="h-navlink" href="#" id="back-bid" style="padding-left:0">&larr; Back to bid</a></div>' +
+      '<div class="h-row" style="justify-content:space-between;align-items:flex-start">' +
+      '<div><div class="h-eyebrow">Questionnaire ' + q.q_id + " &middot; " + label(q.status) +
+      '</div><div class="h-h1" style="font-size:26px">' + esc(q.filename) + "</div>" +
+      '<div class="h-sub">' + q.item_count + " questions &middot; " + answered +
+      " answered</div></div>" +
+      '<div class="h-row"><button class="h-btn ink" id="fill-now"' +
+      (filling ? " disabled" : "") + ">" +
+      (filling ? '<span class="h-spin"></span> Filling...' : "Fill all") + "</button>" +
+      '<button class="h-btn" id="export-now">Export .xlsx</button></div></div>' +
+      '<div style="margin-top:18px;overflow-x:auto"><table class="h-table"><thead><tr>' +
+      "<th>Cell</th><th>Question</th><th>Code</th><th>Answer</th><th>Conf.</th><th>Status</th>" +
+      "</tr></thead><tbody>" + rows + "</tbody></table></div>" +
+      '<div class="h-hint">Edit any code or answer inline. Export writes them back into the ' +
+      "original workbook in its exact format.</div></div>";
+
+    on("#back-bid", "click", function (e) { e.preventDefault(); stopPoll(); openOpp(q.opp_id); });
+    on("#fill-now", "click", function () { fillQuestionnaire(q.q_id); });
+    on("#export-now", "click", function () {
+      H.api.download("/api/questionnaires/" + q.q_id + "/export")
+        .catch(function (err) { H.toast(err.message, "error"); });
+    });
+    on("[data-qi]", "change", function (e) {
+      var node = e.currentTarget;
+      var payload = {};
+      payload[node.getAttribute("data-field")] = node.value;
+      H.api.patch("/api/questionnaire-items/" + node.getAttribute("data-qi"), payload)
+        .catch(function (err) { H.toast(err.message, "error"); });
+    });
+    if (filling) schedulePoll();
+  }
+
+  function bindOpp() {
+    on("#back", "click", function (e) {
+      e.preventDefault();
+      stopPoll();
+      state.view = "list";
+      loadList().then(render);
+    });
+    on("#opp-status", "change", function (e) {
+      H.api.patch("/api/opportunities/" + state.opp.opp_id, { status: e.target.value })
+        .then(function () { H.toast("Status updated."); })
+        .catch(function (err) { H.toast(err.message, "error"); });
+    });
+    on("#add-req", "click", addRequirement);
+    on("#gen-all", "click", generateAll);
+    on("#doc-file", "change", function (e) { uploadDocument(e.target); });
+    on("#amend-file", "change", function (e) { uploadAmendment(e.target); });
+    on("[data-req]", "change", function (e) {
+      var node = e.currentTarget;
+      var payload = {};
+      payload[node.getAttribute("data-field")] = node.value;
+      H.api.patch("/api/requirements/" + node.getAttribute("data-req"), payload)
+        .then(refresh)
+        .then(function () {
+          if (node.getAttribute("data-field") === "status") render();
+        })
+        .catch(function (err) { H.toast(err.message, "error"); });
+    });
+    on("[data-shred]", "click", function (e) { shred(+e.currentTarget.getAttribute("data-shred")); });
+    on("[data-import]", "click", function (e) {
+      importQuestionnaire(+e.currentTarget.getAttribute("data-import"));
+    });
+    on("[data-promote]", "click", function (e) {
+      promote(+e.currentTarget.getAttribute("data-promote"));
+    });
+    on("[data-dl]", "click", function (e) {
+      H.api.download("/api/documents/" + e.currentTarget.getAttribute("data-dl") + "/download")
+        .catch(function (err) { H.toast(err.message, "error"); });
+    });
+    on("[data-openq]", "click", function (e) {
+      openQuestionnaire(+e.currentTarget.getAttribute("data-openq"));
+    });
+    on("[data-fillq]", "click", function (e) {
+      fillQuestionnaire(+e.currentTarget.getAttribute("data-fillq"));
+    });
+    on("[data-exportq]", "click", function (e) {
+      H.api.download("/api/questionnaires/" + e.currentTarget.getAttribute("data-exportq") + "/export")
+        .catch(function (err) { H.toast(err.message, "error"); });
+    });
+  }
+
+  function newOpportunity() {
+    H.modal(
+      '<div class="h-modal-head">New opportunity</div><div class="h-modal-body">' +
+      '<div class="h-field"><label>Title</label><input class="h-input" id="o-title" ' +
+      'placeholder="e.g. City of Westfield, ERP Modernization"></div>' +
+      '<div class="h-field"><label>Client</label><input class="h-input" id="o-client" ' +
+      'placeholder="Client or agency name"></div>' +
+      '<div class="h-row" style="gap:12px"><div class="h-field" style="flex:1">' +
+      '<label>Department</label><input class="h-input" id="o-agency"></div>' +
+      '<div class="h-field" style="flex:1"><label>Solicitation #</label>' +
+      '<input class="h-input" id="o-sol"></div></div>' +
+      '<div class="h-field"><label>Due date</label>' +
+      '<input class="h-input" id="o-due" placeholder="2026-09-15"></div></div>' +
+      '<div class="h-modal-foot"><button class="h-btn ghost" id="o-cancel">Cancel</button>' +
+      '<button class="h-btn" id="o-create">Create</button></div>',
+      function (root) {
+        root.querySelector("#o-cancel").addEventListener("click", H.closeModal);
+        root.querySelector("#o-create").addEventListener("click", async function () {
+          var button = root.querySelector("#o-create");
+          button.disabled = true;
+          button.innerHTML = '<span class="h-spin"></span>';
+          try {
+            var created = await H.api.post("/api/opportunities", {
+              title: root.querySelector("#o-title").value.trim(),
+              client_name: root.querySelector("#o-client").value.trim() || "Untitled client",
+              agency: root.querySelector("#o-agency").value.trim(),
+              solicitation_no: root.querySelector("#o-sol").value.trim(),
+              due_date: root.querySelector("#o-due").value.trim()
+            });
+            H.closeModal();
+            openOpp(created.opp_id);
+          } catch (error) {
+            H.toast(error.message, "error");
+            button.disabled = false;
+            button.textContent = "Create";
+          }
+        });
+      }
+    );
+  }
+
+  function uploadDocument(input) {
+    var file = input.files[0];
+    if (!file) return;
+    input.value = "";
+    H.modal(
+      '<div class="h-modal-head">Add document</div><div class="h-modal-body">' +
+      '<div class="h-field"><label>File</label>' +
+      '<div class="mono" style="font-size:12px">' + esc(file.name) + "</div></div>" +
+      '<div class="h-field"><label>Document role</label>' +
+      '<select class="h-input" id="d-role">' +
+      DOC_ROLES.map(function (role) {
+        return '<option value="' + role + '">' + label(role) + "</option>";
+      }).join("") + "</select></div>" +
+      '<div class="h-field"><label>Effective date (optional)</label>' +
+      '<input class="h-input" id="d-eff" placeholder="2026-08-01"></div>' +
+      '<div class="h-hint">The solicitation goes in as <b>rfp</b>. Functional requirement ' +
+      "workbooks go in as <b>questionnaire</b>. A finished iteria response goes in as " +
+      "<b>iteria response</b> so it can be promoted into the library.</div></div>" +
+      '<div class="h-modal-foot"><button class="h-btn ghost" id="d-cancel">Cancel</button>' +
+      '<button class="h-btn" id="d-go">Add</button></div>',
+      function (root) {
+        root.querySelector("#d-cancel").addEventListener("click", H.closeModal);
+        root.querySelector("#d-go").addEventListener("click", async function () {
+          var button = root.querySelector("#d-go");
+          button.disabled = true;
+          button.innerHTML = '<span class="h-spin"></span>';
+          var form = new FormData();
+          form.append("file", file);
+          form.append("doc_role", root.querySelector("#d-role").value);
+          var eff = root.querySelector("#d-eff").value.trim();
+          if (eff) form.append("effective_date", eff);
+          try {
+            await H.api.upload("/api/opportunities/" + state.opp.opp_id + "/documents", form);
+            H.closeModal();
+            await refresh();
+            render();
+            H.toast("Document added.");
+          } catch (error) {
+            H.closeModal();
+            H.toast(error.message, "error");
+          }
+        });
+      }
+    );
+  }
+
+  async function uploadAmendment(input) {
+    var file = input.files[0];
+    if (!file) return;
+    input.value = "";
+    if (!confirm("Load " + file.name + " as an amendment? It supersedes the prior version " +
+                 "and any new requirements are flagged.")) return;
+    state.busy = true;
+    render();
+    var form = new FormData();
+    form.append("file", file);
+    try {
+      var result = await H.api.upload(
+        "/api/opportunities/" + state.opp.opp_id + "/amendment", form);
+      await refresh();
+      state.busy = false;
+      render();
+      H.toast("Amendment loaded. " + result.new_requirements + " new requirement(s) flagged.");
+    } catch (error) {
+      state.busy = false;
+      render();
+      H.toast(error.message, "error");
+    }
+  }
+
+  async function shred(docId) {
+    if (state.busy) return;
+    if (!confirm("Shred this document into the requirements matrix? Requirements are captured " +
+                 "in the agency's exact wording. Existing rows are kept.")) return;
+    state.busy = true;
+    render();
+    try {
+      var result = await H.api.post("/api/opportunities/" + state.opp.opp_id + "/shred",
+                                    { doc_id: docId });
+      await refresh();
+      state.busy = false;
+      render();
+      H.toast(result.added + " requirements extracted.");
+    } catch (error) {
+      state.busy = false;
+      render();
+      H.toast(error.message, "error");
+    }
+  }
+
+  async function importQuestionnaire(docId) {
+    if (state.busy) return;
+    state.busy = true;
+    render();
+    try {
+      var result = await H.api.post(
+        "/api/opportunities/" + state.opp.opp_id + "/questionnaires/import",
+        { doc_id: docId });
+      await refresh();
+      state.busy = false;
+      render();
+      H.toast("Imported " + result.item_count + " questions.");
+    } catch (error) {
+      state.busy = false;
+      render();
+      H.toast(error.message, "error");
+    }
+  }
+
+  async function promote(docId) {
+    if (!confirm("Add this finished iteria proposal to the library? Its answers become " +
+                 "retrievable for every future bid.")) return;
+    try {
+      var result = await H.api.post("/api/documents/" + docId + "/promote", {
+        client: state.opp.client_name,
+        outcome: state.opp.status === "won" ? "won" : "in_progress"
+      });
+      await refresh();
+      render();
+      H.toast("Added to the library: " + result.chunks + " passages indexed.");
+    } catch (error) { H.toast(error.message, "error"); }
+  }
+
+  async function addRequirement() {
+    try {
+      await H.api.post("/api/opportunities/" + state.opp.opp_id + "/requirements", {
+        req_text: "New requirement. Replace this with the agency's exact wording.",
+        module: "GENERAL"
+      });
+      await refresh();
+      render();
+    } catch (error) { H.toast(error.message, "error"); }
+  }
+
+  async function generateAll() {
+    try {
+      await H.api.post("/api/opportunities/" + state.opp.opp_id + "/generate");
+      state.opp.gen_status = "generating";
+      render();
+      H.toast("Drafting every undrafted requirement from iteria's own material.");
+    } catch (error) { H.toast(error.message, "error"); }
+  }
+
+  async function openQuestionnaire(qId) {
+    try {
+      state.questionnaire = await H.api.get("/api/questionnaires/" + qId);
+      state.view = "questionnaire";
+      render();
+    } catch (error) { H.toast(error.message, "error"); }
+  }
+
+  async function fillQuestionnaire(qId) {
+    try {
+      await H.api.post("/api/questionnaires/" + qId + "/fill");
+      if (state.questionnaire && state.questionnaire.q_id === qId) {
+        state.questionnaire.status = "filling";
+      }
+      await refresh();
+      render();
+      H.toast("Filling. Low-confidence rows will be flagged for review.");
+    } catch (error) { H.toast(error.message, "error"); }
+  }
+
+  function schedulePoll() {
+    stopPoll();
+    state.poll = setInterval(async function () {
+      try {
+        if (state.view === "questionnaire" && state.questionnaire) {
+          var q = await H.api.get("/api/questionnaires/" + state.questionnaire.q_id);
+          state.questionnaire = q;
+          if (q.status !== "filling") stopPoll();
+          render();
+        } else if (state.view === "opp" && state.opp) {
+          await refresh();
+          var busy = state.opp.gen_status === "generating" ||
+            state.questionnaires.some(function (item) { return item.status === "filling"; });
+          if (!busy) stopPoll();
+          render();
+        } else {
+          stopPoll();
+        }
+      } catch (error) { stopPoll(); }
+    }, 4000);
+  }
+
+  function stopPoll() {
+    if (state.poll) { clearInterval(state.poll); state.poll = null; }
+  }
+
+  boot();
+})();
+</script>
+</body>
+</html>
