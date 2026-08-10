@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en" style="--accent: #E8652B; --accent-2: #be5323; --paper: #FAF8F3; --paper-2: #f0eee9; --paper-3: #e1dfdb; --ink: #0E1A38; --ink-2: #1a2749; --ink-3: #2a3a63; --line: #E3DBC8; --muted: #6B6555; --radius: 8px;"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FRP Studio — Government Proposal Engine</title>
+<title>HAROLD — Government Proposal Engine</title>
 <link rel="preconnect" href="https://fonts.googleapis.com/">
 <link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -1521,13 +1521,13 @@ textarea { min-height: 72px; resize: vertical; font-family: inherit; line-height
 }
 </style>
 <style data-designer-overlay="1"></style></head>
-<body data-screen-label="FRP Studio — Workspace">
+<body data-screen-label="HAROLD — Workspace">
 
 <!-- ═══ TOP BAR ═══ -->
 <header class="topbar">
   <div class="brand">
-    <div class="brand-mark">f</div>
-    <div class="brand-name">FRP <em>Studio</em></div>
+    <div class="brand-mark">H</div>
+    <div class="brand-name">HAROLD</div>
   </div>
   <div class="brand-sep"></div>
   <div class="doc-meta">
@@ -1541,7 +1541,7 @@ textarea { min-height: 72px; resize: vertical; font-family: inherit; line-height
   <input type="hidden" id="doc-title" value="">
   <div class="topbar-spacer"></div>
   <div class="topbar-right">
-    <button class="tb-btn" onclick="openCopilotPanel()" id="tb-copilot-btn" title="Open FRP Copilot chat" style="font-weight:600">
+    <button class="tb-btn" onclick="openCopilotPanel()" id="tb-copilot-btn" title="Open HAROLD Copilot chat" style="font-weight:600">
       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
       Copilot
     </button>
@@ -1932,7 +1932,7 @@ textarea { min-height: 72px; resize: vertical; font-family: inherit; line-height
 
       <!-- Copilot tab — opens the floating chat (same thread as orange FAB) -->
       <div class="ppanel hide" data-panel="copilot" id="copilot-tab-panel">
-        <div class="p-eyebrow">FRP Copilot · Grok via /copilot/ask</div>
+        <div class="p-eyebrow">HAROLD Copilot · Grok via /copilot/ask</div>
         <h1 class="p-h1" style="font-family:'Instrument Serif',serif;font-weight:400;margin-bottom:8px">Ask about this proposal</h1>
         <p class="p-body" style="color:var(--muted);font-size:12px;margin-bottom:16px">Attach the solicitation for best results. Copilot uses your form state and library context.</p>
         <button type="button" class="btn-primary" onclick="openCopilotPanel()" style="max-width:220px">Open chat panel</button>
@@ -1944,7 +1944,7 @@ textarea { min-height: 72px; resize: vertical; font-family: inherit; line-height
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:48px;height:48px;margin-bottom:14px;color:var(--line-2)"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
           <div class="preview-empty-title" style="font-family:'Instrument Serif',serif;font-size:22px;color:var(--ink);margin-bottom:6px">Pick a proposal or start new</div>
           <div style="font-size:12.5px;line-height:1.55;max-width:360px;margin:0 auto">
-            Use <strong>Proposal</strong> in the top bar to open a saved FRP or create a new one. Your work is stored in the database — not only in the browser.
+            Use <strong>Proposal</strong> in the top bar to open a saved proposal or create a new one. Your work is stored in the database — not only in the browser.
           </div>
           <div style="margin-top:20px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
             <button type="button" class="tb-btn tb-btn-primary" onclick="openProposalPicker(false)">Open proposals</button>
@@ -1988,13 +1988,13 @@ textarea { min-height: 72px; resize: vertical; font-family: inherit; line-height
         </div>
 
         <div class="ppanel hide" data-panel="narrative">
-          <div class="p-eyebrow">Draft · from FRP_PROPOSALS.draft_text</div>
+          <div class="p-eyebrow">Draft · saved narrative</div>
           <h1 class="p-h1" id="rp-narr-h1" style="font-family:'Instrument Serif',serif;font-weight:400">Draft</h1>
           <pre id="rp-narrative" style="white-space:pre-wrap;font-family:Inter,system-ui,sans-serif;font-size:13.5px;line-height:1.6;color:var(--ink);background:transparent;border:0;padding:0;margin:14px 0">No draft text yet. Run Generate to populate.</pre>
         </div>
 
         <div class="ppanel hide" data-panel="attachments">
-          <div class="p-eyebrow">Attached library docs · live from FRP_PROPOSAL_ATTACHMENTS</div>
+          <div class="p-eyebrow">Attached library docs</div>
           <h1 class="p-h1" style="font-family:'Instrument Serif',serif;font-weight:400">Attachments</h1>
           <div id="rp-attlist" style="display:flex;flex-direction:column;gap:10px;margin-top:14px">
             <div style="font-size:12px;color:var(--muted)">No attachments.</div>
@@ -2811,7 +2811,7 @@ async function renderProposalsInLibrary() {
       return '<div class="lib-item proposal-item' + (active ? ' active' : '') + '"' +
         ' style="' + (active ? 'border-color:var(--accent);background:var(--accent-soft)' : '') + '"' +
         ' onclick="selectProposalFromPicker(\'' + escapeHtml(item.proposal_id).replace(/'/g, "\\'") + '\')">' +
-        '<div class="lib-ico ref">FRP</div>' +
+        '<div class="lib-ico ref">H</div>' +
         '<div class="lib-item-body">' +
         '<div class="lib-item-name">' + name + ' <span class="proposal-status-pill ' + st + '">' + escapeHtml(st) + '</span></div>' +
         '<div class="lib-item-meta"><span>' + escapeHtml(_shortProposalId(item.proposal_id)) + '</span>' +
@@ -3847,7 +3847,7 @@ document.addEventListener('DOMContentLoaded', function () {
 <!-- ═══ FRP COPILOT (floating chat) ═══ -->
 <div class="copilot-panel" id="copilot-panel">
   <div class="copilot-head">
-    <span class="copilot-head-title">FRP Copilot</span>
+    <span class="copilot-head-title">HAROLD Copilot</span>
     <button type="button" class="tb-btn" style="font-size:11px;padding:4px 8px" onclick="openConnect()" title="Library bucket">Bucket</button>
     <button type="button" onclick="toggleCopilot()" title="Close" style="border:none;background:none;cursor:pointer;font-size:18px;line-height:1;color:var(--muted);padding:0 4px">×</button>
   </div>
@@ -3859,7 +3859,7 @@ document.addEventListener('DOMContentLoaded', function () {
     <button type="button" id="copilot-send-btn" onclick="sendCopilotMessage()">Send</button>
   </div>
 </div>
-<button type="button" class="copilot-fab" id="copilot-fab" onclick="toggleCopilot()" title="FRP Copilot">
+<button type="button" class="copilot-fab" id="copilot-fab" onclick="toggleCopilot()" title="HAROLD Copilot">
   <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
 </button>
 
@@ -3894,7 +3894,7 @@ document.addEventListener('DOMContentLoaded', function () {
       </button>
       <div class="modal-eyebrow"><span class="modal-eyebrow-dot"></span>Library connection</div>
       <h2 id="modal-h2">Connect your <em>OCI library</em></h2>
-      <p class="modal-sub" id="modal-sub">Connect FRP to your Object Storage bucket for proposals, solicitations, and references. Cohere indexes the library once; new documents in the drop zone can autofill this workspace.</p>
+      <p class="modal-sub" id="modal-sub">Connect HAROLD to your Object Storage bucket for proposals, solicitations, and references. Cohere indexes the library once; new documents in the drop zone can autofill this workspace.</p>
     </div>
 
     <div class="modal-body">
@@ -3942,7 +3942,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
       <!-- ── STEP 1: folder picker ── -->
       <div class="modal-step" id="connect-step-1">
-        <div class="ms-label">Pick the bucket prefix FRP should index</div>
+        <div class="ms-label">Pick the bucket prefix HAROLD should index</div>
         <div class="ms-folder-tree">
           <div class="ms-folder">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
@@ -4039,7 +4039,7 @@ document.addEventListener('DOMContentLoaded', function () {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:22px;height:22px"><polyline points="20 6 9 17 4 12"></polyline></svg>
           </div>
           <div style="font-family:&#39;Instrument Serif&#39;,serif;font-size:22px;line-height:1.15;margin-bottom:6px">Library connected.</div>
-          <div style="font-size:13px;color:var(--muted);max-width:380px;margin:0 auto;line-height:1.5">When a new solicitation lands in <strong>08_DROP_ZONE</strong>, FRP can auto-populate this form in under 10 seconds.</div>
+          <div style="font-size:13px;color:var(--muted);max-width:380px;margin:0 auto;line-height:1.5">When a new solicitation lands in <strong>08_DROP_ZONE</strong>, HAROLD can auto-populate this form in under 10 seconds.</div>
         </div>
       </div>
 

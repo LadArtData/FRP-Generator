@@ -233,7 +233,7 @@
         '<span class="h-role ' + user.role + '">' + user.role + "</span></span>" +
         '<button class="h-btn ghost sm" id="h-signout">Sign out</button>'
       : "";
-    return '<div class="h-topbar"><div class="h-logo">FRP <em>Studio</em></div>' +
+    return '<div class="h-topbar"><div class="h-logo">HAROLD</div>' +
       items + '<div class="h-spacer"></div>' + right + "</div>";
   }
 
