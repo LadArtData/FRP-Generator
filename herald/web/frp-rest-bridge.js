@@ -150,6 +150,29 @@
     seedAnswers: function () {
       return call("/api/answers/seed", { method: "POST", body: "{}" });
     },
+    getPricingMatrix: function (id) {
+      return call("/api/opportunities/" + encodeURIComponent(id) + "/pricing-matrix");
+    },
+    savePricingMatrix: function (id, payload) {
+      return call("/api/opportunities/" + encodeURIComponent(id) + "/pricing-matrix", {
+        method: "PUT", body: JSON.stringify(payload || {})
+      });
+    },
+    suggestPricingMatrix: function (id) {
+      return call("/api/opportunities/" + encodeURIComponent(id) + "/pricing-matrix/suggest", {
+        method: "POST", body: "{}"
+      });
+    },
+    approvePricingMatrix: function (id) {
+      return call("/api/opportunities/" + encodeURIComponent(id) + "/pricing-matrix/approve", {
+        method: "POST", body: "{}"
+      });
+    },
+    unlockPricingMatrix: function (id) {
+      return call("/api/opportunities/" + encodeURIComponent(id) + "/pricing-matrix/unlock", {
+        method: "POST", body: "{}"
+      });
+    },
 
     /* solicitation parsing and the assistant */
     parseRfp: function (docId) {

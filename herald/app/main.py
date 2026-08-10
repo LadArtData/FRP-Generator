@@ -19,7 +19,7 @@ from pydantic import BaseModel, Field
 
 from . import (answer_seed, answers, audit, auth, db, documents, embeddings, formats,
                freshness, generation, llm, opportunities, packages, pricing,
-               questionnaires, reviews, studio)
+               pricing_matrix, questionnaires, reviews, studio)
 from .config import cfg
 from .errors import HaraldError, ValidationFailed
 
@@ -579,6 +579,36 @@ def pricing_download(price_id: int, user: dict = Depends(approver_role)):
     blob, filename = pricing.download(price_id)
     return Response(content=blob, media_type="application/octet-stream",
                     headers={"Content-Disposition": f'attachment; filename="{filename}"'})
+
+
+# ---------------------------------------------------------------------------
+# Pricing matrix — fillable, AI-suggested, Brian approves
+# ---------------------------------------------------------------------------
+@app.get("/api/opportunities/{opp_id}/pricing-matrix")
+def get_pricing_matrix(opp_id: int, user: dict = Depends(contributor)):
+    return pricing_matrix.get_for_opportunity(opp_id)
+
+
+@app.put("/api/opportunities/{opp_id}/pricing-matrix")
+def put_pricing_matrix(opp_id: int, body: dict = Body(...),
+                       user: dict = Depends(contributor)):
+    as_approver = user.get("role") == auth.APPROVER
+    return pricing_matrix.save(opp_id, body, user["username"], as_approver=as_approver)
+
+
+@app.post("/api/opportunities/{opp_id}/pricing-matrix/suggest")
+def suggest_pricing_matrix(opp_id: int, user: dict = Depends(contributor)):
+    return pricing_matrix.suggest(opp_id, user["username"])
+
+
+@app.post("/api/opportunities/{opp_id}/pricing-matrix/approve")
+def approve_pricing_matrix(opp_id: int, user: dict = Depends(approver_role)):
+    return pricing_matrix.approve(opp_id, user["username"])
+
+
+@app.post("/api/opportunities/{opp_id}/pricing-matrix/unlock")
+def unlock_pricing_matrix(opp_id: int, user: dict = Depends(approver_role)):
+    return pricing_matrix.unlock(opp_id, user["username"])
 
 
 # ---------------------------------------------------------------------------

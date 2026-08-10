@@ -1,9 +1,8 @@
-"""Pricing. Brian's alone.
+"""Pricing file uploads. Brian's alone.
 
-HARALD never generates pricing and never lets a non-approver see or touch it. The
-API layer enforces the approver role on every function here. A package cannot be
-approved until an approved pricing version is attached, so the boundary is
-structural rather than a matter of discipline.
+Legacy path: upload / lock a pricing spreadsheet. The fillable Studio matrix
+lives in pricing_matrix.py — AI can suggest numbers from similar past matrices,
+but cells stay editable and only the approver can approve / lock.
 """
 from __future__ import annotations
 

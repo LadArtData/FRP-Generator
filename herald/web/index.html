@@ -11,7 +11,7 @@
      to the same directory when opened locally for testing. If your APEX
      install rewrites paths, change to "#APP_FILES#frp-rest-bridge.js". -->
 <script src="/harald.js"></script>
-<script src="frp-rest-bridge.js?v=1.7.0"></script>
+<script src="frp-rest-bridge.js?v=1.8.0"></script>
 <!-- If APEX rewrites static paths, use: #APP_FILES#frp-rest-bridge.js -->
 <script>
   // If the bridge file 404s, the next tag never registers and window.FRP
@@ -1181,6 +1181,79 @@ textarea { min-height: 72px; resize: vertical; font-family: inherit; line-height
 .run-panel-go:hover { background: var(--accent-2); transform: translateY(-1px); }
 .run-panel-go svg { width: 14px; height: 14px; }
 
+/* ── PRICING MATRIX (Brian) ── */
+.pricing-toolbar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  margin-bottom: 12px;
+}
+.pricing-meta {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10.5px; color: var(--muted);
+  margin-left: auto;
+}
+.pricing-status-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 2px 8px; border-radius: 999px;
+  font-size: 10.5px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .04em; background: var(--paper-3); color: var(--ink-3);
+}
+.pricing-status-pill.suggested { background: #e8f0ff; color: #1a4a9c; }
+.pricing-status-pill.reviewed { background: #fff3d6; color: #8a5a00; }
+.pricing-status-pill.approved { background: #e3f5e8; color: #1a6b3c; }
+.pricing-wrap {
+  overflow-x: auto; border: 1px solid var(--line); border-radius: 8px;
+  background: #fff;
+}
+.pricing-table {
+  width: 100%; border-collapse: collapse; font-size: 12px; min-width: 720px;
+}
+.pricing-table th {
+  text-align: left; font-size: 10px; font-weight: 600; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--muted);
+  padding: 8px 10px; border-bottom: 1px solid var(--line);
+  background: var(--paper-2); white-space: nowrap;
+}
+.pricing-table td {
+  padding: 4px 6px; border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+}
+.pricing-table tr:last-child td { border-bottom: none; }
+.pricing-table input {
+  width: 100%; border: 1px solid transparent; border-radius: 4px;
+  padding: 5px 6px; font: inherit; background: transparent; color: var(--ink);
+}
+.pricing-table input:hover { border-color: var(--line); background: #fff; }
+.pricing-table input:focus {
+  outline: none; border-color: var(--accent); background: #fff;
+  box-shadow: 0 0 0 2px rgba(232,101,43,.15);
+}
+.pricing-table input.ai-fill {
+  background: #f3f7ff; border-color: #c8d7f5;
+}
+.pricing-table input:disabled { opacity: .7; cursor: not-allowed; }
+.pricing-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+.pricing-table .num input { text-align: right; }
+.pricing-foot {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin-top: 10px; flex-wrap: wrap;
+}
+.pricing-total {
+  font-family: 'Instrument Serif', serif; font-size: 22px; color: var(--ink);
+}
+.pricing-total span { font-size: 13px; color: var(--muted); margin-right: 8px; }
+.pricing-peers {
+  font-size: 11.5px; color: var(--muted); line-height: 1.45; margin-top: 8px;
+}
+.pricing-btn {
+  padding: 7px 12px; border-radius: 5px; font: inherit; font-size: 12px;
+  font-weight: 500; cursor: pointer; border: 1px solid var(--line);
+  background: #fff; color: var(--ink);
+}
+.pricing-btn:hover { border-color: var(--muted-2); }
+.pricing-btn.primary { background: var(--ink); color: #fff; border-color: var(--ink); }
+.pricing-btn.accent { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 600; }
+.pricing-btn:disabled { opacity: .4; cursor: not-allowed; }
+
 /* ── PREVIEW (right) ── */
 .preview {
   background: var(--paper-2);
@@ -1595,6 +1668,7 @@ textarea { min-height: 72px; resize: vertical; font-family: inherit; line-height
           <div class="progress-step" onclick="scrollToSection(&#39;sec-team&#39;)"><span class="progress-step-label">04 · Team</span></div>
           <div class="progress-step" onclick="scrollToSection(&#39;sec-tech&#39;)"><span class="progress-step-label">05 · Technical</span></div>
           <div class="progress-step" onclick="scrollToSection(&#39;sec-refs&#39;)"><span class="progress-step-label">06 · References</span></div>
+          <div class="progress-step" onclick="scrollToSection(&#39;sec-pricing&#39;)"><span class="progress-step-label">07 · Pricing</span></div>
         </div>
       </header>
 
@@ -1777,6 +1851,57 @@ textarea { min-height: 72px; resize: vertical; font-family: inherit; line-height
           <div class="attached" id="att-list-refs">
             <div style="font-size:11.5px;color:var(--muted);padding:6px 4px">No references attached. Click a <em>Won</em> doc in the library to attach it.</div>
           </div>
+        </div>
+      </section>
+
+      <!-- ═ 07 Pricing matrix — Brian ═ -->
+      <section class="section" id="sec-pricing">
+        <div class="section-head">
+          <span class="section-num">07</span>
+          <h2 class="section-title" style="font-family: &quot;Instrument Serif&quot;, serif; font-weight: 400;">Pricing matrix</h2>
+          <span class="section-status empty" id="pricing-section-status"><span class="section-status-dot"></span>Brian</span>
+        </div>
+        <p class="section-sub">Fillable rates for Brian to review ahead of time. <strong>AI suggest</strong> learns from similar past proposals (industry / type / modules); every cell stays editable.</p>
+        <div class="section-body">
+          <div class="pricing-toolbar">
+            <button type="button" class="pricing-btn accent" id="pricing-suggest-btn" onclick="suggestPricingMatrix()">AI suggest from similar</button>
+            <button type="button" class="pricing-btn primary" id="pricing-save-btn" onclick="savePricingMatrix()">Save matrix</button>
+            <button type="button" class="pricing-btn" id="pricing-approve-btn" onclick="approvePricingMatrix()">Brian approve</button>
+            <button type="button" class="pricing-btn" id="pricing-unlock-btn" onclick="unlockPricingMatrix()" style="display:none">Unlock</button>
+            <button type="button" class="pricing-btn" onclick="brianSignIn()">Sign in as Brian</button>
+            <div class="pricing-meta">
+              <span class="pricing-status-pill" id="pricing-status-pill">draft</span>
+              <span id="pricing-auth-chip" style="margin-left:8px"></span>
+            </div>
+          </div>
+          <div class="field-grid" style="margin-bottom:12px">
+            <div class="field"><label>Industry / agency type</label><input type="text" id="pricing-industry" placeholder="State / Higher Ed / County" oninput="markPricingDirty()"></div>
+            <div class="field"><label>Engagement type</label><input type="text" id="pricing-engagement" placeholder="Full implementation / Upgrade / Assessment" oninput="markPricingDirty()"></div>
+            <div class="field full"><label>Modules in scope</label><input type="text" id="pricing-modules" placeholder="Financials, HCM, Payroll…" oninput="markPricingDirty()"></div>
+          </div>
+          <div class="pricing-wrap">
+            <table class="pricing-table" id="pricing-table">
+              <thead>
+                <tr>
+                  <th>Category</th>
+                  <th>Line item</th>
+                  <th>Unit</th>
+                  <th class="num">Qty</th>
+                  <th class="num">Rate</th>
+                  <th class="num">Amount</th>
+                  <th>Notes</th>
+                </tr>
+              </thead>
+              <tbody id="pricing-tbody">
+                <tr><td colspan="7" style="padding:14px;color:var(--muted)">Open or save a proposal to load the pricing matrix.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pricing-foot">
+            <div class="pricing-total"><span>Total</span><strong id="pricing-total">$0</strong></div>
+            <div id="pricing-hint" style="font-size:11.5px;color:var(--muted)">Blue cells were AI-suggested — edit anytime.</div>
+          </div>
+          <div class="pricing-peers" id="pricing-peers"></div>
         </div>
       </section>
 
@@ -2641,6 +2766,9 @@ function clearProposalWorkspace() {
   if (live) live.style.display = 'none';
   updateProposalSwitcher(null);
   setDocSaveStatus('unsaved', 'New proposal — not saved yet');
+  window._pricingMatrix = null;
+  window._pricingDirty = false;
+  renderPricingMatrix(null);
 }
 
 function buildSavePayload() {
@@ -2762,6 +2890,7 @@ async function loadProposalById(proposalId, opts) {
   setDocSaveStatus('saved', 'Loaded · ' + _formatRelativeTime(p.updated_at));
   closeProposalPicker();
   if (!opts.quiet) showApiError('');
+  loadPricingMatrix();
   return p;
 }
 
@@ -2784,6 +2913,7 @@ async function startNewProposal() {
     setDocSaveStatus('saved', 'New draft — start filling the form');
     showApiError('');
     refreshProposalPickerList();
+    loadPricingMatrix();
   } catch (e) {
     console.error('startNewProposal failed', e);
     alert('Could not create proposal: ' + e.message);
@@ -3035,6 +3165,236 @@ function applyAutofillTags(fields) {
   applyTagGroup('proposed_modules', _normalizeModuleLabels(
     fields.proposed_modules || fields.required_modules
   ));
+}
+
+/* ── Pricing matrix (Brian) ─────────────────────────────────────── */
+window._pricingMatrix = null;
+window._pricingDirty = false;
+
+function paintStudioAuth() {
+  const chip = document.getElementById('pricing-auth-chip');
+  if (!chip) return;
+  const user = window.Harald && Harald.session.user();
+  if (user && user.role === 'approver') {
+    chip.textContent = 'Approver: ' + (user.display_name || user.username);
+  } else if (user) {
+    chip.textContent = (user.display_name || user.username) + ' · ' + user.role;
+  } else {
+    chip.textContent = 'Shared draft workspace';
+  }
+}
+window.paintStudioAuth = paintStudioAuth;
+
+function markPricingDirty() {
+  window._pricingDirty = true;
+}
+
+function _money(n) {
+  const v = Number(n);
+  if (!isFinite(v)) return '$0';
+  return v.toLocaleString(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+}
+
+function _lineAmount(line) {
+  if (line.amount != null && line.amount !== '') return Number(line.amount) || 0;
+  const q = Number(line.qty), r = Number(line.rate);
+  if (isFinite(q) && isFinite(r)) return Math.round(q * r * 100) / 100;
+  return 0;
+}
+
+function collectPricingPayload() {
+  const lines = (window._pricingMatrix && window._pricingMatrix.lines) || [];
+  return {
+    industry: (document.getElementById('pricing-industry') || {}).value || '',
+    engagement_type: (document.getElementById('pricing-engagement') || {}).value || '',
+    modules: (document.getElementById('pricing-modules') || {}).value || '',
+    lines: lines,
+    suggested_from: window._pricingMatrix && window._pricingMatrix.suggested_from,
+    status: (window._pricingMatrix && window._pricingMatrix.status) || 'draft'
+  };
+}
+
+function renderPricingMatrix(matrix) {
+  window._pricingMatrix = matrix || null;
+  window._pricingDirty = false;
+  const tbody = document.getElementById('pricing-tbody');
+  const pill = document.getElementById('pricing-status-pill');
+  const totalEl = document.getElementById('pricing-total');
+  const peers = document.getElementById('pricing-peers');
+  const unlockBtn = document.getElementById('pricing-unlock-btn');
+  const saveBtn = document.getElementById('pricing-save-btn');
+  const suggestBtn = document.getElementById('pricing-suggest-btn');
+  if (!tbody || !matrix) {
+    if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="padding:14px;color:var(--muted)">Open or save a proposal to load the pricing matrix.</td></tr>';
+    return;
+  }
+  const locked = matrix.locked === 'Y' || matrix.status === 'approved';
+  const ind = document.getElementById('pricing-industry');
+  const eng = document.getElementById('pricing-engagement');
+  const mods = document.getElementById('pricing-modules');
+  if (ind) ind.value = matrix.industry || '';
+  if (eng) eng.value = matrix.engagement_type || '';
+  if (mods) mods.value = matrix.modules || '';
+  if (ind) ind.disabled = locked;
+  if (eng) eng.disabled = locked;
+  if (mods) mods.disabled = locked;
+
+  if (pill) {
+    pill.textContent = matrix.status || 'draft';
+    pill.className = 'pricing-status-pill ' + (matrix.status || 'draft');
+  }
+  if (unlockBtn) unlockBtn.style.display = locked ? '' : 'none';
+  if (saveBtn) saveBtn.disabled = locked && !(window.Harald && Harald.session.is('approver'));
+  if (suggestBtn) suggestBtn.disabled = locked;
+
+  tbody.innerHTML = (matrix.lines || []).map(function (line, idx) {
+    const ai = line.ai_suggested ? ' ai-fill' : '';
+    const dis = locked ? ' disabled' : '';
+    const amt = _lineAmount(line);
+    return '<tr data-idx="' + idx + '">' +
+      '<td><input data-k="category" value="' + escapeHtml(line.category || '') + '"' + dis + ' oninput="onPricingCell(' + idx + ',this)"></td>' +
+      '<td><input data-k="line_item" value="' + escapeHtml(line.line_item || '') + '"' + dis + ' oninput="onPricingCell(' + idx + ',this)"></td>' +
+      '<td><input data-k="unit" value="' + escapeHtml(line.unit || '') + '"' + dis + ' oninput="onPricingCell(' + idx + ',this)" style="width:72px"></td>' +
+      '<td class="num"><input class="num' + ai + '" data-k="qty" value="' + (line.qty != null ? escapeHtml(line.qty) : '') + '"' + dis + ' oninput="onPricingCell(' + idx + ',this)"></td>' +
+      '<td class="num"><input class="num' + ai + '" data-k="rate" value="' + (line.rate != null ? escapeHtml(line.rate) : '') + '"' + dis + ' oninput="onPricingCell(' + idx + ',this)"></td>' +
+      '<td class="num" id="pricing-amt-' + idx + '">' + _money(amt) + '</td>' +
+      '<td><input data-k="notes" value="' + escapeHtml(line.notes || '') + '"' + dis + ' oninput="onPricingCell(' + idx + ',this)"></td>' +
+      '</tr>';
+  }).join('');
+
+  const total = (matrix.lines || []).reduce(function (s, line) { return s + _lineAmount(line); }, 0);
+  if (totalEl) totalEl.textContent = _money(total);
+
+  if (peers) {
+    const sug = matrix.suggested_from;
+    if (sug && sug.peers_used && sug.peers_used.length) {
+      peers.textContent = 'Learned from ' + sug.peers_used.length + ' similar matrices · filled ' +
+        (sug.filled_cells || 0) + ' cells · ' +
+        sug.peers_used.map(function (p) {
+          return (p.client_name || ('#' + p.opp_id)) +
+            (p.total_amount != null ? (' (' + _money(p.total_amount) + ')') : '');
+        }).join(', ');
+    } else {
+      peers.textContent = 'No AI suggestion yet — save a few priced proposals, then use AI suggest.';
+    }
+  }
+  paintStudioAuth();
+}
+
+function onPricingCell(idx, input) {
+  if (!window._pricingMatrix || !window._pricingMatrix.lines[idx]) return;
+  const key = input.getAttribute('data-k');
+  let val = input.value;
+  if (key === 'qty' || key === 'rate') {
+    val = val === '' ? null : Number(val);
+    if (val !== null && !isFinite(val)) val = null;
+    window._pricingMatrix.lines[idx].ai_suggested = false;
+    input.classList.remove('ai-fill');
+  }
+  window._pricingMatrix.lines[idx][key] = val;
+  if (key === 'qty' || key === 'rate') {
+    window._pricingMatrix.lines[idx].amount = _lineAmount(window._pricingMatrix.lines[idx]);
+    const cell = document.getElementById('pricing-amt-' + idx);
+    if (cell) cell.textContent = _money(window._pricingMatrix.lines[idx].amount);
+    const total = window._pricingMatrix.lines.reduce(function (s, line) { return s + _lineAmount(line); }, 0);
+    const totalEl = document.getElementById('pricing-total');
+    if (totalEl) totalEl.textContent = _money(total);
+  }
+  markPricingDirty();
+}
+
+async function loadPricingMatrix() {
+  if (!window._activeProposalId || !window.FRP || typeof window.FRP.getPricingMatrix !== 'function') {
+    renderPricingMatrix(null);
+    return;
+  }
+  try {
+    const m = await window.FRP.getPricingMatrix(window._activeProposalId);
+    renderPricingMatrix(m);
+  } catch (e) {
+    console.error('loadPricingMatrix', e);
+    const tbody = document.getElementById('pricing-tbody');
+    if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="padding:14px;color:var(--red)">Could not load pricing: ' + escapeHtml(e.message) + '</td></tr>';
+  }
+}
+
+async function savePricingMatrix() {
+  if (!window._activeProposalId) {
+    alert('Open or start a proposal first.');
+    return;
+  }
+  if (!window.FRP || typeof window.FRP.savePricingMatrix !== 'function') {
+    alert('Pricing API not available — hard-refresh after deploy.');
+    return;
+  }
+  try {
+    const saved = await window.FRP.savePricingMatrix(window._activeProposalId, collectPricingPayload());
+    renderPricingMatrix(saved);
+    if (window.Harald) Harald.toast('Pricing matrix saved');
+  } catch (e) {
+    alert('Could not save pricing: ' + (e.message || e));
+  }
+}
+
+async function suggestPricingMatrix() {
+  if (!window._activeProposalId) {
+    alert('Open or start a proposal first.');
+    return;
+  }
+  if (window._pricingDirty) {
+    try { await savePricingMatrix(); } catch (e) { /* continue */ }
+  }
+  try {
+    const m = await window.FRP.suggestPricingMatrix(window._activeProposalId);
+    renderPricingMatrix(m);
+    const n = (m.suggested_from && m.suggested_from.filled_cells) || 0;
+    if (window.Harald) Harald.toast(n ? ('Suggested ' + n + ' line(s) from similar work') : 'No similar priced proposals yet — fill manually once');
+  } catch (e) {
+    alert('Suggest failed: ' + (e.message || e));
+  }
+}
+
+async function approvePricingMatrix() {
+  if (!window._activeProposalId) return;
+  if (window.Harald && typeof Harald.requireApprover === 'function') {
+    const ok = await Harald.requireApprover();
+    if (!ok) return;
+  }
+  try {
+    if (window._pricingDirty) await savePricingMatrix();
+    const m = await window.FRP.approvePricingMatrix(window._activeProposalId);
+    renderPricingMatrix(m);
+    if (window.Harald) Harald.toast('Pricing approved & locked');
+  } catch (e) {
+    alert('Approve failed: ' + (e.message || e));
+  }
+}
+
+async function unlockPricingMatrix() {
+  if (!window._activeProposalId) return;
+  if (window.Harald && typeof Harald.requireApprover === 'function') {
+    const ok = await Harald.requireApprover();
+    if (!ok) return;
+  }
+  try {
+    const m = await window.FRP.unlockPricingMatrix(window._activeProposalId);
+    renderPricingMatrix(m);
+    if (window.Harald) Harald.toast('Pricing unlocked for edits');
+  } catch (e) {
+    alert('Unlock failed: ' + (e.message || e));
+  }
+}
+
+function brianSignIn() {
+  if (!window.Harald) {
+    alert('Approver sign-in unavailable.');
+    return;
+  }
+  Harald.signIn({
+    approversOnly: true,
+    title: 'Brian — pricing approver',
+    onSignedIn: function () { paintStudioAuth(); }
+  });
 }
 
 async function assembleSubmissionPackage() {
@@ -3648,6 +4008,8 @@ document.addEventListener('DOMContentLoaded', function () {
   loadLibrary();
   refreshIndexedChip();
   ensureAnswerBank();
+  paintStudioAuth();
+  if (window._activeProposalId) loadPricingMatrix();
   _renderAttachmentUI();
   initProposalAutosave();
   initProposalSession();

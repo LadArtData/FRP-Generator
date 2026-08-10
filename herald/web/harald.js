@@ -1,6 +1,6 @@
-/* HARALD shared client: API helpers, toast, modal. No login wall for Studio —
- * the team opens the URL and writes ERPs. Backend uses a shared workspace
- * identity when no token is present. */
+/* HARALD shared client: API helpers, toast, modal.
+ * Drafting has no login wall. Approver actions (Brian / pricing) use an
+ * optional pick-a-name sign-in so approve/lock stay role-gated. */
 (function (global) {
   "use strict";
 
@@ -19,13 +19,13 @@
         global.sessionStorage.setItem(USER_KEY, JSON.stringify({
           username: data.username, display_name: data.display_name, role: data.role
         }));
-      } catch (e) { /* storage unavailable: the session lives for this page only */ }
+      } catch (e) { /* storage unavailable */ }
     },
     clear: function () {
       try {
         global.sessionStorage.removeItem(TOKEN_KEY);
         global.sessionStorage.removeItem(USER_KEY);
-      } catch (e) { /* nothing to clear */ }
+      } catch (e) { /* nothing */ }
     },
     is: function (role) {
       var user = session.user();
@@ -144,11 +144,79 @@
     setTimeout(function () { node.remove(); }, 4200);
   }
 
-  // Kept as no-ops so older Studio wiring does not break. There is no name picker.
-  function signInDialog() { /* no login wall */ }
+  async function signInAs(username) {
+    var result = await fetch("/api/signin", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: username })
+    }).then(async function (response) {
+      var data = await response.json();
+      if (!response.ok) throw new Error(data.message || "Sign-in failed");
+      return data;
+    });
+    session.set(result);
+    return result;
+  }
+
+  async function signInDialog(opts) {
+    opts = opts || {};
+    var users = [];
+    try { users = await fetch("/api/users").then(function (r) { return r.json(); }); }
+    catch (e) { users = []; }
+    if (opts.approversOnly) {
+      users = users.filter(function (u) { return u.role === "approver"; });
+    }
+    if (!users.length) {
+      toast("No approver users found.", "error");
+      return;
+    }
+    var options = users.map(function (u) {
+      return '<option value="' + escapeHtml(u.username) + '">' +
+        escapeHtml(u.display_name || u.username) + " (" + u.role + ")</option>";
+    }).join("");
+    modal(
+      '<div class="h-modal-head">' + (opts.title || "Approver sign-in") + "</div>" +
+      '<div class="h-modal-body">' +
+      '<div class="h-hint">Drafting does not need a login. Pricing approval is Brian\'s gate.</div>' +
+      '<div class="h-field" style="margin-top:12px"><label>Approver</label>' +
+      '<select class="h-input" id="h-user">' + options + "</select></div></div>" +
+      '<div class="h-modal-foot"><button class="h-btn" id="h-signin">Continue</button></div>',
+      function (root) {
+        root.querySelector("#h-signin").addEventListener("click", async function () {
+          var button = root.querySelector("#h-signin");
+          button.disabled = true;
+          try {
+            await signInAs(root.querySelector("#h-user").value);
+            close();
+            toast("Signed in as approver");
+            if (typeof opts.onSignedIn === "function") opts.onSignedIn(session.user());
+            if (typeof global.paintStudioAuth === "function") {
+              try { global.paintStudioAuth(); } catch (e) { /* optional */ }
+            }
+          } catch (error) {
+            button.disabled = false;
+            toast(error.message, "error");
+          }
+        });
+      }
+    );
+  }
+
   function requireSession() { return true; }
 
+  async function requireApprover() {
+    if (session.is("approver")) return true;
+    return new Promise(function (resolve) {
+      signInDialog({
+        approversOnly: true,
+        title: "Brian — pricing approver",
+        onSignedIn: function () { resolve(session.is("approver")); }
+      });
+    });
+  }
+
   function nav(active) {
+    var user = session.user();
     var links = [
       ["/", "Drafting"],
       ["/opportunities", "Bids &amp; Compliance"],
@@ -160,16 +228,27 @@
       var on = link[0] === active ? " on" : "";
       return '<a class="h-navlink' + on + '" href="' + link[0] + '">' + link[1] + "</a>";
     }).join("");
-
+    var right = user
+      ? '<span class="h-user">' + escapeHtml(user.display_name || user.username) +
+        '<span class="h-role ' + user.role + '">' + user.role + "</span></span>" +
+        '<button class="h-btn ghost sm" id="h-signout">Sign out</button>'
+      : "";
     return '<div class="h-topbar"><div class="h-logo">FRP <em>Studio</em></div>' +
-      items + '<div class="h-spacer"></div></div>';
+      items + '<div class="h-spacer"></div>' + right + "</div>";
   }
 
-  function bindNav() { /* no sign-in controls */ }
+  function bindNav() {
+    var out = document.getElementById("h-signout");
+    if (out) out.addEventListener("click", function () {
+      session.clear();
+      global.location.reload();
+    });
+  }
 
   global.Harald = {
     session: session, api: api, escapeHtml: escapeHtml, bytes: bytes,
     modal: modal, closeModal: close, toast: toast, nav: nav, bindNav: bindNav,
-    signIn: signInDialog, requireSession: requireSession
+    signIn: signInDialog, signInAs: signInAs, requireSession: requireSession,
+    requireApprover: requireApprover
   };
 })(window);

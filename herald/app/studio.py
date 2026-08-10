@@ -18,7 +18,8 @@ import zipfile
 from docx import Document
 from docx.shared import Pt
 
-from . import audit, documents, generation, opportunities, packages, questionnaires
+from . import (audit, documents, generation, opportunities, packages,
+               pricing_matrix, questionnaires)
 from .db import cursor, transaction
 from .errors import NotFound, ValidationFailed
 
@@ -409,31 +410,44 @@ def export_materials_zip(opp_id: int) -> tuple[bytes, str]:
         for doc in opp.get("documents") or []:
             try:
                 blob, filename = documents.get_blob(doc["doc_id"])
+                fallback = "doc_" + str(doc["doc_id"])
                 archive.writestr(
-                    f"03_attachments/{_unique(filename or f'doc_{doc['doc_id']}')}",
+                    "03_attachments/" + _unique(filename or fallback),
                     blob,
                 )
             except Exception:
                 log.exception("materials zip: attachment failed doc=%s", doc["doc_id"])
 
         for pkg in packages.list_for_opportunity(opp_id):
+            pkg_id = pkg["package_id"]
             try:
-                blob, filename, _ = packages.download(pkg["package_id"], "docx")
+                blob, filename, _ = packages.download(pkg_id, "docx")
+                fallback = "package_" + str(pkg_id) + ".docx"
                 archive.writestr(
-                    f"04_packages/{_unique(filename or f'package_{pkg['package_id']}.docx')}",
+                    "04_packages/" + _unique(filename or fallback),
                     blob,
                 )
             except Exception:
-                log.exception("materials zip: package docx failed id=%s", pkg["package_id"])
+                log.exception("materials zip: package docx failed id=%s", pkg_id)
             if pkg.get("has_pdf"):
                 try:
-                    blob, filename, _ = packages.download(pkg["package_id"], "pdf")
+                    blob, filename, _ = packages.download(pkg_id, "pdf")
+                    fallback = "package_" + str(pkg_id) + ".pdf"
                     archive.writestr(
-                        f"04_packages/{_unique(filename or f'package_{pkg['package_id']}.pdf')}",
+                        "04_packages/" + _unique(filename or fallback),
                         blob,
                     )
                 except Exception:
-                    log.exception("materials zip: package pdf failed id=%s", pkg["package_id"])
+                    log.exception("materials zip: package pdf failed id=%s", pkg_id)
+
+        try:
+            csv_text = pricing_matrix.to_csv(opp_id)
+            archive.writestr(
+                "05_pricing/" + _unique(client + "_pricing_matrix.csv"),
+                csv_text.encode("utf-8"),
+            )
+        except Exception:
+            log.exception("materials zip: pricing matrix failed opp=%s", opp_id)
 
         manifest = {
             "proposal_id": opp_id,
