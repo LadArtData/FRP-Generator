@@ -1475,33 +1475,6 @@ textarea { min-height: 72px; resize: vertical; font-family: inherit; line-height
 .genstatus-item.active { color: var(--ink); font-weight: 600; }
 @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
 
-/* === TWEAKS PANEL === */
-.tweaks {
-  position: fixed; bottom: 16px; right: 16px; z-index: 200;
-  width: 280px;
-  background: #fff; border: 1px solid var(--line); border-radius: 10px;
-  box-shadow: var(--shadow-lg);
-  padding: 14px;
-  display: none;
-  font-size: 12px;
-}
-.tweaks.visible { display: block; }
-.tweaks-head {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--line);
-}
-.tweaks-title { font-weight: 600; font-size: 12px; }
-.tweaks-close { background: none; border: none; cursor: pointer; color: var(--muted); }
-.tweaks-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 0; }
-.tweaks-row label { font-size: 11.5px; font-weight: 500; color: var(--ink-3); }
-.tweaks-row select, .tweaks-row input[type=color] { padding: 3px 6px; font-size: 11.5px; }
-.tweaks-swatches { display: flex; gap: 4px; }
-.tw-swatch {
-  width: 18px; height: 18px; border-radius: 4px; cursor: pointer;
-  border: 1.5px solid transparent;
-}
-.tw-swatch.sel { border-color: var(--ink); }
-
 /* Scrollbars */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 4px; }
@@ -1579,9 +1552,6 @@ textarea { min-height: 72px; resize: vertical; font-family: inherit; line-height
       </span>
       <span>Llama · Cohere · Grok</span>
       <span class="chip-copilot-count" id="chip-indexed-count">· …</span>
-    </button>
-    <button class="tb-btn" onclick="toggleTweaks()" title="Tweaks">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg>
     </button>
     <button class="tb-btn">Share</button>
     <button class="tb-btn" id="tb-save-btn" onclick="saveNow()" title="Save draft to the database (Ctrl+S)">
@@ -2055,64 +2025,7 @@ textarea { min-height: 72px; resize: vertical; font-family: inherit; line-height
 
 </div>
 
-<!-- ═══ TWEAKS ═══ -->
-<div class="tweaks visible" id="tweaks">
-  <div class="tweaks-head">
-    <div class="tweaks-title">Tweaks</div>
-    <button class="tweaks-close" onclick="toggleTweaks()"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"></path></svg></button>
-  </div>
-  <div class="tweaks-row">
-    <label>Accent color</label>
-    <div class="tweaks-swatches" id="tw-accent">
-      <div class="tw-swatch sel" style="background:#E8652B" data-hex="#E8652B"></div>
-      <div class="tw-swatch" style="background:#3A6FA8" data-hex="#3A6FA8"></div>
-      <div class="tw-swatch" style="background:#2F6B4F" data-hex="#2F6B4F"></div>
-      <div class="tw-swatch" style="background:#B28B2E" data-hex="#B28B2E"></div>
-      <div class="tw-swatch" style="background:#0E1A38" data-hex="#0E1A38"></div>
-    </div>
-  </div>
-  <div class="tweaks-row">
-    <label>Paper tone</label>
-    <div class="tweaks-swatches" id="tw-paper">
-      <div class="tw-swatch sel" style="background:#FAF8F3;border-color:#ddd" data-hex="#FAF8F3"></div>
-      <div class="tw-swatch" style="background:#FFFFFF;border-color:#ddd" data-hex="#FFFFFF"></div>
-      <div class="tw-swatch" style="background:#F5F5F4;border-color:#ddd" data-hex="#F5F5F4"></div>
-      <div class="tw-swatch" style="background:#0E1A38" data-hex="#0E1A38"></div>
-    </div>
-  </div>
-  <div class="tweaks-row">
-    <label>Display font</label>
-    <select id="tw-font" onchange="applyTweaks()">
-      <option value="Instrument Serif">Instrument Serif</option>
-      <option value="Inter">Inter (no serif)</option>
-      <option value="Georgia">Georgia</option>
-    </select>
-  </div>
-  <div class="tweaks-row">
-    <label>Layout density</label>
-    <select id="tw-density" onchange="applyTweaks()">
-      <option value="comfortable">Comfortable</option>
-      <option value="compact">Compact</option>
-    </select>
-  </div>
-  <div class="tweaks-row">
-    <label>Show progress bar</label>
-    <select id="tw-progress" onchange="applyTweaks()">
-      <option value="on">On</option>
-      <option value="off">Off</option>
-    </select>
-  </div>
-</div>
-
 <script>
-const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
-  "accent": "#E8652B",
-  "paper": "#FAF8F3",
-  "font": "Instrument Serif",
-  "density": "comfortable",
-  "progress": "on"
-}/*EDITMODE-END*/;
-
 function scrollToSection(id) {
   document.getElementById(id).scrollIntoView({behavior:'smooth', block:'start'});
 }
@@ -2264,108 +2177,6 @@ async function runGenerate() {
     if (tbBtn) { tbBtn.disabled = false; tbBtn.style.opacity = ''; }
   }
 }
-
-/* === TWEAKS === */
-function toggleTweaks() {
-  document.getElementById('tweaks').classList.toggle('visible');
-}
-function applyTweaks() {
-  const accent = document.querySelector('#tw-accent .tw-swatch.sel')?.dataset.hex || TWEAK_DEFAULTS.accent;
-  const paper  = document.querySelector('#tw-paper .tw-swatch.sel')?.dataset.hex || TWEAK_DEFAULTS.paper;
-  const font   = document.getElementById('tw-font').value;
-  const density= document.getElementById('tw-density').value;
-  const progress = document.getElementById('tw-progress').value;
-
-  document.documentElement.style.setProperty('--accent', accent);
-  // derive a darker accent-2
-  document.documentElement.style.setProperty('--accent-2', shade(accent, -18));
-
-  const darkPaper = paper === '#0E1A38';
-  if (darkPaper) {
-    document.documentElement.style.setProperty('--paper', '#10152B');
-    document.documentElement.style.setProperty('--paper-2', '#151B36');
-    document.documentElement.style.setProperty('--paper-3', '#1D2544');
-    document.documentElement.style.setProperty('--ink', '#F4EFE1');
-    document.documentElement.style.setProperty('--ink-2', '#E0DAC8');
-    document.documentElement.style.setProperty('--ink-3', '#B9B29E');
-    document.documentElement.style.setProperty('--line', '#2A3358');
-    document.documentElement.style.setProperty('--muted', '#8E8773');
-  } else {
-    document.documentElement.style.setProperty('--paper', paper);
-    document.documentElement.style.setProperty('--paper-2', shade(paper,-4));
-    document.documentElement.style.setProperty('--paper-3', shade(paper,-10));
-    document.documentElement.style.setProperty('--ink', '#0E1A38');
-    document.documentElement.style.setProperty('--ink-2', '#1a2749');
-    document.documentElement.style.setProperty('--ink-3', '#2a3a63');
-    document.documentElement.style.setProperty('--line', '#E3DBC8');
-    document.documentElement.style.setProperty('--muted', '#6B6555');
-  }
-
-  document.querySelectorAll('.doc-h1, .section-title, .p-h1, .p-h2, .p-pullquote').forEach(el => {
-    el.style.fontFamily = font === 'Inter' ? 'Inter, system-ui, sans-serif' : `'${font}', serif`;
-    if (font === 'Inter') el.style.fontWeight = '600';
-    else el.style.fontWeight = '400';
-  });
-
-  if (density === 'compact') {
-    document.documentElement.style.setProperty('--radius', '6px');
-    document.querySelector('.editor-inner').style.padding = '16px 32px 120px';
-  } else {
-    document.documentElement.style.setProperty('--radius', '8px');
-    document.querySelector('.editor-inner').style.padding = '28px 48px 120px';
-  }
-
-  document.querySelector('.progress-strip').style.display = progress === 'on' ? 'flex' : 'none';
-
-  // persist
-  window.parent.postMessage({type:'__edit_mode_set_keys', edits:{accent, paper, font, density, progress}}, '*');
-}
-
-function shade(hex, pct) {
-  const n = parseInt(hex.replace('#',''), 16);
-  let r = (n>>16)&255, g = (n>>8)&255, b = n&255;
-  const k = pct/100;
-  r = Math.max(0, Math.min(255, Math.round(r + (pct<0 ? r*k : (255-r)*k))));
-  g = Math.max(0, Math.min(255, Math.round(g + (pct<0 ? g*k : (255-g)*k))));
-  b = Math.max(0, Math.min(255, Math.round(b + (pct<0 ? b*k : (255-b)*k))));
-  return '#' + [r,g,b].map(x=>x.toString(16).padStart(2,'0')).join('');
-}
-
-// wire swatch clicks
-document.querySelectorAll('.tw-swatch').forEach(s => {
-  s.addEventListener('click', () => {
-    s.parentElement.querySelectorAll('.tw-swatch').forEach(x => x.classList.remove('sel'));
-    s.classList.add('sel');
-    applyTweaks();
-  });
-});
-
-// init from defaults
-(function init(){
-  const d = TWEAK_DEFAULTS;
-  document.querySelectorAll('#tw-accent .tw-swatch').forEach(s => {
-    s.classList.toggle('sel', s.dataset.hex === d.accent);
-  });
-  document.querySelectorAll('#tw-paper .tw-swatch').forEach(s => {
-    s.classList.toggle('sel', s.dataset.hex === d.paper);
-  });
-  document.getElementById('tw-font').value = d.font;
-  document.getElementById('tw-density').value = d.density;
-  document.getElementById('tw-progress').value = d.progress;
-  applyTweaks();
-})();
-
-// Edit-mode listener first, then announce
-window.addEventListener('message', (e) => {
-  if (!e.data || !e.data.type) return;
-  if (e.data.type === '__activate_edit_mode') {
-    document.getElementById('tweaks').classList.add('visible');
-  }
-  if (e.data.type === '__deactivate_edit_mode') {
-    document.getElementById('tweaks').classList.remove('visible');
-  }
-});
-window.parent.postMessage({type:'__edit_mode_available'}, '*');
 
 // Keyboard: Cmd/Ctrl+Enter runs generate
 window.addEventListener('keydown', (e) => {
