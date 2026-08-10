@@ -26,13 +26,15 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
-# libaio1 is required by python-oracledb; libreoffice-writer performs DOCX→PDF.
+# libaio is required by python-oracledb (package name flipped to libaio1t64 on
+# newer Debian); libreoffice-writer performs DOCX→PDF.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        libaio1 \
-        libreoffice-writer \
-        fonts-dejavu-core \
         curl \
         unzip \
+        fonts-dejavu-core \
+        libreoffice-writer \
+    && (apt-get install -y --no-install-recommends libaio1t64 \
+        || apt-get install -y --no-install-recommends libaio1) \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
