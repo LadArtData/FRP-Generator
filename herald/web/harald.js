@@ -185,6 +185,9 @@
             });
             session.set(result);
             close();
+            if (typeof global.paintStudioAuth === "function") {
+              try { global.paintStudioAuth(); } catch (e) { /* optional */ }
+            }
             global.location.reload();
           } catch (error) {
             button.disabled = false;

@@ -5,12 +5,13 @@
 <link rel="preconnect" href="https://fonts.googleapis.com/">
 <link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/harald.css">
 <!-- APEX bridge: provides window.FRP. Relative path resolves to the
      same Static App Files folder when this HTML is served by APEX, and
      to the same directory when opened locally for testing. If your APEX
      install rewrites paths, change to "#APP_FILES#frp-rest-bridge.js". -->
 <script src="/harald.js"></script>
-<script src="frp-rest-bridge.js?v=1.2.0"></script>
+<script src="frp-rest-bridge.js?v=1.3.0"></script>
 <!-- If APEX rewrites static paths, use: #APP_FILES#frp-rest-bridge.js -->
 <script>
   // If the bridge file 404s, the next tag never registers and window.FRP
@@ -30,7 +31,36 @@
         'stub data. Open DevTools (F12) → Console for details.';
       document.body && document.body.appendChild(banner);
     }
+    // Studio sign-in is pick-a-name (no password). Prompt up front so
+    // "Start new proposal" does not fail with a cryptic alert.
+    if (window.Harald) {
+      paintStudioAuth();
+      if (!window.Harald.session.token()) window.Harald.signIn();
+    }
   });
+
+  function paintStudioAuth() {
+    var host = document.getElementById('studio-auth');
+    if (!host || !window.Harald) return;
+    var user = window.Harald.session.user();
+    if (user) {
+      host.innerHTML =
+        '<span class="h-user" title="' + window.Harald.escapeHtml(user.role) + '">' +
+        window.Harald.escapeHtml(user.display_name || user.username) +
+        '<span class="h-role ' + user.role + '">' + user.role + '</span></span>' +
+        '<button type="button" class="tb-btn" id="studio-signout">Sign out</button>';
+      var out = document.getElementById('studio-signout');
+      if (out) out.onclick = function () {
+        window.Harald.session.clear();
+        location.reload();
+      };
+    } else {
+      host.innerHTML =
+        '<button type="button" class="tb-btn tb-btn-primary" id="studio-signin">Sign in</button>';
+      var into = document.getElementById('studio-signin');
+      if (into) into.onclick = function () { window.Harald.signIn(); };
+    }
+  }
 </script>
 
 <style>
@@ -1493,6 +1523,7 @@ textarea { min-height: 72px; resize: vertical; font-family: inherit; line-height
   <input type="hidden" id="doc-title" value="">
   <div class="topbar-spacer"></div>
   <div class="topbar-right">
+    <div id="studio-auth" style="display:flex;align-items:center;gap:8px"></div>
     <button class="tb-btn" onclick="openCopilotPanel()" id="tb-copilot-btn" title="Open FRP Copilot chat" style="font-weight:600">
       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
       Copilot
@@ -2694,6 +2725,7 @@ async function loadProposalById(proposalId, opts) {
 }
 
 async function startNewProposal() {
+  if (window.Harald && !window.Harald.requireSession()) return;
   if (window._formDirty && window._activeProposalId) {
     const saveFirst = confirm('Save the current proposal before starting a new one?');
     if (saveFirst) {
@@ -2714,6 +2746,10 @@ async function startNewProposal() {
     refreshProposalPickerList();
   } catch (e) {
     console.error('startNewProposal failed', e);
+    if (/sign in/i.test(e.message || '')) {
+      if (window.Harald) window.Harald.signIn();
+      return;
+    }
     alert('Could not create proposal: ' + e.message);
   }
 }
