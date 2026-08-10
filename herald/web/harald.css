@@ -147,7 +147,9 @@ select.h-input { cursor: pointer; }
 
 .h-modal-bg {
   position: fixed; inset: 0; background: rgba(14, 26, 56, .42); display: flex;
-  align-items: center; justify-content: center; z-index: 60; padding: 24px;
+  align-items: center; justify-content: center;
+  /* Above Studio modals (proposal picker is z-index 9002). */
+  z-index: 10050; padding: 24px;
 }
 .h-modal {
   background: #fff; border-radius: 12px; width: 100%; max-width: 560px; max-height: 88vh;
@@ -176,7 +178,7 @@ select.h-input { cursor: pointer; }
 .h-toast {
   position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
   background: var(--ink); color: #fff; padding: 11px 18px; border-radius: 8px;
-  font-size: 13px; z-index: 80; box-shadow: 0 8px 24px rgba(0, 0, 0, .2);
+  font-size: 13px; z-index: 10060; box-shadow: 0 8px 24px rgba(0, 0, 0, .2);
   transition: opacity .4s, transform .4s;
 }
 .h-toast.error { background: var(--bad); }

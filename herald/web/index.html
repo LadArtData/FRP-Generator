@@ -35,7 +35,10 @@
     // "Start new proposal" does not fail with a cryptic alert.
     if (window.Harald) {
       paintStudioAuth();
-      if (!window.Harald.session.token()) window.Harald.signIn();
+      if (!window.Harald.session.token()) {
+        try { closeProposalPicker(); } catch (e) { /* picker may not be open yet */ }
+        setTimeout(function () { window.Harald.signIn(); }, 50);
+      }
     }
   });
 
@@ -2725,7 +2728,12 @@ async function loadProposalById(proposalId, opts) {
 }
 
 async function startNewProposal() {
-  if (window.Harald && !window.Harald.requireSession()) return;
+  if (window.Harald && !window.Harald.session.token()) {
+    // Close the picker so the name dialog is not buried under it.
+    try { closeProposalPicker(); } catch (e) { /* ok */ }
+    window.Harald.signIn();
+    return;
+  }
   if (window._formDirty && window._activeProposalId) {
     const saveFirst = confirm('Save the current proposal before starting a new one?');
     if (saveFirst) {
