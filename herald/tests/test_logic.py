@@ -21,7 +21,6 @@ os.environ.setdefault("GENAI_REGION", "us-chicago-1")
 os.environ.setdefault("GENAI_MODEL_OCID", "ocid1.generativeaimodel.oc1.test.aaaa")
 os.environ.setdefault("GENAI_COMPARTMENT_ID", "ocid1.compartment.oc1..test")
 os.environ.setdefault("HARALD_SESSION_SECRET", "unit-test-secret-value")
-os.environ.setdefault("HARALD_APPROVER_PASSPHRASE", "unit-test-pass")
 
 
 # ---------------------------------------------------------------------------

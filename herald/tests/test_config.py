@@ -26,7 +26,6 @@ BASE = {
     "GENAI_MODEL_OCID": CHICAGO_MODEL,
     "GENAI_COMPARTMENT_ID": TENANCY,
     "HARALD_SESSION_SECRET": "a-long-random-session-secret",
-    "HARALD_APPROVER_PASSPHRASE": "brians-passphrase",
 }
 
 

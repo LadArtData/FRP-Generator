@@ -73,7 +73,8 @@ Roles
 
 The database has one shared ADMIN login, so HARALD keeps its own application
 identity: a signed, expiring session token issued at sign-in and required on every
-state-changing call. The approver signs in with the approver passphrase.
+state-changing call. Sign-in is pick-a-name; the approver role on that name is
+what gates pricing and final approval.
 
 --------------------------------------------------------------------------------
 Deploy
@@ -87,13 +88,10 @@ Deploy
 2. Wallet. Unzip the Autonomous Database wallet somewhere you will mount into the
    container, for example `./wallet`.
 
-3. Configure. Copy `.env.example` to `.env` and fill in ORACLE_PASSWORD, ORACLE_DSN
-   (a service name from the wallet's tnsnames.ora, e.g. `harald_high`),
-   GENAI_COMPARTMENT_ID, a long random HARALD_SESSION_SECRET, and the
-   HARALD_APPROVER_PASSPHRASE you give to Brian. GENAI_REGION, GENAI_MODEL and
-   GENAI_MODEL_OCID are already filled in. On a container with a dynamic group
-   and a policy granting `use generative-ai-family`, no OCI keys are needed;
-   otherwise set the OCI_CLI_* variables.
+3. Configure. For a Container Instance on this tenancy, values are baked into
+   the image (same pattern as SCOUT) — no env-var clipboard. For local runs,
+   copy `.env.example` to `.env` and fill ORACLE_PASSWORD, ORACLE_DSN, and
+   HARALD_SESSION_SECRET. GenAI region/model OCIDs are already filled in.
 
 4. Build.
        docker build -t harald .
@@ -111,11 +109,11 @@ Deploy
    Expect ok=true, database=up, and the model and embedding fields. If database is
    down, the message says what failed.
 
-7. Sign in and seed the library. Open http://localhost:8080/opportunities, sign in
-   (Brian needs the passphrase), then upload iteria's past proposals. The
-   `library_seed/` folder holds ten real iteria narratives extracted from the
-   SharePoint corpus. Upload them through the Studio rail or the library. Uploads
-   are classified automatically; only iteria narrative is chunked and indexed.
+7. Sign in and seed the library. Open http://localhost:8080/opportunities, pick
+   your name, then upload iteria's past proposals. The `library_seed/` folder
+   holds ten real iteria narratives extracted from the SharePoint corpus. Upload
+   them through the Studio rail or the library. Uploads are classified
+   automatically; only iteria narrative is chunked and indexed.
 
 --------------------------------------------------------------------------------
 Layout

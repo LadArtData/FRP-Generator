@@ -94,28 +94,13 @@ Console → Developer Services → Container Instances → Create.
 | Image pull | OCIR, use your Auth Token / image pull secret |
 | Port | 8080 |
 
-### Environment variables (set on the instance)
+### Environment variables
 
-**Already baked in the image** (you do not need to retype):
-`ORACLE_USER`, `ORACLE_DSN`, `HARALD_APP_SCHEMA`, GenAI OCIDs, regions, bucket.
+**None.** Same as SCOUT: DB password, GenAI OCIDs, bucket, wallet location and
+session signing key are baked into the image. Create the instance, pick the
+image, open the port. Sign-in is pick-a-name — no approver passphrase.
 
-**You must set these as secrets / env on the instance:**
-
-| Name | Value |
-|---|---|
-| `ORACLE_PASSWORD` | `CloudIteria2026` (or current ADMIN password) |
-| `ORACLE_WALLET_PASSWORD` | same as DB password on this tenancy |
-| `HARALD_SESSION_SECRET` | long random string, ≥32 chars |
-| `HARALD_APPROVER_PASSPHRASE` | passphrase approvers will type |
-| `HARALD_WALLET_BUCKET` | `harald-config` |
-| `HARALD_WALLET_OBJECT` | `wallet.zip` |
-| `TNS_ADMIN` | `/wallet` |
-
-Generate the session secret in Cloud Shell:
-
-```bash
-python3 -c "import secrets; print(secrets.token_urlsafe(48))"
-```
+Override an env var on the instance only if a value actually changes.
 
 ---
 

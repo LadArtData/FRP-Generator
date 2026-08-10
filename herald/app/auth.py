@@ -75,9 +75,15 @@ def list_users() -> list[dict]:
         return [{"username": r[0], "display_name": r[1], "role": r[2]} for r in cur.fetchall()]
 
 
-def sign_in(username: str, passphrase: str | None) -> dict:
-    """Approver sign-in requires the approver passphrase. Everyone else signs in
-    by selecting their name, matching how the team already shares one login."""
+def sign_in(username: str, passphrase: str | None = None) -> dict:
+    """Pick a name from the roster. No passphrase.
+
+    The Oracle ADMIN login is shared; HARALD's own role on that name is what
+    gates pricing and final approval. A second secret nobody will remember was
+    just friction, so it is gone. `passphrase` is accepted and ignored so old
+    clients do not break.
+    """
+    _ = passphrase
     with cursor() as cur:
         cur.execute(
             "SELECT username, display_name, role FROM harald_users "
@@ -88,11 +94,6 @@ def sign_in(username: str, passphrase: str | None) -> dict:
     if not row:
         raise Unauthorized("Unknown user.")
     uname, display, role = row
-    if role == APPROVER:
-        if not passphrase or not hmac.compare_digest(
-            passphrase.strip(), cfg.approver_passphrase
-        ):
-            raise Unauthorized("Approver passphrase required.")
     log.info("sign-in username=%s role=%s", uname, role)
     return {
         "token": issue_token(uname, role),

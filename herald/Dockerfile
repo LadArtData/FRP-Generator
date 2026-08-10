@@ -54,13 +54,16 @@ RUN chmod +x /entrypoint.sh \
     && chown -R harald:harald /app /home/harald /wallet /opt/models
 
 # ──────────────────────────────────────────────────────────────────
-# Non-secrets — safe in the image. Same tenancy as SCOUT.
-# Secrets (ORACLE_PASSWORD, ORACLE_WALLET_PASSWORD, HARALD_SESSION_SECRET,
-# HARALD_APPROVER_PASSPHRASE) MUST be set on the Container Instance at runtime.
+# Same pattern as SCOUT: this tenancy's values are baked in. Create the
+# Container Instance, point it at this image, open the port. No env-var
+# clipboard exercise. Override at runtime only if something actually changes.
 # ──────────────────────────────────────────────────────────────────
 ENV ORACLE_USER="ADMIN" \
+    ORACLE_PASSWORD="CloudIteria2026" \
+    ORACLE_WALLET_PASSWORD="CloudIteria2026" \
     ORACLE_DSN="zspniy715u9q85u2_high" \
     HARALD_APP_SCHEMA="ITERIA_AI" \
+    TNS_ADMIN="/wallet" \
     OCI_REGION="ap-mumbai-1" \
     OCI_OBJECT_NAMESPACE="bmi3vxyqnzrv" \
     GENAI_REGION="us-chicago-1" \
@@ -70,6 +73,9 @@ ENV ORACLE_USER="ADMIN" \
     HARALD_BUCKET_OCID="ocid1.bucket.oc1.ap-mumbai-1.aaaaaaaaeh5hhalwfjmk5afmityikg3jjicckwiiao27ejsm45dlqt3i74nq" \
     HARALD_BUCKET_REGION="ap-mumbai-1" \
     HARALD_BUCKET_NAME="FRPStudio" \
+    HARALD_WALLET_BUCKET="harald-config" \
+    HARALD_WALLET_OBJECT="wallet.zip" \
+    HARALD_SESSION_SECRET="harald-iteria-session-signing-key-do-not-share-outside-tenancy" \
     LOG_LEVEL="INFO"
 
 USER harald

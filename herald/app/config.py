@@ -157,10 +157,9 @@ class Config:
     strong_match_distance: float = field(default_factory=lambda: _float("HARALD_STRONG_MATCH", 0.35))
 
     # Identity. The database has one shared login, so HARALD holds its own
-    # application identity. The approver passphrase gates pricing and final
-    # approval (Brian).
+    # application identity (pick-a-name sign-in). Pricing/final approval are
+    # gated by the approver *role* on that name, not by a second passphrase.
     session_secret: str = field(default_factory=lambda: os.getenv("HARALD_SESSION_SECRET", ""))
-    approver_passphrase: str = field(default_factory=lambda: os.getenv("HARALD_APPROVER_PASSPHRASE", ""))
     session_hours: int = field(default_factory=lambda: _int("HARALD_SESSION_HOURS", 12))
 
     # Export
@@ -179,7 +178,6 @@ class Config:
                 # rejects the request without one.
                 ("GENAI_COMPARTMENT_ID", self.genai_compartment),
                 ("HARALD_SESSION_SECRET", self.session_secret),
-                ("HARALD_APPROVER_PASSPHRASE", self.approver_passphrase),
             )
             if not value
         ]

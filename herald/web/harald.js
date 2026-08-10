@@ -164,23 +164,11 @@
       '<div class="h-modal-body">' +
       '<div class="h-field"><label>Who are you?</label>' +
       '<select class="h-input" id="h-user">' + options + "</select></div>" +
-      '<div class="h-field" id="h-pass-field" style="display:none">' +
-      "<label>Approver passphrase</label>" +
-      '<input class="h-input" type="password" id="h-pass" ' +
-      'placeholder="Required for pricing and final approval"></div>' +
-      '<div class="h-hint">Pricing and final approval are restricted to the approver. ' +
-      "Everyone else signs in by name.</div></div>" +
+      '<div class="h-hint">Pick your name. Pricing and final approval stay with ' +
+      "the approver role — no extra passphrase.</div></div>" +
       '<div class="h-modal-foot"><button class="h-btn" id="h-signin">Sign in</button></div>',
       function (root) {
         var select = root.querySelector("#h-user");
-        var passField = root.querySelector("#h-pass-field");
-        function sync() {
-          var option = select.options[select.selectedIndex];
-          passField.style.display =
-            option && option.getAttribute("data-role") === "approver" ? "" : "none";
-        }
-        select.addEventListener("change", sync);
-        sync();
         root.querySelector("#h-signin").addEventListener("click", async function () {
           var button = root.querySelector("#h-signin");
           button.disabled = true;
@@ -189,10 +177,7 @@
             var result = await fetch("/api/signin", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                username: select.value,
-                passphrase: root.querySelector("#h-pass").value
-              })
+              body: JSON.stringify({ username: select.value })
             }).then(async function (response) {
               var data = await response.json();
               if (!response.ok) throw new Error(data.message || "Sign-in failed");
