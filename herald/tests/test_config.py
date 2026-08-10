@@ -87,8 +87,13 @@ class TestCompartment:
         with pytest.raises(ConfigError, match="compartment or tenancy OCID"):
             cfg.validate()
 
-    def test_friendly_name_in_the_model_slot_is_rejected(self, monkeypatch):
+    def test_ondemand_model_id_in_the_model_slot_is_accepted(self, monkeypatch):
+        # On-demand inference accepts the OCI model id string, not only OCIDs.
+        build(monkeypatch, GENAI_REGION="us-chicago-1",
+              GENAI_MODEL_OCID="meta.llama-3.3-70b-instruct").validate()
+
+    def test_garbage_model_id_is_rejected(self, monkeypatch):
         cfg = build(monkeypatch, GENAI_REGION="us-chicago-1",
-                    GENAI_MODEL_OCID="meta.llama-3.2-90b-vision-instruct")
-        with pytest.raises(ConfigError, match="ocid1.generativeaimodel"):
+                    GENAI_MODEL_OCID="not-a-real-model")
+        with pytest.raises(ConfigError, match="model OCID|on-demand model id"):
             cfg.validate()

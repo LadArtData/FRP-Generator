@@ -116,9 +116,19 @@ async def complete(system: str, user: str, model: str | None = None,
                     last_error = f"HTTP {exc.status}: {exc.message}"
                     await _backoff(attempt)
                     continue
-                # Non-retryable: bad OCID, wrong compartment, missing policy.
+                # Non-retryable: retired model, bad id, wrong compartment, policy.
+                hint = ""
+                if exc.status == 404:
+                    hint = (
+                        " Model not found — often a retired on-demand model. "
+                        "Update GENAI_MODEL_OCID to a current id "
+                        "(e.g. meta.llama-3.3-70b-instruct)."
+                    )
+                detail = (exc.message or "").strip()
                 raise UpstreamError(
-                    f"OCI Generative AI rejected the request (HTTP {exc.status}).",
+                    f"OCI Generative AI rejected the request (HTTP {exc.status})"
+                    + (f": {detail}" if detail else ".")
+                    + hint,
                     {"status": exc.status, "code": exc.code,
                      "message": exc.message, "model": model,
                      "compartment": cfg.genai_compartment},

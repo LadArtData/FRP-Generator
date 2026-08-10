@@ -202,17 +202,22 @@ class Config:
         for name, value in (("GENAI_MODEL_OCID", self.draft_model),
                             ("HARALD_PARSE_MODEL_OCID", self.parse_model),
                             ("HARALD_POLISH_MODEL_OCID", self.polish_model)):
-            if not value.startswith("ocid1.generativeaimodel."):
+            # On-demand accepts either a model OCID or the OCI model id
+            # (e.g. meta.llama-3.3-70b-instruct). OCIDs are region-bound;
+            # friendly ids use GENAI_REGION for the inference endpoint.
+            is_ocid = value.startswith("ocid1.generativeaimodel.")
+            is_ondemand_id = bool(re.match(
+                r"^(meta|cohere|xai|openai|google)\.[A-Za-z0-9._-]+$", value))
+            if not (is_ocid or is_ondemand_id):
                 raise ConfigError(
-                    f"{name} must be a model OCID beginning 'ocid1.generativeaimodel.', "
-                    f"got {value!r}. The friendly name goes in GENAI_MODEL."
+                    f"{name} must be a model OCID (ocid1.generativeaimodel.*) "
+                    f"or an on-demand model id (e.g. meta.llama-3.3-70b-instruct), "
+                    f"got {value!r}."
                 )
-            # A model is served from one region, and the OCID says which. If the
-            # endpoint is built for a different one the call fails with a 404 on
-            # the model rather than anything naming the region, which is a long
-            # afternoon. The usual cause is OCI_REGION being picked up as the
-            # GenAI region when GENAI_REGION was not set.
-            ocid_region = _region_from_ocid(value)
+            # A model OCID embeds its region. If the endpoint is built for a
+            # different one the call fails with a 404 on the model rather than
+            # anything naming the region. Friendly on-demand ids skip this check.
+            ocid_region = _region_from_ocid(value) if is_ocid else ""
             if ocid_region and ocid_region != self.genai_region:
                 raise ConfigError(
                     f"{name} is served from {ocid_region}, but the inference "
