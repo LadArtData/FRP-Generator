@@ -48,15 +48,16 @@ RUN python -c "from fastembed import TextEmbedding; TextEmbedding('${EMBED_MODEL
 COPY app ./app
 COPY web ./web
 COPY deploy/entrypoint.sh /entrypoint.sh
+# ADB wallet — supplied by CI into the build context (not committed to git).
+# Same idea as SCOUT baking ORDS_BASE_URL: the container just runs.
+COPY wallet /wallet
 RUN chmod +x /entrypoint.sh \
-    && mkdir -p /wallet \
     && useradd --create-home --uid 10001 harald \
     && chown -R harald:harald /app /home/harald /wallet /opt/models
 
 # ──────────────────────────────────────────────────────────────────
 # Same pattern as SCOUT: this tenancy's values are baked in. Create the
-# Container Instance, point it at this image, open the port. No env-var
-# clipboard exercise. Override at runtime only if something actually changes.
+# Container Instance, point it at this image, open the port. No env vars.
 # ──────────────────────────────────────────────────────────────────
 ENV ORACLE_USER="ADMIN" \
     ORACLE_PASSWORD="CloudIteria2026" \
@@ -73,8 +74,6 @@ ENV ORACLE_USER="ADMIN" \
     HARALD_BUCKET_OCID="ocid1.bucket.oc1.ap-mumbai-1.aaaaaaaaeh5hhalwfjmk5afmityikg3jjicckwiiao27ejsm45dlqt3i74nq" \
     HARALD_BUCKET_REGION="ap-mumbai-1" \
     HARALD_BUCKET_NAME="FRPStudio" \
-    HARALD_WALLET_BUCKET="harald-config" \
-    HARALD_WALLET_OBJECT="wallet.zip" \
     HARALD_SESSION_SECRET="harald-iteria-session-signing-key-do-not-share-outside-tenancy" \
     LOG_LEVEL="INFO"
 

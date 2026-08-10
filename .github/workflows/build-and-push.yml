@@ -12,13 +12,27 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Restore ADB wallet into build context
+        env:
+          WALLET_ZIP_B64: ${{ secrets.WALLET_ZIP_B64 }}
+        run: |
+          if [ -z "$WALLET_ZIP_B64" ]; then
+            echo "WALLET_ZIP_B64 secret is missing"
+            exit 1
+          fi
+          mkdir -p herald/wallet
+          echo "$WALLET_ZIP_B64" | base64 -d > /tmp/wallet.zip
+          unzip -o /tmp/wallet.zip -d herald/wallet
+          test -f herald/wallet/tnsnames.ora
+          test -f herald/wallet/cwallet.sso
+          rm /tmp/wallet.zip
+          echo "wallet files ready for image bake-in"
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
       - name: Log in to OCIR
         run: |
-          # OCIR requires <namespace>/<username>. The secret may already include
-          # the namespace (as on Scout) or be the bare username — normalize either.
           USER="${{ secrets.OCIR_USERNAME }}"
           case "$USER" in
             */*) ;;
@@ -41,4 +55,4 @@ jobs:
       - name: Summary
         run: |
           echo "Pushed bom.ocir.io/bmi3vxyqnzrv/harald/harald:latest"
-          echo "Restart or create the HARALD Container Instance to pull this image."
+          echo "Create a Container Instance with that image. No env vars."
