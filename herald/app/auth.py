@@ -1,9 +1,8 @@
 """Application identity and roles.
 
-The Oracle database has a single shared ADMIN login, so HARALD cannot derive
-who is acting from the database session. It keeps its own identity layer: a
-signed, expiring session token issued at sign-in and required on every
-state-changing call.
+The Oracle database has a single shared ADMIN login. For day-to-day ERP writing
+there is no login wall: missing tokens use SHARED_WORKSPACE. Optional signed
+tokens still exist for role-gated actions (pricing / final approval).
 
 Roles
   contributor  draft, edit, import, fill
@@ -28,6 +27,14 @@ log = logging.getLogger("harald.auth")
 
 CONTRIBUTOR, REVIEWER, APPROVER = "contributor", "reviewer", "approver"
 _RANK = {CONTRIBUTOR: 1, REVIEWER: 2, APPROVER: 3}
+
+# Shared studio identity — no login UI. The team opens the URL and works.
+# Pricing / final approval still require an explicit approver token later.
+SHARED_WORKSPACE = {
+    "username": "studio",
+    "role": REVIEWER,
+    "display_name": "Studio",
+}
 
 
 def _b64e(raw: bytes) -> str:

@@ -67,7 +67,13 @@ async def unhandled_handler(_, exc: Exception):
 # Identity
 # ---------------------------------------------------------------------------
 def identity(x_harald_token: str | None = Header(default=None)) -> dict:
-    return auth.parse_token(x_harald_token)
+    """No login wall for drafting. Missing/bad tokens use the shared Studio identity."""
+    if not x_harald_token:
+        return dict(auth.SHARED_WORKSPACE)
+    try:
+        return auth.parse_token(x_harald_token)
+    except Exception:
+        return dict(auth.SHARED_WORKSPACE)
 
 
 def contributor(user: dict = Depends(identity)) -> dict:

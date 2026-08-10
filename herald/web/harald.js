@@ -1,6 +1,6 @@
-/* HARALD shared client: session, API, nav, and small view helpers.
- * Loaded by every workspace. The FRP Studio uses frp-rest-bridge.js, which
- * delegates its auth to this same session store. */
+/* HARALD shared client: API helpers, toast, modal. No login wall for Studio —
+ * the team opens the URL and writes ERPs. Backend uses a shared workspace
+ * identity when no token is present. */
 (function (global) {
   "use strict";
 
@@ -66,10 +66,6 @@
       catch (e) { throw new Error("Unreadable response from " + path + " (HTTP " + response.status + ")"); }
     }
     if (!response.ok) {
-      if (response.status === 401) {
-        session.clear();
-        signInDialog();
-      }
       var message = (data && (data.message || data.detail)) || ("HTTP " + response.status);
       var error = new Error(message);
       error.status = response.status;
@@ -86,7 +82,6 @@
     patch: function (path, body) { return request(path, { method: "PATCH", body: JSON.stringify(body || {}) }); },
     upload: upload,
     download: function (path) {
-      // Blob endpoints need the token too, so fetch and hand the browser a blob URL.
       return fetch(path, { headers: headers() }).then(function (response) {
         if (!response.ok) throw new Error("Download failed (HTTP " + response.status + ")");
         var disposition = response.headers.get("Content-Disposition") || "";
@@ -149,58 +144,11 @@
     setTimeout(function () { node.remove(); }, 4200);
   }
 
-  async function signInDialog() {
-    var users = [];
-    try { users = await fetch("/api/users").then(function (r) { return r.json(); }); }
-    catch (e) { users = []; }
-
-    var options = users.map(function (u) {
-      return '<option value="' + escapeHtml(u.username) + '" data-role="' + u.role + '">' +
-        escapeHtml(u.display_name || u.username) + " (" + u.role + ")</option>";
-    }).join("");
-
-    modal(
-      '<div class="h-modal-head">Sign in to HARALD</div>' +
-      '<div class="h-modal-body">' +
-      '<div class="h-field"><label>Who are you?</label>' +
-      '<select class="h-input" id="h-user">' + options + "</select></div>" +
-      '<div class="h-hint">Pick your name. Pricing and final approval stay with ' +
-      "the approver role — no extra passphrase.</div></div>" +
-      '<div class="h-modal-foot"><button class="h-btn" id="h-signin">Sign in</button></div>',
-      function (root) {
-        var select = root.querySelector("#h-user");
-        root.querySelector("#h-signin").addEventListener("click", async function () {
-          var button = root.querySelector("#h-signin");
-          button.disabled = true;
-          button.textContent = "Signing in...";
-          try {
-            var result = await fetch("/api/signin", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ username: select.value })
-            }).then(async function (response) {
-              var data = await response.json();
-              if (!response.ok) throw new Error(data.message || "Sign-in failed");
-              return data;
-            });
-            session.set(result);
-            close();
-            if (typeof global.paintStudioAuth === "function") {
-              try { global.paintStudioAuth(); } catch (e) { /* optional */ }
-            }
-            global.location.reload();
-          } catch (error) {
-            button.disabled = false;
-            button.textContent = "Sign in";
-            toast(error.message, "error");
-          }
-        });
-      }
-    );
-  }
+  // Kept as no-ops so older Studio wiring does not break. There is no name picker.
+  function signInDialog() { /* no login wall */ }
+  function requireSession() { return true; }
 
   function nav(active) {
-    var user = session.user();
     var links = [
       ["/", "Drafting"],
       ["/opportunities", "Bids &amp; Compliance"],
@@ -213,36 +161,11 @@
       return '<a class="h-navlink' + on + '" href="' + link[0] + '">' + link[1] + "</a>";
     }).join("");
 
-    var right = user
-      ? '<span class="h-user" title="' + escapeHtml(user.role) + '">' +
-        escapeHtml(user.display_name || user.username) +
-        '<span class="h-role ' + user.role + '">' + user.role + "</span></span>" +
-        '<button class="h-btn ghost sm" id="h-signout">Sign out</button>'
-      : '<button class="h-btn sm" id="h-signin-btn">Sign in</button>';
-
     return '<div class="h-topbar"><div class="h-logo">FRP <em>Studio</em></div>' +
-      items + '<div class="h-spacer"></div>' + right + "</div>";
+      items + '<div class="h-spacer"></div></div>';
   }
 
-  function bindNav() {
-    var out = document.getElementById("h-signout");
-    if (out) {
-      out.addEventListener("click", function () {
-        session.clear();
-        global.location.reload();
-      });
-    }
-    var into = document.getElementById("h-signin-btn");
-    if (into) into.addEventListener("click", signInDialog);
-  }
-
-  function requireSession() {
-    if (!session.token()) {
-      signInDialog();
-      return false;
-    }
-    return true;
-  }
+  function bindNav() { /* no sign-in controls */ }
 
   global.Harald = {
     session: session, api: api, escapeHtml: escapeHtml, bytes: bytes,

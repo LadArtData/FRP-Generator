@@ -3,9 +3,8 @@
  * Defines window.FRP for the FRP Studio. The Studio HTML is unchanged from the
  * team's design; this bridge is the seam that points it at the HARALD container.
  *
- * Auth: HARALD requires a signed session token on every state-changing call. The
- * token is issued by /api/signin and held by harald.js. This bridge reads it from
- * the same store, so the Studio and the other workspaces share one session.
+ * No login wall — the API accepts the shared Studio identity when no token is
+ * sent. Optional token from harald.js is still forwarded if present.
  */
 (function () {
   "use strict";
@@ -39,7 +38,6 @@
       }
     }
     if (!response.ok) {
-      if (response.status === 401) signIn();
       throw new Error((data && (data.message || data.detail)) || ("HTTP " + response.status));
     }
     return data;
@@ -50,11 +48,6 @@
     var value = token();
     if (value) out["X-Harald-Token"] = value;
     return out;
-  }
-
-  function signIn() {
-    if (window.Harald && window.Harald.signIn) window.Harald.signIn();
-    else window.location.href = "/opportunities";
   }
 
   window.FRP = {
