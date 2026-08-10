@@ -1511,6 +1511,10 @@ textarea { min-height: 72px; resize: vertical; font-family: inherit; line-height
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg>
     </button>
     <button class="tb-btn">Share</button>
+    <button class="tb-btn" id="tb-save-btn" onclick="saveNow()" title="Save draft to the database (Ctrl+S)">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+      Save
+    </button>
     <button class="tb-btn tb-btn-primary" onclick="runGenerate()">
       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"></path></svg>
       Generate
@@ -1640,10 +1644,10 @@ textarea { min-height: 72px; resize: vertical; font-family: inherit; line-height
             <div class="field"><label>Annual budget / revenue <span class="hint" style="color:var(--accent-2)">• from solicitation</span></label><input type="text" id="f-budget" data-field="annual_budget" placeholder="e.g. $——M operating budget"></div>
             <div class="field full"><label>Current ERP / systems <span class="hint" style="color:var(--accent-2)">• from solicitation</span></label><input type="text" id="f-legacy" data-field="legacy_systems" placeholder="e.g. legacy platform ——, supporting systems ——"></div>
             <div class="field full"><label>Top pain points <span class="hint">select all that apply</span></label>
-              <div class="tag-group">
-                <label class="tag-option sel"><input type="checkbox" checked="">Manual processes</label>
-                <label class="tag-option sel"><input type="checkbox" checked="">Data silos</label>
-                <label class="tag-option sel"><input type="checkbox" checked="">Aging system</label>
+              <div class="tag-group" data-tag-group="pain_points">
+                <label class="tag-option"><input type="checkbox">Manual processes</label>
+                <label class="tag-option"><input type="checkbox">Data silos</label>
+                <label class="tag-option"><input type="checkbox">Aging system</label>
                 <label class="tag-option"><input type="checkbox">Compliance gaps</label>
                 <label class="tag-option"><input type="checkbox">Poor reporting</label>
                 <label class="tag-option"><input type="checkbox">Vendor support ending</label>
@@ -1697,15 +1701,15 @@ textarea { min-height: 72px; resize: vertical; font-family: inherit; line-height
         <div class="section-body">
           <div class="field-grid">
             <div class="field"><label>Engagement type</label>
-              <select><option>Full implementation</option><option>Upgrade</option><option>Advisory</option><option>Staff augmentation</option></select>
+              <select data-field="engagement_type"><option value="">Select…</option><option>Full implementation</option><option>Upgrade</option><option>Advisory</option><option>Staff augmentation</option></select>
             </div>
-            <div class="field"><label>Primary competition</label><input type="text" placeholder="e.g. Workday, SAP S/4HANA"></div>
+            <div class="field"><label>Primary competition</label><input type="text" data-field="primary_competition" placeholder="e.g. Workday, SAP S/4HANA"></div>
             <div class="field full"><label>Proposed modules</label>
-              <div class="tag-group">
-                <label class="tag-option accent sel"><input type="checkbox" checked="">Financials</label>
-                <label class="tag-option accent sel"><input type="checkbox" checked="">Procurement</label>
-                <label class="tag-option accent sel"><input type="checkbox" checked="">HCM</label>
-                <label class="tag-option accent sel"><input type="checkbox" checked="">Payroll</label>
+              <div class="tag-group" data-tag-group="proposed_modules">
+                <label class="tag-option accent"><input type="checkbox">Financials</label>
+                <label class="tag-option accent"><input type="checkbox">Procurement</label>
+                <label class="tag-option accent"><input type="checkbox">HCM</label>
+                <label class="tag-option accent"><input type="checkbox">Payroll</label>
                 <label class="tag-option"><input type="checkbox">EPM</label>
                 <label class="tag-option"><input type="checkbox">SCM</label>
                 <label class="tag-option"><input type="checkbox">Project Portfolio</label>
@@ -1713,7 +1717,7 @@ textarea { min-height: 72px; resize: vertical; font-family: inherit; line-height
               </div>
             </div>
             <div class="field full"><label>Win theme <span class="hint">1–2 sentences</span></label>
-              <textarea placeholder="e.g. A disciplined cloud-first cutover anchored by our proven delivery accelerators and local team."></textarea>
+              <textarea data-field="win_theme" placeholder="e.g. A disciplined cloud-first cutover anchored by our proven delivery accelerators and local team."></textarea>
             </div>
           </div>
         </div>
@@ -1729,8 +1733,8 @@ textarea { min-height: 72px; resize: vertical; font-family: inherit; line-height
         <p class="section-sub">Project manager, key personnel, and up to three client references. Pull resumes and reference write-ups from the <strong>References</strong> folder in the library.</p>
         <div class="section-body">
           <div class="field-grid">
-            <div class="field"><label>Project manager</label><input type="text" placeholder="Name"></div>
-            <div class="field"><label>Solution architect</label><input type="text" placeholder="Name"></div>
+            <div class="field"><label>Project manager</label><input type="text" data-field="project_manager" placeholder="Name"></div>
+            <div class="field"><label>Solution architect</label><input type="text" data-field="solution_architect" placeholder="Name"></div>
           </div>
           <div class="dropzone">
             <div class="dropzone-ico">
@@ -1754,9 +1758,9 @@ textarea { min-height: 72px; resize: vertical; font-family: inherit; line-height
         <p class="section-sub">Architecture, security, conversion. Most fields auto-fill when the IT standards attachment is parsed.</p>
         <div class="section-body">
           <div class="field-grid">
-            <div class="field"><label>SSO platform</label><input type="text" placeholder="Azure AD, Okta, SAML 2.0"></div>
-            <div class="field"><label>Compliance frameworks</label><input type="text" placeholder="NIST 800-53, SOC 2, CJIS"></div>
-            <div class="field full"><label>Legacy systems to convert <span class="hint" style="color:var(--accent-2)">• from solicitation</span></label><input type="text" placeholder="e.g. legacy ERP ——, payroll ——, time &amp; attendance ——"></div>
+            <div class="field"><label>SSO platform</label><input type="text" data-field="sso_platform" placeholder="Azure AD, Okta, SAML 2.0"></div>
+            <div class="field"><label>Compliance frameworks</label><input type="text" data-field="compliance_frameworks" placeholder="NIST 800-53, SOC 2, CJIS"></div>
+            <div class="field full"><label>Legacy systems to convert <span class="hint" style="color:var(--accent-2)">• from solicitation</span></label><input type="text" data-field="legacy_convert" placeholder="e.g. legacy ERP ——, payroll ——, time &amp; attendance ——"></div>
           </div>
         </div>
       </section>
@@ -2229,6 +2233,10 @@ window.parent.postMessage({type:'__edit_mode_available'}, '*');
 // Keyboard: Cmd/Ctrl+Enter runs generate
 window.addEventListener('keydown', (e) => {
   if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); runGenerate(); }
+  if ((e.metaKey || e.ctrlKey) && (e.key === 's' || e.key === 'S')) {
+    e.preventDefault();
+    saveNow();
+  }
 });
 
 /* === CONNECT MODAL === */
@@ -2553,6 +2561,7 @@ function applyFormFromProposal(p) {
     if (cn) cn.value = p.client_name;
   }
   keys.forEach(function (k) {
+    if (k === 'pain_points' || k === 'proposed_modules') return;
     const v = _autofillValueFor(form, k);
     if (v == null) return;
     const inp = document.querySelector('[data-field="' + k + '"]');
@@ -2565,6 +2574,8 @@ function applyFormFromProposal(p) {
       inp.value = String(v);
     }
   });
+  applyTagGroup('pain_points', form.pain_points);
+  applyTagGroup('proposed_modules', form.proposed_modules);
   if (p && p.client_name) {
     const cn = document.querySelector('[data-field="client_name"]');
     if (cn && !cn.value) cn.value = p.client_name;
@@ -2572,6 +2583,30 @@ function applyFormFromProposal(p) {
   const due = document.getElementById('f-due-date');
   if (due && form.due_date) due.value = String(form.due_date).slice(0, 10);
   window._formDirty = false;
+}
+
+function applyTagGroup(groupName, selected) {
+  const want = {};
+  (Array.isArray(selected) ? selected : []).forEach(function (t) {
+    want[String(t).trim().toLowerCase()] = true;
+  });
+  const group = document.querySelector('[data-tag-group="' + groupName + '"]');
+  if (!group) return;
+  group.querySelectorAll('.tag-option').forEach(function (label) {
+    const cb = label.querySelector('input[type="checkbox"]');
+    if (!cb) return;
+    const text = (label.textContent || '').trim().toLowerCase();
+    cb.checked = !!want[text];
+    label.classList.toggle('sel', cb.checked);
+  });
+}
+
+function clearTagGroups() {
+  document.querySelectorAll('[data-tag-group] .tag-option').forEach(function (label) {
+    const cb = label.querySelector('input[type="checkbox"]');
+    if (cb) cb.checked = false;
+    label.classList.remove('sel');
+  });
 }
 
 function clearProposalWorkspace() {
@@ -2584,6 +2619,7 @@ function clearProposalWorkspace() {
     if (el.tagName === 'SELECT') el.selectedIndex = 0;
     else el.value = '';
   });
+  clearTagGroups();
   const docTitle = document.getElementById('doc-title');
   if (docTitle) docTitle.value = '';
   _renderAttachmentUI();
@@ -2616,11 +2652,14 @@ function scheduleSaveProposalDraft() {
 
 async function saveProposalDraft(opts) {
   opts = opts || {};
-  if (!window.FRP || !window._activeProposalId) return;
+  if (!window.FRP) return;
   _patchFrpBridge();
   if (typeof window.FRP.updateProposal !== 'function') {
-    setDocSaveStatus('err', 'Re-upload frp-rest-bridge.js (Static App Files)');
+    setDocSaveStatus('err', 'Bridge missing updateProposal');
     return;
+  }
+  if (!window._activeProposalId) {
+    await ensureActiveProposal();
   }
   if (window._saveDraftInFlight) return;
   window._saveDraftInFlight = true;
@@ -2634,20 +2673,39 @@ async function saveProposalDraft(opts) {
     if (docTitle) docTitle.value = name;
     updateProposalSwitcher({ proposal_id: window._activeProposalId, client_name: name, status: (window._activeProposal && window._activeProposal.status) || 'draft' });
     setDocSaveStatus('saved', 'Saved · ' + _formatRelativeTime(r.updated_at || new Date().toISOString()));
+    try { refreshProposalPickerList(); } catch (e) { /* ok */ }
     return r;
   } catch (e) {
     console.warn('saveProposalDraft failed', e);
-    const m = e.message || '';
-    const msg = (m.indexOf('404') >= 0 || m.indexOf('405') >= 0)
-      ? 'Save endpoint missing — re-run frp-proposal-save.sql in SQL Workshop'
-      : (m.indexOf('non-JSON') >= 0 || m.indexOf('555') >= 0)
-        ? 'Save failed (ORDS error) — re-run frp-proposal-save.sql; check SELF-TEST OK'
-        : ('Save failed: ' + m);
+    const msg = 'Save failed: ' + (e.message || e);
     setDocSaveStatus('err', msg);
     if (!opts.silent) showApiError(msg);
     if (!opts.silent) throw e;
   } finally {
     window._saveDraftInFlight = false;
+  }
+}
+
+async function saveNow() {
+  const btn = document.getElementById('tb-save-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+  try {
+    await saveProposalDraft({ silent: false });
+    if (btn) {
+      btn.textContent = 'Saved';
+      setTimeout(function () {
+        btn.disabled = false;
+        btn.innerHTML =
+          '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg> Save';
+      }, 1200);
+    }
+  } catch (e) {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML =
+        '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg> Save';
+    }
+    alert('Could not save: ' + (e.message || e));
   }
 }
 
@@ -3211,6 +3269,13 @@ function collectFormState() {
     const k = el.getAttribute('data-field');
     if (k) state[k] = el.value;
   });
+  document.querySelectorAll('[data-tag-group]').forEach(function (group) {
+    const key = group.getAttribute('data-tag-group');
+    if (!key) return;
+    state[key] = Array.from(group.querySelectorAll('.tag-option input:checked')).map(function (cb) {
+      return (cb.parentElement.textContent || '').trim();
+    }).filter(Boolean);
+  });
   return state;
 }
 
@@ -3420,8 +3485,12 @@ function initTagToggles() {
       e.preventDefault();
       cb.checked = !cb.checked;
       label.classList.toggle('sel', cb.checked);
+      scheduleSaveProposalDraft();
     });
-    cb.addEventListener('change', () => label.classList.toggle('sel', cb.checked));
+    cb.addEventListener('change', () => {
+      label.classList.toggle('sel', cb.checked);
+      scheduleSaveProposalDraft();
+    });
   });
 }
 
