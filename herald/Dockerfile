@@ -47,13 +47,14 @@ RUN python -c "from fastembed import TextEmbedding; TextEmbedding('${EMBED_MODEL
 
 COPY app ./app
 COPY web ./web
+COPY data ./data
 COPY deploy/entrypoint.sh /entrypoint.sh
 # ADB wallet — supplied by CI into the build context (not committed to git).
 # Same idea as SCOUT baking ORDS_BASE_URL: the container just runs.
 COPY wallet /wallet
 RUN chmod +x /entrypoint.sh \
     && useradd --create-home --uid 10001 harald \
-    && chown -R harald:harald /app /home/harald /wallet /opt/models
+    && chown -R harald:harald /app /home/harald /wallet /opt/models /app/data
 
 # ──────────────────────────────────────────────────────────────────
 # Same pattern as SCOUT: this tenancy's values are baked in. Create the

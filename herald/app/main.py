@@ -17,9 +17,9 @@ from fastapi import Body, Depends, FastAPI, File, Form, Header, Query, UploadFil
 from fastapi.responses import FileResponse, JSONResponse, Response
 from pydantic import BaseModel, Field
 
-from . import (answers, audit, auth, db, documents, embeddings, formats, freshness,
-               generation, llm, opportunities, packages, pricing, questionnaires,
-               reviews, studio)
+from . import (answer_seed, answers, audit, auth, db, documents, embeddings, formats,
+               freshness, generation, llm, opportunities, packages, pricing,
+               questionnaires, reviews, studio)
 from .config import cfg
 from .errors import HaraldError, ValidationFailed
 
@@ -116,7 +116,16 @@ def health():
     database_ok = db.healthcheck()
     body = {"ok": database_ok, "database": "up" if database_ok else "down",
             "draft_model": cfg.draft_model, "polish_model": cfg.polish_model,
-            "embed_model": cfg.embed_model, "embed_dim": cfg.embed_dim}
+            "parse_model": cfg.parse_model, "embed_model": cfg.embed_model,
+            "embed_dim": cfg.embed_dim,
+            "model_roles": {
+                "parse": {"label": cfg.parse_model_label, "job": "extract solicitation fields",
+                          "model": cfg.parse_model},
+                "match": {"label": cfg.match_model_label, "job": "library similarity match",
+                          "model": cfg.embed_model},
+                "draft": {"label": cfg.draft_model_label, "job": "write proposal narrative",
+                          "model": cfg.draft_model},
+            }}
     if database_ok:
         body["library"] = documents.library_stats()
         body["answers"] = answers.stats()
@@ -323,6 +332,14 @@ def list_answers(status: str | None = None, module: str | None = None,
 @app.get("/api/answers/stats")
 def answer_stats():
     return answers.stats()
+
+
+@app.post("/api/answers/seed")
+def seed_answers(user: dict = Depends(contributor)):
+    """Load starter Q&A + mine question-shaped blocks from won library chunks."""
+    result = answer_seed.seed_all(actor=user["username"])
+    audit.record(user["username"], "answers.seed", "answer", None, result)
+    return result
 
 
 class AnswerIn(BaseModel):
@@ -672,6 +689,12 @@ def studio_export_materials(opp_id: int):
         media_type="application/zip",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+@app.post("/api/proposals/{opp_id}/assemble")
+async def studio_assemble(opp_id: int, user: dict = Depends(contributor)):
+    """One-click agency-format package assemble from Studio."""
+    return await studio.assemble_package(opp_id, user["username"])
 
 
 @app.post("/api/rfp/parse")

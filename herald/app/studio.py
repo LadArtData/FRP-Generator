@@ -72,13 +72,14 @@ def get_proposal(opp_id: int) -> dict:
             for d in opp["documents"]
         ],
         "questionnaires": questionnaires.list_for_opportunity(opp_id),
+        "match_data": _match_data(opp),
     }
 
 
 def update_proposal(opp_id: int, payload: dict, actor: str) -> dict:
     mapped = {k: v for k, v in payload.items()
               if k in ("client_name", "due_date", "rfp_doc_id", "draft_text",
-                       "status", "form_state", "parsed_fields")}
+                       "status", "form_state", "parsed_fields", "match_data")}
     opportunities.update(opp_id, mapped, actor)
     opp = opportunities.get(opp_id)
     return {"ok": True, "updated_at": opp["updated_at"]}
@@ -107,18 +108,20 @@ async def parse(doc_id: int) -> dict:
     result = await generation.parse_rfp(text)
     doc = documents.get(doc_id)
 
+    fields = result["parsed_fields"]
+    match_data = {"matches": result["matches"]}
     if doc.get("opp_id"):
-        fields = result["parsed_fields"]
         opportunities.update(doc["opp_id"], {
             "parsed_fields": fields,
+            "match_data": match_data,
             **({"client_name": fields["client_name"]} if fields.get("client_name") else {}),
             **({"solicitation_no": fields["rfp_number"]} if fields.get("rfp_number") else {}),
             **({"due_date": fields["due_date"]} if fields.get("due_date") else {}),
             **({"agency": fields["agency"]} if fields.get("agency") else {}),
         }, None)
 
-    return {"parsed_fields": result["parsed_fields"],
-            "match_data": {"matches": result["matches"]},
+    return {"parsed_fields": fields,
+            "match_data": match_data,
             "filename": doc["filename"]}
 
 
@@ -259,7 +262,7 @@ def _safe_filename(name: str | None) -> str:
     return (cleaned.strip("._") or "proposal")[:80]
 
 
-def _studio_form(opp: dict) -> dict:
+def _extracted(opp: dict) -> dict:
     raw = opp.get("extracted_json")
     if not raw or raw == "null":
         return {}
@@ -267,8 +270,26 @@ def _studio_form(opp: dict) -> dict:
         data = raw if isinstance(raw, dict) else json.loads(raw)
     except (json.JSONDecodeError, TypeError):
         return {}
+    return data if isinstance(data, dict) else {}
+
+
+def _studio_form(opp: dict) -> dict:
+    data = _extracted(opp)
     form = data.get("studio_form") or data.get("form") or {}
     return form if isinstance(form, dict) else {}
+
+
+def _match_data(opp: dict) -> dict:
+    data = _extracted(opp)
+    match = data.get("match_data") or {}
+    if isinstance(match, dict) and isinstance(match.get("matches"), list):
+        return match
+    return {"matches": []}
+
+
+async def assemble_package(opp_id: int, actor: str) -> dict:
+    """Build the agency-format submission package from the Studio bid."""
+    return await packages.assemble(opp_id, actor)
 
 
 def export_docx(opp_id: int) -> tuple[bytes, str]:

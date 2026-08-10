@@ -110,15 +110,29 @@ class Config:
     genai_compartment: str = field(
         default_factory=lambda: os.getenv("GENAI_COMPARTMENT_ID")
         or os.getenv("OCI_COMPARTMENT_ID", ""))
-    # Draft and polish are two passes over the same endpoint. Oracle serves one
-    # model per OCID, so both default to the configured model; set the polish
-    # OCID separately only if a second model is provisioned.
+    # Job routing (matches FRP_CONFIG intent):
+    #   Llama  → parse / shred (structured extract from solicitations)
+    #   Grok   → draft / write narrative and questionnaire answers
+    #   Cohere → match / embed (library similarity; local BGE until Cohere OCID set)
+    # When only GENAI_MODEL_OCID is set, parse and draft share that OCID so the
+    # app still runs; set HARALD_PARSE_MODEL_OCID / HARALD_DRAFT_MODEL_OCID to
+    # split Llama vs Grok once both are provisioned.
+    parse_model: str = field(
+        default_factory=lambda: os.getenv("HARALD_PARSE_MODEL_OCID")
+        or os.getenv("GENAI_MODEL_OCID", ""))
     draft_model: str = field(
         default_factory=lambda: os.getenv("HARALD_DRAFT_MODEL_OCID")
         or os.getenv("GENAI_MODEL_OCID", ""))
     polish_model: str = field(
         default_factory=lambda: os.getenv("HARALD_POLISH_MODEL_OCID")
+        or os.getenv("HARALD_DRAFT_MODEL_OCID")
         or os.getenv("GENAI_MODEL_OCID", ""))
+    parse_model_label: str = field(
+        default_factory=lambda: os.getenv("HARALD_PARSE_MODEL_LABEL", "Llama"))
+    draft_model_label: str = field(
+        default_factory=lambda: os.getenv("HARALD_DRAFT_MODEL_LABEL", "Grok"))
+    match_model_label: str = field(
+        default_factory=lambda: os.getenv("HARALD_MATCH_MODEL_LABEL", "Cohere"))
     llm_timeout: float = field(default_factory=lambda: _float("HARALD_LLM_TIMEOUT", 180.0))
     llm_max_retries: int = field(default_factory=lambda: _int("HARALD_LLM_MAX_RETRIES", 5))
     llm_concurrency: int = field(default_factory=lambda: _int("HARALD_LLM_CONCURRENCY", 4))
@@ -186,6 +200,7 @@ class Config:
                 "Missing required environment variables: " + ", ".join(missing)
             )
         for name, value in (("GENAI_MODEL_OCID", self.draft_model),
+                            ("HARALD_PARSE_MODEL_OCID", self.parse_model),
                             ("HARALD_POLISH_MODEL_OCID", self.polish_model)):
             if not value.startswith("ocid1.generativeaimodel."):
                 raise ConfigError(

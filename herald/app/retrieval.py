@@ -31,7 +31,8 @@ def retrieve(query: str, module: str | None = None, k: int | None = None,
 
     sql = """
         SELECT * FROM (
-          SELECT c.chunk_id, d.client_name, d.outcome, c.module_tag, c.section_tag,
+          SELECT c.chunk_id, d.doc_id, d.client_name, d.filename, d.outcome,
+                 c.module_tag, c.section_tag,
                  VECTOR_DISTANCE(c.embedding, :qvec, COSINE) *
                    CASE d.outcome
                      WHEN 'won'         THEN 0.78
@@ -59,8 +60,9 @@ def retrieve(query: str, module: str | None = None, k: int | None = None,
     with cursor() as cur:
         cur.execute(sql, binds)
         results = [
-            {"chunk_id": r[0], "client": r[1], "outcome": r[2], "module": r[3],
-             "section": r[4], "score": round(float(r[5]), 4), "text": clob(r[6])}
+            {"chunk_id": r[0], "doc_id": r[1], "client": r[2], "filename": r[3],
+             "outcome": r[4], "module": r[5], "section": r[6],
+             "score": round(float(r[7]), 4), "text": clob(r[8])}
             for r in cur.fetchall()
         ]
     log.debug("retrieved %s chunks module=%s", len(results), module)

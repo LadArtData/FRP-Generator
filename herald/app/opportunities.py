@@ -60,8 +60,8 @@ def update(opp_id: int, payload: dict, actor: str | None = None) -> None:
     if "status" in columns and columns["status"] not in STATUSES:
         raise ValidationFailed(f"status must be one of {', '.join(STATUSES)}.")
 
-    # form_state and parsed_fields merge into extracted_json rather than clobbering it
-    if "form_state" in payload or "parsed_fields" in payload:
+    # form_state / parsed_fields / match_data merge into extracted_json
+    if "form_state" in payload or "parsed_fields" in payload or "match_data" in payload:
         with cursor() as cur:
             cur.execute("SELECT extracted_json FROM harald_opportunities WHERE opp_id = :o",
                         {"o": opp_id})
@@ -76,6 +76,8 @@ def update(opp_id: int, payload: dict, actor: str | None = None) -> None:
             current["studio_form"] = payload["form_state"]
         if "parsed_fields" in payload:
             current["parsed_fields"] = payload["parsed_fields"]
+        if "match_data" in payload:
+            current["match_data"] = payload["match_data"]
         columns["extracted_json"] = json.dumps(current)
 
     if not columns:

@@ -11,7 +11,7 @@
      to the same directory when opened locally for testing. If your APEX
      install rewrites paths, change to "#APP_FILES#frp-rest-bridge.js". -->
 <script src="/harald.js"></script>
-<script src="frp-rest-bridge.js?v=1.6.0"></script>
+<script src="frp-rest-bridge.js?v=1.7.0"></script>
 <!-- If APEX rewrites static paths, use: #APP_FILES#frp-rest-bridge.js -->
 <script>
   // If the bridge file 404s, the next tag never registers and window.FRP
@@ -1499,13 +1499,13 @@ textarea { min-height: 72px; resize: vertical; font-family: inherit; line-height
       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
       Copilot
     </button>
-    <button class="chip-copilot" onclick="openCopilotPanel()" title="FRP Copilot — Cohere · Llama · Grok">
+    <button class="chip-copilot" onclick="openCopilotPanel()" title="Llama parses · Cohere matches · Grok drafts">
       <span class="chip-copilot-badge">
         <span class="cp-dot"></span>
         OCI
       </span>
-      <span>Cohere · Llama · Grok</span>
-      <span class="chip-copilot-count">· 142 indexed</span>
+      <span>Llama · Cohere · Grok</span>
+      <span class="chip-copilot-count" id="chip-indexed-count">· …</span>
     </button>
     <button class="tb-btn" onclick="toggleTweaks()" title="Tweaks">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg>
@@ -1888,6 +1888,7 @@ textarea { min-height: 72px; resize: vertical; font-family: inherit; line-height
               <div style="font-size:10.5px;color:rgba(255,255,255,.6);font-family:'JetBrains Mono',monospace;margin-top:2px" id="rp-export-hint">Zip includes Word draft, filled agency spreadsheets, and attachments.</div>
             </div>
             <button class="run-panel-go" onclick="onPreviewExport()">Download all materials →</button>
+            <button class="run-panel-go" style="background:#fff;color:var(--ink);margin-left:8px" onclick="assembleSubmissionPackage()">Assemble package →</button>
           </div>
         </div>
 
@@ -2970,9 +2971,113 @@ function renderProposal(p) {
     }
   }
 
+  const matchPayload = p.match_data || _parseExtractedJson(p).match_data || {};
+  renderLibraryMatches(matchPayload.matches || []);
+
   const docTitle = document.getElementById('doc-title');
   if (docTitle && p.client_name) docTitle.value = p.client_name;
   updateProposalSwitcher(p);
+}
+
+function renderLibraryMatches(matches) {
+  const host = document.getElementById('rp-matches');
+  const countEl = document.getElementById('ptab-match-count');
+  const list = Array.isArray(matches) ? matches : [];
+  if (countEl) countEl.textContent = String(list.length);
+  if (!host) return;
+  if (!list.length) {
+    host.innerHTML = '<tr><td colspan="3" style="color:var(--muted);font-size:12px">No matches yet. Attach a solicitation and run autofill to populate these.</td></tr>';
+    return;
+  }
+  host.innerHTML = list.map(function (m) {
+    const doc = m.filename || m.client || ('doc ' + (m.doc_id || ''));
+    const status = (m.outcome || m.module || '—');
+    const score = (m.score != null) ? Number(m.score).toFixed(3) : '—';
+    const title = m.excerpt ? String(m.excerpt).slice(0, 160) : '';
+    return '<tr title="' + escapeHtml(title) + '">' +
+      '<td style="font-size:12px">' + escapeHtml(doc) +
+      (m.client && m.filename ? '<div style="color:var(--muted);font-size:10.5px">' + escapeHtml(m.client) + '</div>' : '') +
+      '</td>' +
+      '<td style="font-size:11px;text-transform:uppercase">' + escapeHtml(status) + '</td>' +
+      '<td style="font-family:JetBrains Mono,monospace;font-size:11px">' + escapeHtml(score) + '</td>' +
+      '</tr>';
+  }).join('');
+}
+
+const _MODULE_LABEL_MAP = {
+  FIN: 'Financials', FINANCIALS: 'Financials', FINANCE: 'Financials',
+  HCM: 'HCM', HR: 'HCM', 'HUMAN RESOURCES': 'HCM',
+  PAYROLL: 'Payroll',
+  PROC: 'Procurement', PROCUREMENT: 'Procurement', PURCHASING: 'Procurement',
+  BUDGET: 'EPM', EPM: 'EPM',
+  INV: 'SCM', SCM: 'SCM', INVENTORY: 'SCM',
+  TECH: 'Analytics / OAC', ANALYTICS: 'Analytics / OAC', OAC: 'Analytics / OAC',
+  'PROJECT PORTFOLIO': 'Project Portfolio', PPM: 'Project Portfolio'
+};
+
+function _normalizePainList(value) {
+  if (Array.isArray(value)) return value.map(String);
+  if (value == null || value === '') return [];
+  return String(value).split(/[,;|/]/).map(function (s) { return s.trim(); }).filter(Boolean);
+}
+
+function _normalizeModuleLabels(value) {
+  const raw = Array.isArray(value) ? value : _normalizePainList(value);
+  return raw.map(function (entry) {
+    const key = String(entry).trim();
+    const upper = key.toUpperCase();
+    return _MODULE_LABEL_MAP[upper] || _MODULE_LABEL_MAP[key] || key;
+  });
+}
+
+function applyAutofillTags(fields) {
+  applyTagGroup('pain_points', _normalizePainList(fields.pain_points));
+  applyTagGroup('proposed_modules', _normalizeModuleLabels(
+    fields.proposed_modules || fields.required_modules
+  ));
+}
+
+async function assembleSubmissionPackage() {
+  if (!window._activeProposalId) {
+    alert('Open or start a proposal first.');
+    return;
+  }
+  if (!window.FRP || typeof window.FRP.assemblePackage !== 'function') {
+    alert('Assemble is not available — hard-refresh after restart.');
+    return;
+  }
+  try {
+    await saveProposalDraft({ silent: true });
+    const r = await window.FRP.assemblePackage(window._activeProposalId);
+    alert('Package assembled' +
+      (r.package_id ? (' · id ' + r.package_id) : '') +
+      (r.filename ? (' · ' + r.filename) : '') +
+      '. Use Download all materials to pull it with the Excels.');
+  } catch (e) {
+    console.error('assemble failed', e);
+    alert('Could not assemble package: ' + (e.message || e));
+  }
+}
+
+async function refreshIndexedChip() {
+  if (!window.FRP || typeof window.FRP.libraryStats !== 'function') return;
+  try {
+    const s = await window.FRP.libraryStats();
+    const el = document.getElementById('chip-indexed-count');
+    if (el) el.textContent = '· ' + (s.total_docs || 0) + ' indexed';
+  } catch (e) { /* leave placeholder */ }
+}
+
+async function ensureAnswerBank() {
+  if (!window.FRP || typeof window.FRP.seedAnswers !== 'function') return;
+  try {
+    const health = await fetch('/api/health').then(function (r) { return r.json(); });
+    if (health.answers && (health.answers.total || 0) > 0) return;
+    const r = await window.FRP.seedAnswers();
+    console.log('[FRP] answer bank seeded', r);
+  } catch (e) {
+    console.warn('answer seed skipped', e);
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -3018,6 +3123,7 @@ async function autoFillFromRfp() {
     // 1. Populate form inputs by data-field.
     let filled = 0;
     _AUTOFILL_FIELDS.forEach(k => {
+      if (k === 'pain_points' || k === 'required_modules' || k === 'matched_case_studies' || k === 'matched_references') return;
       const v = _autofillValueFor(fields, k);
       if (v == null) return;
       const inp = document.querySelector('[data-field="' + k + '"]');
@@ -3029,6 +3135,13 @@ async function autoFillFromRfp() {
         filled++;
       }
     });
+
+    // 1b. Pain points + modules from what the solicitation asks for.
+    applyAutofillTags(fields);
+
+    // 1c. Library matches from Cohere-style retrieval against the ask.
+    const matchList = (matches && matches.matches) || r.matches || [];
+    renderLibraryMatches(matchList);
 
     // 2. Render the callout body with the parsed fields.
     const body = document.getElementById('autoparse-body');
@@ -3062,7 +3175,8 @@ async function autoFillFromRfp() {
           rfp_doc_id: docId,
           due_date: (document.getElementById('f-due-date') || {}).value || null,
           form_state: collectFormState(),
-          parsed_fields: fields
+          parsed_fields: fields,
+          match_data: { matches: matchList }
         });
         const p = await window.FRP.getProposal(window._activeProposalId);
         renderProposal(p);
@@ -3532,6 +3646,8 @@ document.addEventListener('DOMContentLoaded', function () {
   _patchFrpBridge();
   loadLibraryStats();
   loadLibrary();
+  refreshIndexedChip();
+  ensureAnswerBank();
   _renderAttachmentUI();
   initProposalAutosave();
   initProposalSession();

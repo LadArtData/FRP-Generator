@@ -113,7 +113,7 @@ async def shred_requirements(rfp_text: str) -> list[dict]:
                 prompts.RTM_SYSTEM,
                 f"SOLICITATION (part {start // (window - overlap) + 1}):\n{segment}\n\n"
                 "Return the requirements as a JSON array now.",
-                expect=list, model=cfg.draft_model, max_tokens=4000,
+                expect=list, model=cfg.parse_model, max_tokens=4000,
             )
         except Exception as exc:
             log.warning("shred window at %s failed: %s", start, exc)
@@ -145,22 +145,60 @@ async def shred_requirements(rfp_text: str) -> list[dict]:
 
 
 async def parse_rfp(rfp_text: str) -> dict:
+    """Llama extracts structured fields; Cohere-style vector match finds past
+    responses that fit what the solicitation asks for."""
     if not rfp_text or len(rfp_text.strip()) < 40:
         return {"parsed_fields": {}, "matches": []}
     fields = await llm.complete_json(
         prompts.RFP_PARSE_SYSTEM,
         f"SOLICITATION:\n{rfp_text[:14000]}\n\nReturn the JSON object now.",
-        expect=dict, model=cfg.draft_model, max_tokens=1500,
+        expect=dict, model=cfg.parse_model, max_tokens=1500,
     )
-    probe = " ".join(
-        str(fields.get(key, "")) for key in ("pain_points", "legacy_systems", "industry")
-    ) or rfp_text[:1200]
-    matches = [
-        {"client": c["client"], "module": c["module"], "outcome": c["outcome"],
-         "score": c["score"]}
-        for c in retrieval.retrieve(probe, None, k=6)
-    ]
-    return {"parsed_fields": fields, "matches": matches}
+    probe_bits = []
+    for key in ("client_name", "agency", "industry", "legacy_systems",
+                "pain_points", "required_modules", "annual_budget"):
+        value = fields.get(key)
+        if isinstance(value, list):
+            probe_bits.append(" ".join(str(v) for v in value if v))
+        elif value:
+            probe_bits.append(str(value))
+    probe = " ".join(probe_bits).strip() or rfp_text[:1200]
+
+    seen: set[str] = set()
+    matches: list[dict] = []
+    # Broad match on the solicitation ask, then module-specific probes so FIN /
+    # HCM / PAYROLL past wins surface when those modules are requested.
+    module_probes: list[tuple[str | None, str]] = [(None, probe)]
+    modules = fields.get("required_modules") or []
+    if isinstance(modules, str):
+        modules = [m.strip() for m in modules.replace(";", ",").split(",") if m.strip()]
+    for module in modules[:6]:
+        module_probes.append((str(module).upper()[:16], f"{probe} {module}"))
+
+    for module, text in module_probes:
+        for chunk in retrieval.retrieve(text, module if module and module in (
+                "FIN", "HCM", "PAYROLL", "PROC", "BUDGET", "INV", "TECH", "GENERAL"
+        ) else None, k=4):
+            key = f"{chunk.get('doc_id')}:{chunk.get('module')}"
+            if key in seen:
+                continue
+            seen.add(key)
+            matches.append({
+                "doc_id": chunk.get("doc_id"),
+                "filename": chunk.get("filename"),
+                "client": chunk.get("client"),
+                "module": chunk.get("module"),
+                "outcome": chunk.get("outcome"),
+                "score": chunk.get("score"),
+                "excerpt": (chunk.get("text") or "")[:280],
+            })
+            if len(matches) >= 10:
+                break
+        if len(matches) >= 10:
+            break
+
+    matches.sort(key=lambda m: m.get("score") or 99)
+    return {"parsed_fields": fields, "matches": matches[:8]}
 
 
 def _match_code(chosen: str, allowed: list[str]) -> str:

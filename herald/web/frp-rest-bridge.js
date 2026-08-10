@@ -142,6 +142,14 @@
         });
       });
     },
+    assemblePackage: function (id) {
+      return call("/api/proposals/" + encodeURIComponent(id) + "/assemble", {
+        method: "POST", body: "{}"
+      });
+    },
+    seedAnswers: function () {
+      return call("/api/answers/seed", { method: "POST", body: "{}" });
+    },
 
     /* solicitation parsing and the assistant */
     parseRfp: function (docId) {
