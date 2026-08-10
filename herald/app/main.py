@@ -305,7 +305,7 @@ async def humanize_requirement(req_id: int, body: HumanizeIn,
 
 
 @app.post("/api/opportunities/{opp_id}/generate")
-def generate_all(opp_id: int, user: dict = Depends(contributor)):
+async def generate_all(opp_id: int, user: dict = Depends(contributor)):
     opportunities.set_generation_state(opp_id, "generating")
     asyncio.create_task(opportunities.generate_narrative(opp_id, user["username"]))
     return {"status": "generating"}
@@ -386,7 +386,7 @@ def get_questionnaire(q_id: int):
 
 
 @app.post("/api/questionnaires/{q_id}/fill")
-def fill_questionnaire(q_id: int, user: dict = Depends(contributor)):
+async def fill_questionnaire(q_id: int, user: dict = Depends(contributor)):
     questionnaires.set_status(q_id, "filling")
     asyncio.create_task(questionnaires.fill(q_id, user["username"]))
     return {"status": "filling"}
@@ -647,7 +647,7 @@ def studio_attach(opp_id: int, body: AttachIn, user: dict = Depends(contributor)
 
 
 @app.post("/api/proposals/{opp_id}/generate")
-def studio_generate(opp_id: int, user: dict = Depends(contributor)):
+async def studio_generate(opp_id: int, user: dict = Depends(contributor)):
     opportunities.set_generation_state(opp_id, "generating")
     asyncio.create_task(studio.generate(opp_id, user["username"]))
     return {"status": "generating"}
@@ -659,6 +659,17 @@ def studio_export_docx(opp_id: int):
     return Response(
         content=blob,
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@app.get("/api/proposals/{opp_id}/materials.zip")
+def studio_export_materials(opp_id: int):
+    """Word draft + filled agency spreadsheets + attachments (+ packages if any)."""
+    blob, filename = studio.export_materials_zip(opp_id)
+    return Response(
+        content=blob,
+        media_type="application/zip",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 

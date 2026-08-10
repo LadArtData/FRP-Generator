@@ -13,13 +13,14 @@ import io
 import json
 import logging
 import re
+import zipfile
 
 from docx import Document
 from docx.shared import Pt
 
-from . import audit, documents, generation, opportunities
-from .db import clob, cursor, transaction
-from .errors import NotFound
+from . import audit, documents, generation, opportunities, packages, questionnaires
+from .db import cursor, transaction
+from .errors import NotFound, ValidationFailed
 
 log = logging.getLogger("harald.studio")
 
@@ -47,11 +48,18 @@ def list_proposals(limit: int = 100) -> list[dict]:
 
 def get_proposal(opp_id: int) -> dict:
     opp = opportunities.get(opp_id)
+    gen = opp.get("gen_status") or "idle"
+    if gen == "generating":
+        status = "generating"
+    elif gen == "error":
+        status = "error"
+    else:
+        status = opp["status"]
     return {
         "proposal_id": opp["opp_id"],
         "client_name": opp["client_name"],
-        # The Studio polls status to know when generation finishes.
-        "status": "generating" if opp["gen_status"] == "generating" else opp["status"],
+        "status": status,
+        "gen_status": gen,
         "rfp_doc_id": opp["rfp_doc_id"],
         "due_date": opp["due_date"],
         "draft_text": opp["draft_text"],
@@ -63,6 +71,7 @@ def get_proposal(opp_id: int) -> dict:
              "deal_status": None, "attached_at": d["uploaded_at"]}
             for d in opp["documents"]
         ],
+        "questionnaires": questionnaires.list_for_opportunity(opp_id),
     }
 
 
@@ -114,51 +123,104 @@ async def parse(doc_id: int) -> dict:
 
 
 async def generate(opp_id: int, actor: str) -> None:
-    """The Studio's Generate. When the bid has a requirements matrix, draft against
-    it so the Studio and the compliance view stay in step. With no matrix yet, draft
-    the standard proposal sections so the Studio still produces a full narrative."""
-    opp = opportunities.get(opp_id)
-    if opp["requirements"]:
-        await opportunities.generate_narrative(opp_id, actor)
-        return
+    """Draft the narrative and fill any attached agency Excel questionnaires.
 
+    Spreadsheet fill writes into the agency's own workbook format (dropdowns and
+    validations preserved) so download can ship the completed matrix with the
+    Word draft and supporting attachments.
+    """
     try:
         opportunities.set_generation_state(opp_id, "generating")
-        form: dict = {}
-        try:
-            extracted = json.loads(opp["extracted_json"] or "null") or {}
-            form = {**(extracted.get("parsed_fields") or {}),
-                    **(extracted.get("studio_form") or {})}
-        except (json.JSONDecodeError, TypeError):
-            form = {}
+        opp = opportunities.get(opp_id)
+        if opp["requirements"]:
+            await opportunities.generate_narrative(opp_id, actor)
+            # generate_narrative clears gen_status; keep the Studio poller busy
+            # while spreadsheets fill.
+            opportunities.set_generation_state(opp_id, "generating")
+        else:
+            await _draft_sections(opp_id, actor, opp)
 
-        client = opp["client_name"] or "the client"
-        brief = ", ".join(
-            f"{label} {form[key]}"
-            for key, label in (("industry", "industry"), ("legacy_systems", "legacy systems"),
-                               ("pain_points", "pain points"))
-            if form.get(key)
-        ) or "public-sector Oracle Cloud Fusion ERP modernization"
-
-        modules = _modules_from(form)
-        plan: list[tuple[str, str | None]] = [("Executive Summary", None)]
-        plan += [(generation.MODULE_TITLES[m], m) for m in modules]
-        plan += [("Implementation Approach", None),
-                 ("Project Management and Governance", None),
-                 ("Support and Managed Services", "TECH")]
-
-        blocks: list[str] = []
-        for title, module in plan:
-            body = await generation.draft_section(client, title, module, brief)
-            blocks.extend([title.upper(), "", body.strip(), ""])
-
-        opportunities.update(opp_id, {"draft_text": "\n".join(blocks).strip()}, actor)
+        filled = await _fill_attached_spreadsheets(opp_id, actor)
         opportunities.set_generation_state(opp_id, "idle")
         audit.record(actor, "studio.generate", "opportunity", opp_id,
-                     {"sections": len(plan)})
+                     {"spreadsheets_filled": filled})
     except Exception as exc:
         log.exception("studio generation failed opp=%s", opp_id)
         opportunities.set_generation_state(opp_id, "error", str(exc))
+
+
+async def _draft_sections(opp_id: int, actor: str, opp: dict) -> None:
+    form: dict = {}
+    try:
+        extracted = json.loads(opp["extracted_json"] or "null") or {}
+        form = {**(extracted.get("parsed_fields") or {}),
+                **(extracted.get("studio_form") or {})}
+    except (json.JSONDecodeError, TypeError):
+        form = {}
+
+    client = opp["client_name"] or "the client"
+    pain = form.get("pain_points")
+    if isinstance(pain, list):
+        pain = ", ".join(str(p) for p in pain)
+    brief_parts = []
+    for key, label, value in (
+        ("industry", "industry", form.get("industry")),
+        ("legacy_systems", "legacy systems", form.get("legacy_systems")),
+        ("pain_points", "pain points", pain),
+        ("win_theme", "win theme", form.get("win_theme")),
+        ("engagement_type", "engagement", form.get("engagement_type")),
+    ):
+        if value:
+            brief_parts.append(f"{label} {value}")
+    brief = ", ".join(brief_parts) or (
+        "public-sector Oracle Cloud Fusion ERP modernization"
+    )
+
+    modules = _modules_from(form)
+    plan: list[tuple[str, str | None]] = [("Executive Summary", None)]
+    plan += [(generation.MODULE_TITLES[m], m) for m in modules]
+    plan += [("Implementation Approach", None),
+             ("Project Management and Governance", None),
+             ("Support and Managed Services", "TECH")]
+
+    blocks: list[str] = []
+    for title, module in plan:
+        body = await generation.draft_section(client, title, module, brief)
+        blocks.extend([title.upper(), "", body.strip(), ""])
+
+    opportunities.update(opp_id, {"draft_text": "\n".join(blocks).strip()}, actor)
+
+
+async def _fill_attached_spreadsheets(opp_id: int, actor: str) -> int:
+    """Import and fill .xlsx/.xlsm attachments so agency matrices are completed."""
+    opp = opportunities.get(opp_id)
+    already = {}
+    for q in questionnaires.list_for_opportunity(opp_id):
+        detail = questionnaires.get(q["q_id"])
+        already[detail["source_doc_id"]] = q["q_id"]
+
+    filled = 0
+    for doc in opp.get("documents") or []:
+        name = (doc.get("filename") or "").lower()
+        if not name.endswith((".xlsx", ".xlsm")):
+            continue
+        q_id = already.get(doc["doc_id"])
+        if q_id is None:
+            try:
+                imported = questionnaires.import_workbook(opp_id, doc["doc_id"], actor)
+                q_id = imported["q_id"]
+            except ValidationFailed as exc:
+                log.warning("skip spreadsheet import doc=%s: %s", doc["doc_id"], exc)
+                continue
+            except Exception:
+                log.exception("spreadsheet import failed doc=%s", doc["doc_id"])
+                continue
+        try:
+            await questionnaires.fill(q_id, actor)
+            filled += 1
+        except Exception:
+            log.exception("spreadsheet fill failed q_id=%s", q_id)
+    return filled
 
 
 _MODULE_ALIASES = {
@@ -167,11 +229,13 @@ _MODULE_ALIASES = {
     "payroll": "PAYROLL", "procurement": "PROC", "purchasing": "PROC",
     "budget": "BUDGET", "inventory": "INV", "assets": "INV",
     "technical": "TECH", "it": "TECH",
+    "epm": "BUDGET", "scm": "INV", "analytics / oac": "TECH",
+    "analytics/oac": "TECH", "project portfolio": "TECH",
 }
 
 
 def _modules_from(form: dict) -> list[str]:
-    raw = form.get("required_modules")
+    raw = form.get("proposed_modules") or form.get("required_modules")
     if isinstance(raw, str):
         raw = [part for part in raw.replace(";", ",").split(",")]
     if not isinstance(raw, list):
@@ -283,3 +347,79 @@ def export_docx(opp_id: int) -> tuple[bytes, str]:
     document.save(buffer)
     filename = f"{_safe_filename(client)}.docx"
     return buffer.getvalue(), filename
+
+
+def export_materials_zip(opp_id: int) -> tuple[bytes, str]:
+    """Zip the Word draft, filled agency Excels, attachments, and package files."""
+    opp = opportunities.get(opp_id)
+    client = _safe_filename(opp.get("client_name") or "proposal")
+    buffer = io.BytesIO()
+    used_names: set[str] = set()
+
+    def _unique(name: str) -> str:
+        base = name or "file.bin"
+        if base not in used_names:
+            used_names.add(base)
+            return base
+        stem, dot, ext = base.rpartition(".")
+        if not dot:
+            stem, ext = base, ""
+        index = 2
+        while True:
+            candidate = f"{stem}_{index}.{ext}" if ext else f"{stem}_{index}"
+            if candidate not in used_names:
+                used_names.add(candidate)
+                return candidate
+            index += 1
+
+    with zipfile.ZipFile(buffer, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        docx_bytes, docx_name = export_docx(opp_id)
+        archive.writestr(f"01_narrative/{_unique(docx_name)}", docx_bytes)
+
+        for q in questionnaires.list_for_opportunity(opp_id):
+            try:
+                xlsx_bytes, xlsx_name = questionnaires.export(q["q_id"])
+                archive.writestr(
+                    f"02_filled_spreadsheets/{_unique(xlsx_name)}", xlsx_bytes
+                )
+            except Exception:
+                log.exception("materials zip: questionnaire export failed q=%s", q["q_id"])
+
+        for doc in opp.get("documents") or []:
+            try:
+                blob, filename = documents.get_blob(doc["doc_id"])
+                archive.writestr(
+                    f"03_attachments/{_unique(filename or f'doc_{doc['doc_id']}')}",
+                    blob,
+                )
+            except Exception:
+                log.exception("materials zip: attachment failed doc=%s", doc["doc_id"])
+
+        for pkg in packages.list_for_opportunity(opp_id):
+            try:
+                blob, filename, _ = packages.download(pkg["package_id"], "docx")
+                archive.writestr(
+                    f"04_packages/{_unique(filename or f'package_{pkg['package_id']}.docx')}",
+                    blob,
+                )
+            except Exception:
+                log.exception("materials zip: package docx failed id=%s", pkg["package_id"])
+            if pkg.get("has_pdf"):
+                try:
+                    blob, filename, _ = packages.download(pkg["package_id"], "pdf")
+                    archive.writestr(
+                        f"04_packages/{_unique(filename or f'package_{pkg['package_id']}.pdf')}",
+                        blob,
+                    )
+                except Exception:
+                    log.exception("materials zip: package pdf failed id=%s", pkg["package_id"])
+
+        manifest = {
+            "proposal_id": opp_id,
+            "client_name": opp.get("client_name"),
+            "status": opp.get("status"),
+            "files": sorted(used_names),
+        }
+        archive.writestr("README.json", json.dumps(manifest, indent=2))
+
+    return buffer.getvalue(), f"{client}_materials.zip"

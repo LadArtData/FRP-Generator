@@ -130,6 +130,18 @@
         });
       });
     },
+    downloadMaterials: function (id) {
+      var url = "/api/proposals/" + encodeURIComponent(id) + "/materials.zip";
+      return fetch(url, { headers: authOnly() }).then(function (response) {
+        if (!response.ok) throw new Error("Materials download failed (HTTP " + response.status + ")");
+        var disposition = response.headers.get("Content-Disposition") || "";
+        var match = /filename="([^"]+)"/.exec(disposition);
+        var filename = match ? match[1] : ("proposal_" + id + "_materials.zip");
+        return response.blob().then(function (blob) {
+          return { blob: blob, filename: filename };
+        });
+      });
+    },
 
     /* solicitation parsing and the assistant */
     parseRfp: function (docId) {

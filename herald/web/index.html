@@ -11,7 +11,7 @@
      to the same directory when opened locally for testing. If your APEX
      install rewrites paths, change to "#APP_FILES#frp-rest-bridge.js". -->
 <script src="/harald.js"></script>
-<script src="frp-rest-bridge.js?v=1.5.0"></script>
+<script src="frp-rest-bridge.js?v=1.6.0"></script>
 <!-- If APEX rewrites static paths, use: #APP_FILES#frp-rest-bridge.js -->
 <script>
   // If the bridge file 404s, the next tag never registers and window.FRP
@@ -1816,7 +1816,7 @@ textarea { min-height: 72px; resize: vertical; font-family: inherit; line-height
       <button class="preview-action" id="prev-copy-btn" onclick="onPreviewCopy()" title="Copy proposal text to clipboard">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>Copy
       </button>
-      <button class="preview-action" id="prev-export-btn" onclick="onPreviewExport()" title="Download proposal as Word (.docx)">
+      <button class="preview-action" id="prev-export-btn" onclick="onPreviewExport()" title="Download all materials (Word, filled Excels, attachments)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"></path></svg>Export
       </button>
       <button class="preview-action" id="prev-print-btn" onclick="window.print()" title="Print to PDF">
@@ -1885,9 +1885,9 @@ textarea { min-height: 72px; resize: vertical; font-family: inherit; line-height
           <div style="margin-top:22px;padding:14px 16px;background:var(--ink);color:#fff;border-radius:8px;display:flex;align-items:center;gap:14px">
             <div style="flex:1">
               <div style="font-weight:600;font-size:13px">Export</div>
-              <div style="font-size:10.5px;color:rgba(255,255,255,.6);font-family:'JetBrains Mono',monospace;margin-top:2px" id="rp-export-hint">Export saves a Word document (.docx) from the saved draft.</div>
+              <div style="font-size:10.5px;color:rgba(255,255,255,.6);font-family:'JetBrains Mono',monospace;margin-top:2px" id="rp-export-hint">Zip includes Word draft, filled agency spreadsheets, and attachments.</div>
             </div>
-            <button class="run-panel-go" onclick="onPreviewExport()">Download Word →</button>
+            <button class="run-panel-go" onclick="onPreviewExport()">Download all materials →</button>
           </div>
         </div>
 
@@ -2091,10 +2091,21 @@ async function runGenerate() {
         if (p.status === 'generating') {
           // Crawl progress from 40 → 90 based on elapsed seconds.
           const pct = Math.min(90, 40 + Math.floor(elapsed / 2));
-          _setGenStep('Pipeline running… (' + elapsed + 's)', 2, 4, pct);
+          _setGenStep('Drafting narrative + filling spreadsheets… (' + elapsed + 's)', 2, 4, pct);
+        } else if (p.status === 'error' || p.gen_status === 'error') {
+          clearInterval(_genPollTimer);
+          const err = p.gen_error || 'Generation failed';
+          _setGenStep('Failed: ' + err, 0, 4, 0);
+          alert('Generate failed: ' + err);
+          if (btn)   { btn.disabled = false; btn.style.opacity = ''; }
+          if (tbBtn) { tbBtn.disabled = false; tbBtn.style.opacity = ''; }
         } else {
           clearInterval(_genPollTimer);
-          _setGenStep('Draft ready', 4, 4, 100);
+          const qCount = (p.questionnaires || []).length;
+          _setGenStep(
+            qCount ? ('Draft ready · ' + qCount + ' spreadsheet(s) processed') : 'Draft ready',
+            4, 4, 100
+          );
           renderProposal(p);
           setTimeout(() => { box && box.classList.remove('visible'); }, 1400);
           if (btn)   { btn.disabled = false; btn.style.opacity = ''; }
@@ -2113,7 +2124,7 @@ async function runGenerate() {
     setTimeout(() => {
       if (_genPollTimer) {
         clearInterval(_genPollTimer);
-        _setGenStep('Timeout — check job in APEX', 0, 4, 0);
+        _setGenStep('Timeout — generation still running; refresh and check the Draft tab', 0, 4, 0);
         if (btn)   { btn.disabled = false; btn.style.opacity = ''; }
         if (tbBtn) { tbBtn.disabled = false; tbBtn.style.opacity = ''; }
       }
@@ -3437,26 +3448,26 @@ async function onPreviewExport() {
     alert('Nothing to export — open or start a proposal first.');
     return;
   }
-  if (!window.FRP || typeof window.FRP.downloadProposalDocx !== 'function') {
-    alert('Bridge missing Word export — hard-refresh after the container restarts.');
+  if (!window.FRP || typeof window.FRP.downloadMaterials !== 'function') {
+    alert('Bridge missing materials export — hard-refresh after the container restarts.');
     return;
   }
   const btn = document.getElementById('prev-export-btn');
   try {
     if (btn) { btn.disabled = true; }
     try { await saveProposalDraft({ silent: true }); } catch (e) { /* export saved DB state anyway */ }
-    const result = await window.FRP.downloadProposalDocx(window._activeProposalId);
+    const result = await window.FRP.downloadMaterials(window._activeProposalId);
     const url = URL.createObjectURL(result.blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = result.filename || 'proposal.docx';
+    a.download = result.filename || 'proposal_materials.zip';
     document.body.appendChild(a);
     a.click();
     setTimeout(function () { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
     _flashBtn('prev-export-btn', 'Saved');
   } catch (e) {
-    console.error('Word export failed', e);
-    alert('Could not export Word doc: ' + (e.message || e));
+    console.error('Materials export failed', e);
+    alert('Could not download materials: ' + (e.message || e));
   } finally {
     if (btn) { btn.disabled = false; }
   }
