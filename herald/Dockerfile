@@ -15,30 +15,31 @@
 #   - the ONNX embedding model (local embeddings, no GenAI call)
 #   - LibreOffice, used headless to convert assembled DOCX to PDF
 
-FROM python:3.11-slim
+FROM --platform=linux/amd64 python:3.11-slim-bookworm
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
     FASTEMBED_CACHE_PATH=/opt/models \
     HOME=/home/harald \
     TNS_ADMIN=/wallet
 
 WORKDIR /app
 
-# libaio is required by python-oracledb (package name flipped to libaio1t64 on
-# newer Debian); libreoffice-writer performs DOCX→PDF.
+# libaio is required by python-oracledb (libaio1 on bookworm); libreoffice-writer
+# performs DOCX→PDF. Keep apt lean so the image still fits a Container Instance.
 RUN apt-get update && apt-get install -y --no-install-recommends \
         curl \
         unzip \
         fonts-dejavu-core \
+        libaio1 \
         libreoffice-writer \
-    && (apt-get install -y --no-install-recommends libaio1t64 \
-        || apt-get install -y --no-install-recommends libaio1) \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN python -m pip install --upgrade pip \
+    && pip install --no-cache-dir -r requirements.txt
 
 # Bake the embedding model into the image.
 ARG EMBED_MODEL=BAAI/bge-base-en-v1.5
