@@ -9,8 +9,13 @@ same row.
 """
 from __future__ import annotations
 
+import io
 import json
 import logging
+import re
+
+from docx import Document
+from docx.shared import Pt
 
 from . import audit, documents, generation, opportunities
 from .db import clob, cursor, transaction
@@ -183,3 +188,98 @@ def _modules_from(form: dict) -> list[str]:
 
     ordered = list(dict.fromkeys(resolved))
     return ordered or ["FIN", "HCM", "PAYROLL", "PROC", "TECH"]
+
+
+def _safe_filename(name: str | None) -> str:
+    cleaned = re.sub(r"[^A-Za-z0-9._-]+", "_", (name or "proposal").strip())
+    return (cleaned.strip("._") or "proposal")[:80]
+
+
+def _studio_form(opp: dict) -> dict:
+    raw = opp.get("extracted_json")
+    if not raw or raw == "null":
+        return {}
+    try:
+        data = raw if isinstance(raw, dict) else json.loads(raw)
+    except (json.JSONDecodeError, TypeError):
+        return {}
+    form = data.get("studio_form") or data.get("form") or {}
+    return form if isinstance(form, dict) else {}
+
+
+def export_docx(opp_id: int) -> tuple[bytes, str]:
+    """Build a Word document from the saved Studio draft for download."""
+    opp = opportunities.get(opp_id)
+    form = _studio_form(opp)
+    client = (opp.get("client_name") or form.get("client_name") or "Proposal").strip()
+
+    document = Document()
+    style = document.styles["Normal"]
+    style.font.name = "Calibri"
+    style.font.size = Pt(11)
+
+    document.add_heading(client, level=0)
+    meta = document.add_paragraph()
+    meta_bits = [f"Status: {opp.get('status') or 'draft'}"]
+    if opp.get("due_date"):
+        meta_bits.append(f"Due: {opp['due_date']}")
+    if form.get("rfp_number"):
+        meta_bits.append(f"Solicitation: {form['rfp_number']}")
+    meta_bits.append(f"Proposal ID: {opp_id}")
+    meta.add_run(" · ".join(meta_bits)).italic = True
+
+    summary_keys = [
+        ("industry", "Industry"),
+        ("primary_contact", "Primary contact"),
+        ("annual_budget", "Annual budget / revenue"),
+        ("legacy_systems", "Current ERP / systems"),
+        ("engagement_type", "Engagement type"),
+        ("primary_competition", "Primary competition"),
+        ("win_theme", "Win theme"),
+        ("project_manager", "Project manager"),
+        ("solution_architect", "Solution architect"),
+    ]
+    summary_rows = []
+    for key, label in summary_keys:
+        value = form.get(key)
+        if value:
+            summary_rows.append((label, str(value)))
+    for key, label in (("pain_points", "Pain points"), ("proposed_modules", "Proposed modules")):
+        value = form.get(key)
+        if isinstance(value, list) and value:
+            summary_rows.append((label, ", ".join(str(v) for v in value)))
+        elif value:
+            summary_rows.append((label, str(value)))
+
+    if summary_rows:
+        document.add_heading("Proposal inputs", level=1)
+        for label, value in summary_rows:
+            paragraph = document.add_paragraph()
+            paragraph.add_run(f"{label}: ").bold = True
+            paragraph.add_run(value)
+
+    draft = (opp.get("draft_text") or "").strip()
+    document.add_heading("Draft", level=1)
+    if not draft:
+        document.add_paragraph("No draft text yet. Run Generate, then export again.")
+    else:
+        for block in re.split(r"\n\s*\n", draft):
+            block = block.strip()
+            if not block:
+                continue
+            lines = block.splitlines()
+            first = lines[0].strip()
+            if first.startswith("#"):
+                level = min(len(first) - len(first.lstrip("#")), 3)
+                title = first.lstrip("#").strip() or "Section"
+                document.add_heading(title, level=level)
+                body = "\n".join(lines[1:]).strip()
+                if body:
+                    document.add_paragraph(body)
+            else:
+                document.add_paragraph(block)
+
+    buffer = io.BytesIO()
+    document.save(buffer)
+    filename = f"{_safe_filename(client)}.docx"
+    return buffer.getvalue(), filename

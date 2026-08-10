@@ -118,6 +118,18 @@
         method: "POST", body: "{}"
       });
     },
+    downloadProposalDocx: function (id) {
+      var url = "/api/proposals/" + encodeURIComponent(id) + "/export.docx";
+      return fetch(url, { headers: authOnly() }).then(function (response) {
+        if (!response.ok) throw new Error("Word export failed (HTTP " + response.status + ")");
+        var disposition = response.headers.get("Content-Disposition") || "";
+        var match = /filename="([^"]+)"/.exec(disposition);
+        var filename = match ? match[1] : ("proposal_" + id + ".docx");
+        return response.blob().then(function (blob) {
+          return { blob: blob, filename: filename };
+        });
+      });
+    },
 
     /* solicitation parsing and the assistant */
     parseRfp: function (docId) {

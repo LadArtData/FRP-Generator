@@ -653,6 +653,16 @@ def studio_generate(opp_id: int, user: dict = Depends(contributor)):
     return {"status": "generating"}
 
 
+@app.get("/api/proposals/{opp_id}/export.docx")
+def studio_export_docx(opp_id: int):
+    blob, filename = studio.export_docx(opp_id)
+    return Response(
+        content=blob,
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
 @app.post("/api/rfp/parse")
 async def studio_parse(body: DocRef):
     return await studio.parse(body.doc_id)
