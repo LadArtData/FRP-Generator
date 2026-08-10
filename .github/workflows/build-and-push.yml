@@ -17,8 +17,15 @@ jobs:
 
       - name: Log in to OCIR
         run: |
+          # OCIR requires <namespace>/<username>. The secret may already include
+          # the namespace (as on Scout) or be the bare username — normalize either.
+          USER="${{ secrets.OCIR_USERNAME }}"
+          case "$USER" in
+            */*) ;;
+            *) USER="bmi3vxyqnzrv/$USER" ;;
+          esac
           echo "${{ secrets.OCIR_PASSWORD }}" | docker login bom.ocir.io \
-            -u "${{ secrets.OCIR_USERNAME }}" --password-stdin
+            -u "$USER" --password-stdin
 
       - name: Build and push
         uses: docker/build-push-action@v6
