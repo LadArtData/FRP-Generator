@@ -99,17 +99,17 @@ Deploy
    the slow one.
 
 5. Run.
-       docker run -d --name harald -p 8080:8080 \
+       docker run -d --name harald -p 8000:8000 \
          --env-file .env \
          -v "$PWD/wallet:/app/wallet:ro" \
          harald
 
 6. Verify.
-       curl -s localhost:8080/api/health | python -m json.tool
+       curl -s localhost:8000/api/health | python -m json.tool
    Expect ok=true, database=up, and the model and embedding fields. If database is
    down, the message says what failed.
 
-7. Sign in and seed the library. Open http://localhost:8080/opportunities, pick
+7. Sign in and seed the library. Open http://localhost:8000/opportunities, pick
    your name, then upload iteria's past proposals. The `library_seed/` folder
    holds ten real iteria narratives extracted from the SharePoint corpus. Upload
    them through the Studio rail or the library. Uploads are classified

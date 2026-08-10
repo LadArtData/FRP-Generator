@@ -79,9 +79,9 @@ ENV ORACLE_USER="ADMIN" \
 
 USER harald
 
-EXPOSE 8080
+EXPOSE 8000
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 \
-  CMD curl -fsS http://localhost:8080/api/health || exit 1
+  CMD curl -fsS http://localhost:8000/api/health || exit 1
 
 ENTRYPOINT ["/entrypoint.sh"]

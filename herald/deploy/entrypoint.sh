@@ -12,5 +12,5 @@ if [ ! -f "$TNS_ADMIN/tnsnames.ora" ]; then
 fi
 
 echo "wallet: ready at $TNS_ADMIN"
-exec uvicorn app.main:app --host 0.0.0.0 --port 8080 \
+exec uvicorn app.main:app --host 0.0.0.0 --port 8000 \
   --proxy-headers --timeout-keep-alive 65
