@@ -208,15 +208,26 @@ def import_workbook(opp_id: int, source_doc_id: int, actor: str | None = None) -
              "map": json.dumps(sheet_map), "count": len(items), "out": out},
         )
         q_id = out.getvalue()[0]
+        # :row is Oracle reserved (ORA-01745); keep item binds on b_* names.
         cur.executemany(
             """INSERT INTO harald_questionnaire_items
                  (q_id, opp_id, sheet_name, row_index, question_col, response_col,
                   comment_col, question_text, allowed_codes, sort_order)
-               VALUES (:q, :opp, :sheet, :row, :qcol, :rcol, :ccol, :text, :codes, :ord)""",
+               VALUES (:b_q, :b_opp, :b_sheet, :b_row, :b_qcol, :b_rcol, :b_ccol,
+                       :b_text, :b_codes, :b_ord)""",
             [
-                {"q": q_id, "opp": opp_id, "sheet": item["sheet"], "row": item["row"],
-                 "qcol": item["qcol"], "rcol": item["rcol"], "ccol": item["ccol"],
-                 "text": item["question"], "codes": json.dumps(item["allowed"]), "ord": i}
+                {
+                    "b_q": q_id,
+                    "b_opp": opp_id,
+                    "b_sheet": item["sheet"],
+                    "b_row": item["row"],
+                    "b_qcol": item["qcol"],
+                    "b_rcol": item["rcol"],
+                    "b_ccol": item["ccol"],
+                    "b_text": item["question"],
+                    "b_codes": json.dumps(item["allowed"]),
+                    "b_ord": i,
+                }
                 for i, item in enumerate(items)
             ],
         )

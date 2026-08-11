@@ -107,24 +107,31 @@ def create(payload: dict, actor: str | None = None) -> int:
     with transaction() as conn:
         cur = conn.cursor()
         out = cur.var(int)
+        # Bind names use b_* — :order / :size are Oracle reserved (ORA-01745).
         cur.execute(
             """INSERT INTO harald_format_profiles
                  (name, agency, page_order, heading_scheme, page_limits, required_forms,
                   font_name, font_size, margin_inches, cover_required, toc_required, notes)
-               VALUES (:name, :agency, :order, :heading, :limits, :forms, :font, :size,
-                       :margin, :cover, :toc, :notes)
-               RETURNING profile_id INTO :out""",
-            {"name": name, "agency": payload.get("agency"), "order": page_order,
-             "heading": json.dumps(payload.get("heading_scheme")
-                                   or {"numbered": True, "style": "decimal"}),
-             "limits": json.dumps(payload.get("page_limits") or {}),
-             "forms": json.dumps(payload.get("required_forms") or []),
-             "font": payload.get("font_name") or "Calibri",
-             "size": payload.get("font_size") or 11,
-             "margin": payload.get("margin_inches") or 1,
-             "cover": "Y" if payload.get("cover_required", True) else "N",
-             "toc": "Y" if payload.get("toc_required", True) else "N",
-             "notes": payload.get("notes"), "out": out},
+               VALUES (:b_name, :b_agency, :b_order, :b_heading, :b_limits, :b_forms,
+                       :b_font, :b_size, :b_margin, :b_cover, :b_toc, :b_notes)
+               RETURNING profile_id INTO :b_out""",
+            {
+                "b_name": name,
+                "b_agency": payload.get("agency"),
+                "b_order": page_order,
+                "b_heading": json.dumps(
+                    payload.get("heading_scheme") or {"numbered": True, "style": "decimal"}
+                ),
+                "b_limits": json.dumps(payload.get("page_limits") or {}),
+                "b_forms": json.dumps(payload.get("required_forms") or []),
+                "b_font": payload.get("font_name") or "Calibri",
+                "b_size": payload.get("font_size") or 11,
+                "b_margin": payload.get("margin_inches") or 1,
+                "b_cover": "Y" if payload.get("cover_required", True) else "N",
+                "b_toc": "Y" if payload.get("toc_required", True) else "N",
+                "b_notes": payload.get("notes"),
+                "b_out": out,
+            },
         )
         return out.getvalue()[0]
 
