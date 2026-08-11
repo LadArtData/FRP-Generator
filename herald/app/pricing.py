@@ -47,10 +47,10 @@ def upload(opp_id: int, filename: str, data: bytes, actor: str,
         cur.execute(
             """INSERT INTO harald_pricing
                  (opp_id, version, filename, file_blob, size_bytes, status, owner, notes)
-               VALUES (:opp, :ver, :fn, :blob, :size, 'draft', :owner, :notes)
-               RETURNING price_id INTO :out""",
-            {"opp": opp_id, "ver": version, "fn": filename, "blob": data,
-             "size": len(data), "owner": actor, "notes": notes, "out": out},
+               VALUES (:b_opp, :b_ver, :b_fn, :b_blob, :b_size, 'draft', :b_owner, :b_notes)
+               RETURNING price_id INTO :b_out""",
+            {"b_opp": opp_id, "b_ver": version, "b_fn": filename, "b_blob": data,
+             "b_size": len(data), "b_owner": actor, "b_notes": notes, "b_out": out},
         )
         price_id = out.getvalue()[0]
 

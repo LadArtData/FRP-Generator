@@ -42,11 +42,14 @@ def store(filename: str, data: bytes, *, opp_id: int | None = None,
 
     with transaction() as conn:
         cur = conn.cursor()
+        # Bind names are prefixed (b_*). Plain names like :size / :state are
+        # Oracle reserved words and raise ORA-01745 with no useful hint.
         cur.execute(
             """SELECT doc_id, version FROM harald_documents
-               WHERE NVL(opp_id, -1) = NVL(:opp, -1) AND filename = :fn AND doc_role = :role
+               WHERE NVL(opp_id, -1) = NVL(:b_opp, -1)
+                 AND filename = :b_fn AND doc_role = :b_role
                ORDER BY version DESC FETCH FIRST 1 ROWS ONLY""",
-            {"opp": opp_id, "fn": filename, "role": doc_role},
+            {"b_opp": opp_id, "b_fn": filename, "b_role": doc_role},
         )
         previous = cur.fetchone()
         version = (previous[1] + 1) if previous else 1
@@ -58,13 +61,14 @@ def store(filename: str, data: bytes, *, opp_id: int | None = None,
                  (opp_id, filename, doc_class, doc_role, client_name, state, outcome,
                   version, effective_date, supersedes_id, file_blob, size_bytes,
                   sha256, doc_text, uploaded_by)
-               VALUES (:opp, :fn, :cls, :role, :client, :state, :outcome, :ver, :eff,
-                       :sup, :blob, :size, :sha, :text, :actor)
-               RETURNING doc_id INTO :out""",
-            {"opp": opp_id, "fn": filename, "cls": resolved_class, "role": doc_role,
-             "client": client_name, "state": state, "outcome": outcome, "ver": version,
-             "eff": effective_date, "sup": supersedes, "blob": data, "size": len(data),
-             "sha": digest, "text": text, "actor": actor, "out": doc_id_var},
+               VALUES (:b_opp, :b_fn, :b_cls, :b_role, :b_client, :b_state, :b_outcome,
+                       :b_ver, :b_eff, :b_sup, :b_blob, :b_size, :b_sha, :b_text, :b_actor)
+               RETURNING doc_id INTO :b_out""",
+            {"b_opp": opp_id, "b_fn": filename, "b_cls": resolved_class,
+             "b_role": doc_role, "b_client": client_name, "b_state": state,
+             "b_outcome": outcome, "b_ver": version, "b_eff": effective_date,
+             "b_sup": supersedes, "b_blob": data, "b_size": len(data),
+             "b_sha": digest, "b_text": text, "b_actor": actor, "b_out": doc_id_var},
         )
         doc_id = doc_id_var.getvalue()[0]
 
@@ -94,26 +98,26 @@ def index_document(doc_id: int, blocks: list[tuple[str, str]] | None = None) -> 
 
     vectors = embeddings.embed_passages([p["text"] for p in pieces])
     rows = [
-        {"doc": doc_id, "mod": piece["module"], "sec": piece["section"], "idx": index,
-         "text": piece["text"], "tok": piece["token_count"],
-         "src": piece["tag_source"], "vec": vector}
+        {"b_doc": doc_id, "b_mod": piece["module"], "b_sec": piece["section"],
+         "b_idx": index, "b_text": piece["text"], "b_tok": piece["token_count"],
+         "b_src": piece["tag_source"], "b_vec": vector}
         for index, (piece, vector) in enumerate(zip(pieces, vectors))
     ]
 
     with transaction() as conn:
         cur = conn.cursor()
-        cur.execute("DELETE FROM harald_chunks WHERE doc_id = :d", {"d": doc_id})
+        cur.execute("DELETE FROM harald_chunks WHERE doc_id = :b_doc", {"b_doc": doc_id})
         cur.executemany(
             """INSERT INTO harald_chunks
                  (doc_id, module_tag, section_tag, chunk_index, chunk_text,
                   token_count, tag_source, embedding)
-               VALUES (:doc, :mod, :sec, :idx, :text, :tok, :src, :vec)""",
+               VALUES (:b_doc, :b_mod, :b_sec, :b_idx, :b_text, :b_tok, :b_src, :b_vec)""",
             rows,
         )
         cur.execute(
             "UPDATE harald_documents SET promoted_to_lib = 'Y', doc_class = 'ITERIA_NARRATIVE' "
-            "WHERE doc_id = :d",
-            {"d": doc_id},
+            "WHERE doc_id = :b_doc",
+            {"b_doc": doc_id},
         )
     return len(rows)
 
