@@ -1,15 +1,15 @@
 """Generation. OCI Generative AI is the only model service.
 
-Every path is grounded: requirement drafting and questionnaire fill look at the
-approved answer library first and the retrieval index second, and each result
-carries the provenance of what it drew from.
+Every path is grounded: approved answer library, won-proposal retrieval, then
+optional Oracle / Iteria site search. Narrative drafts get an auto humanize +
+deterministic voice repair pass so Studio ships award-ready prose, not pass-1 AI.
 """
 from __future__ import annotations
 
 import asyncio
 import logging
 
-from . import answers, classifier, llm, prompts, retrieval
+from . import answers, classifier, llm, prompts, retrieval, site_grounding, voice
 from .config import cfg
 
 log = logging.getLogger("harald.generation")
@@ -51,20 +51,34 @@ def _exemplars(chunks: list[dict]) -> str:
             "[no close match in iteria's approved library. "
             "This is NOT a reason to decline the requirement. "
             "Draft a constructive answer from iteria's standard public-sector "
-            "Oracle Cloud Fusion practice and documented Oracle Fusion capabilities. "
+            "Oracle Cloud Fusion practice, documented Oracle Fusion capabilities, "
+            "and any SITE material below. "
             "Mark only client-specific unknowns as [NEEDS HUMAN: ...]. "
             "Do not choose Not Available / cannot-complete language.]"
         )
+    # Prefer clean voice exemplars so retrieval does not teach buzzword register.
+    voice_bits = voice.pick_voice_exemplars(chunks, n=min(2, len(chunks)))
+    chosen = []
+    if voice_bits:
+        for text in voice_bits:
+            for c in chunks:
+                if (c.get("text") or "") == text and c not in chosen:
+                    chosen.append(c)
+                    break
+    for c in chunks:
+        if c not in chosen:
+            chosen.append(c)
+        if len(chosen) >= 5:
+            break
     return "\n\n---\n\n".join(
         f"[iteria past response {i + 1}: {c['client']} ({c['outcome']}), "
         f"{MODULE_TITLES.get(c['module'], c['module'])} / {c['section']}]\n{c['text']}"
-        for i, c in enumerate(chunks)
+        for i, c in enumerate(chosen)
     )
 
 
-def _grounding(question: str, module: str | None) -> tuple[str, list[dict], dict | None]:
-    """Approved answer library first, retrieval second. Returns the context block,
-    the provenance list, and the library match when one is strong."""
+def _library_grounding(question: str, module: str | None) -> tuple[str, list[dict], dict | None]:
+    """Approved answer library + narrative retrieval (sync)."""
     match = answers.best_match(question, module)
     chunks = retrieval.retrieve(question, module, k=5)
 
@@ -87,22 +101,27 @@ def _grounding(question: str, module: str | None) -> tuple[str, list[dict], dict
     return context, sources, (match if match and match["strong"] else None)
 
 
-async def draft_requirement(req_text: str, module: str, client: str,
-                            state: str | None = None) -> dict:
-    context, sources, strong = _grounding(req_text, module)
-    user = (
-        f"CLIENT: {client}{', ' + state if state else ''}\n"
-        f"MODULE: {MODULE_TITLES.get(module, module)}\n"
-        f"REQUIREMENT (the agency's exact wording):\n{req_text}\n\n"
-        f"ITERIA'S OWN MATERIAL (match this voice, reuse this substance, never copy it verbatim):\n"
-        f"{context}\n\n"
-        "Write iteria's response to this requirement now. One to three tight paragraphs, "
-        "specific to this client."
-    )
-    text = await llm.complete(prompts.DRAFT_SYSTEM, user, cfg.draft_model, max_tokens=1200)
-    if strong:
-        answers.mark_used(strong["ans_id"])
-    return {"draft": text, "sources": sources}
+def _grounding(question: str, module: str | None) -> tuple[str, list[dict], dict | None]:
+    """Sync library-only grounding (tests / callers that cannot await)."""
+    return _library_grounding(question, module)
+
+
+async def build_grounding(question: str, module: str | None = None,
+                          *, include_sites: bool = True
+                          ) -> tuple[str, list[dict], dict | None]:
+    """Library + optional Oracle/Iteria site grounding."""
+    context, sources, strong = _library_grounding(question, module)
+    if include_sites and cfg.site_grounding_enabled:
+        try:
+            site_sources = await site_grounding.search(question, module)
+        except Exception as exc:  # noqa: BLE001
+            log.warning("site grounding failed: %s", exc)
+            site_sources = []
+        if site_sources:
+            site_block = site_grounding.format_context(site_sources)
+            context = f"{context}\n\n---\n\n{site_block}" if context else site_block
+            sources = [*sources, *site_sources]
+    return context, sources, strong
 
 
 async def humanize(draft: str, client: str) -> str:
@@ -113,6 +132,49 @@ async def humanize(draft: str, client: str) -> str:
     )
     return await llm.complete(prompts.HUMANIZE_SYSTEM, user, cfg.polish_model,
                               max_tokens=1400, temperature=0.4)
+
+
+async def polish(draft: str, client: str, source_text: str = "") -> str:
+    """Humanize, then run a deterministic voice repair pass when needed."""
+    text = await humanize(draft, client)
+    findings = voice.score(text, draft=draft, source_text=source_text or draft)
+    brief = voice.repair_brief(findings)
+    if not brief:
+        return text
+    repaired = await llm.complete(
+        prompts.HUMANIZE_SYSTEM,
+        f"{brief}\n\nCLIENT: {client}\n\nPASSAGE:\n{text}",
+        cfg.polish_model,
+        max_tokens=1400,
+        temperature=0.3,
+    )
+    return repaired or text
+
+
+async def draft_requirement(req_text: str, module: str, client: str,
+                            state: str | None = None) -> dict:
+    context, sources, strong = await build_grounding(req_text, module)
+    user = (
+        f"CLIENT: {client}{', ' + state if state else ''}\n"
+        f"MODULE: {MODULE_TITLES.get(module, module)}\n"
+        f"REQUIREMENT (the agency's exact wording):\n{req_text}\n\n"
+        f"GROUNDING MATERIAL (library + site; match voice, reuse substance, never copy verbatim):\n"
+        f"{context}\n\n"
+        "Write iteria's response to this requirement now. One to three tight paragraphs, "
+        "specific to this client. Sound like a senior proposal writer who wins awards — "
+        "concrete, human, no AI cadence."
+    )
+    text = await llm.complete(prompts.DRAFT_SYSTEM, user, cfg.draft_model, max_tokens=1200)
+    if strong:
+        answers.mark_used(strong["ans_id"])
+    final = text
+    if cfg.auto_humanize and text:
+        try:
+            final = await polish(text, client, source_text=context)
+        except Exception as exc:  # noqa: BLE001
+            log.warning("auto polish failed: %s", exc)
+            final = text
+    return {"draft": text, "final": final, "sources": sources}
 
 
 async def shred_requirements(rfp_text: str) -> list[dict]:
@@ -281,17 +343,18 @@ async def answer_question(question: str, module: str | None = None,
     """Answer one questionnaire row. Library miss must still get a constructive
     draft; weak rows are flagged for human review instead of "cannot complete"."""
     codes = allowed_codes or DEFAULT_CODES
-    context, sources, strong = _grounding(question, module)
+    context, sources, strong = await build_grounding(question, module)
     has_chunks = any(s["kind"] == "chunk" for s in sources)
+    has_sites = any(s["kind"] == "site" for s in sources)
     library_miss = not strong and not has_chunks
 
     user = (
         f"QUESTION:\n{question}\n\n"
         f"ALLOWED RESPONSE CODES: {', '.join(codes)}\n\n"
-        f"ITERIA MATERIAL:\n{context}\n\n"
+        f"GROUNDING MATERIAL (library + Oracle/Iteria site):\n{context}\n\n"
         "Answer now as JSON. Remember: a thin library is not a decline. "
-        "Draft constructively from Oracle Fusion / iteria practice and mark "
-        "only true unknowns with [NEEDS HUMAN: ...]."
+        "Draft constructively from Oracle Fusion / iteria practice and any SITE "
+        "snippets, and mark only true unknowns with [NEEDS HUMAN: ...]."
     )
     result = await llm.complete_json(prompts.QA_SYSTEM, user, expect=dict,
                                      model=cfg.draft_model, max_tokens=900)
@@ -321,8 +384,10 @@ async def answer_question(question: str, module: str | None = None,
                 "no approved library exemplar — verify this draft before submission",
             )
             needs_human = True
-        if library_miss:
+        if library_miss and not has_sites:
             confidence = min(confidence, 0.30)
+        elif library_miss and has_sites:
+            confidence = min(confidence, 0.50)
         elif needs_human:
             confidence = min(confidence, 0.45)
 
@@ -337,24 +402,34 @@ async def answer_question(question: str, module: str | None = None,
 
 
 async def chat(question: str) -> dict:
-    context, sources, _ = _grounding(question, None)
-    user = f"QUESTION: {question}\n\nITERIA MATERIAL:\n{context}\n\nAnswer now."
+    context, sources, _ = await build_grounding(question, None)
+    user = (
+        f"QUESTION: {question}\n\n"
+        f"GROUNDING MATERIAL (library + Oracle/Iteria site):\n{context}\n\n"
+        "Answer now."
+    )
     text = await llm.complete(prompts.CHAT_SYSTEM, user, cfg.draft_model, max_tokens=1200)
     return {"answer": text, "sources": sources}
 
 
 async def draft_section(client: str, title: str, module: str | None, brief: str) -> str:
-    context, _, _ = _grounding(f"{title}. {brief}", module)
+    context, _, _ = await build_grounding(f"{title}. {brief}", module)
     user = (
         f"CLIENT: {client}\nSECTION: {title}\n"
         f"MODULE: {MODULE_TITLES.get(module, module) if module else 'general'}\n"
         f"CONTEXT: {brief}\n\n"
-        f"ITERIA'S OWN MATERIAL (match this voice, reuse this substance, never copy verbatim):\n"
+        f"GROUNDING MATERIAL (match this voice, reuse this substance, never copy verbatim):\n"
         f"{context}\n\n"
         "Write this section of iteria's proposal now. Two to four tight paragraphs, "
-        "specific to this client."
+        "specific to this client. Award-quality human voice — no AI cadence."
     )
-    return await llm.complete(prompts.DRAFT_SYSTEM, user, cfg.draft_model, max_tokens=1400)
+    text = await llm.complete(prompts.DRAFT_SYSTEM, user, cfg.draft_model, max_tokens=1400)
+    if cfg.auto_humanize and text:
+        try:
+            return await polish(text, client, source_text=context)
+        except Exception as exc:  # noqa: BLE001
+            log.warning("section polish failed: %s", exc)
+    return text
 
 
 async def draft_many(items: list[dict]) -> list[dict]:

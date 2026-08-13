@@ -317,7 +317,13 @@ def save_draft(req_id: int, draft: str | None, sources: list | None = None,
         cur.execute("SELECT draft_id FROM harald_drafts WHERE req_id = :r", {"r": req_id})
         exists = cur.fetchone()
         if exists:
-            if final is not None:
+            if draft is not None and final is not None:
+                cur.execute(
+                    "UPDATE harald_drafts SET draft_text = :d, final_text = :f, "
+                    "sources_json = :s, updated_at = SYSTIMESTAMP WHERE req_id = :r",
+                    {"d": draft, "f": final, "s": payload, "r": req_id},
+                )
+            elif final is not None:
                 cur.execute(
                     "UPDATE harald_drafts SET final_text = :f, updated_at = SYSTIMESTAMP "
                     "WHERE req_id = :r",
@@ -358,7 +364,12 @@ async def generate_narrative(opp_id: int, actor: str | None = None) -> None:
             for result in await generation.draft_many(pending):
                 if "error" in result:
                     continue
-                save_draft(result["req_id"], result["draft"], result["sources"])
+                save_draft(
+                    result["req_id"],
+                    result.get("draft"),
+                    result.get("sources"),
+                    final=result.get("final"),
+                )
 
         refreshed = get(opp_id)
         blocks: list[str] = []

@@ -19,7 +19,7 @@ from pydantic import BaseModel, Field
 
 from . import (answer_seed, answers, audit, auth, db, documents, embeddings, formats,
                freshness, generation, llm, opportunities, packages, pricing,
-               pricing_matrix, questionnaires, reviews, studio)
+               pricing_matrix, questionnaires, reviews, site_grounding, studio)
 from .config import cfg
 from .errors import HaraldError, ValidationFailed
 
@@ -125,7 +125,10 @@ def health():
                           "model": cfg.embed_model},
                 "draft": {"label": cfg.draft_model_label, "job": "write proposal narrative",
                           "model": cfg.draft_model},
-            }}
+            },
+            "site_grounding": site_grounding.configured(),
+            "auto_humanize": cfg.auto_humanize,
+            }
     if database_ok:
         body["library"] = documents.library_stats()
         body["answers"] = answers.stats()
@@ -296,7 +299,9 @@ async def draft_requirement(req_id: int, user: dict = Depends(contributor)):
     req = opportunities.requirement(req_id)
     result = await generation.draft_requirement(req["req_text"], req["module_tag"],
                                                 req["client"])
-    opportunities.save_draft(req_id, result["draft"], result["sources"])
+    opportunities.save_draft(
+        req_id, result["draft"], result["sources"], final=result.get("final"),
+    )
     return result
 
 

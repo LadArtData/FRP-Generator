@@ -61,6 +61,13 @@ def _float(name: str, default: float) -> float:
         raise ConfigError(f"{name} must be a number, got {raw!r}") from exc
 
 
+def _bool(name: str, default: bool) -> bool:
+    raw = os.getenv(name)
+    if raw is None or raw.strip() == "":
+        return default
+    return raw.strip().lower() in ("1", "true", "yes", "on")
+
+
 class ConfigError(RuntimeError):
     """Raised when configuration is missing or malformed."""
 
@@ -169,6 +176,32 @@ class Config:
     # Retrieval
     top_k: int = field(default_factory=lambda: _int("HARALD_TOP_K", 6))
     strong_match_distance: float = field(default_factory=lambda: _float("HARALD_STRONG_MATCH", 0.35))
+
+    # Site / web grounding (Oracle docs + Iteria; Serper/Tavily optional)
+    site_grounding_enabled: bool = field(
+        default_factory=lambda: _bool("HARALD_SITE_GROUNDING", True))
+    site_grounding_domains: str = field(
+        default_factory=lambda: os.getenv(
+            "HARALD_SITE_DOMAINS",
+            "docs.oracle.com,www.oracle.com,blogs.oracle.com,docs.cloud.oracle.com,"
+            "iteria.us,www.iteria.us",
+        ))
+    site_grounding_max_results: int = field(
+        default_factory=lambda: _int("HARALD_SITE_MAX_RESULTS", 4))
+    site_grounding_max_queries: int = field(
+        default_factory=lambda: _int("HARALD_SITE_MAX_QUERIES", 2))
+    site_grounding_timeout: float = field(
+        default_factory=lambda: _float("HARALD_SITE_TIMEOUT", 12.0))
+    serper_api_key: str = field(
+        default_factory=lambda: os.getenv("HARALD_SERPER_API_KEY")
+        or os.getenv("SERPER_API_KEY", ""))
+    tavily_api_key: str = field(
+        default_factory=lambda: os.getenv("HARALD_TAVILY_API_KEY")
+        or os.getenv("TAVILY_API_KEY", ""))
+
+    # Auto humanize + deterministic voice repair after narrative drafts
+    auto_humanize: bool = field(
+        default_factory=lambda: _bool("HARALD_AUTO_HUMANIZE", True))
 
     # Identity. The database has one shared login, so HARALD holds its own
     # application identity (pick-a-name sign-in). Pricing/final approval are
