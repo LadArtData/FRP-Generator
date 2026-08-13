@@ -28,12 +28,33 @@ MODULE_TITLES = {
 DEFAULT_CODES = ["Standard", "Configuration", "Modification", "Third Party",
                  "Not Available", "Future Release"]
 
+# Codes that mean "we can't / won't" — never pick these just because the library missed.
+_NEGATIVE_CODE_HINTS = (
+    "not available", "unavailable", "n/a", "na", "none", "no",
+    "does not support", "cannot", "can't", "unable", "out of scope",
+)
+
+_CANNOT_DO_HINTS = (
+    "cannot complete", "can't complete", "cannot meet", "can't meet",
+    "cannot support", "can't support", "unable to", "not able to",
+    "do not have the ability", "don't have the ability",
+    "we cannot", "we can't", "iteria cannot", "iteria can't",
+    "no capability", "not supported by iteria",
+)
+
+HUMAN_FLAG = "[NEEDS HUMAN"
+
 
 def _exemplars(chunks: list[dict]) -> str:
     if not chunks:
-        return ("[no close match in iteria's library. Write from iteria's general "
-                "public-sector Oracle Fusion approach and mark any client-specific "
-                "claim in [BRACKETS] for a consultant to supply.]")
+        return (
+            "[no close match in iteria's approved library. "
+            "This is NOT a reason to decline the requirement. "
+            "Draft a constructive answer from iteria's standard public-sector "
+            "Oracle Cloud Fusion practice and documented Oracle Fusion capabilities. "
+            "Mark only client-specific unknowns as [NEEDS HUMAN: ...]. "
+            "Do not choose Not Available / cannot-complete language.]"
+        )
     return "\n\n---\n\n".join(
         f"[iteria past response {i + 1}: {c['client']} ({c['outcome']}), "
         f"{MODULE_TITLES.get(c['module'], c['module'])} / {c['section']}]\n{c['text']}"
@@ -205,7 +226,7 @@ def _match_code(chosen: str, allowed: list[str]) -> str:
     if not allowed:
         return chosen
     if not chosen:
-        return allowed[-1]
+        return _preferred_constructive_code(allowed)
     lowered = chosen.strip().lower()
     for code in allowed:
         if code.strip().lower() == lowered:
@@ -213,45 +234,105 @@ def _match_code(chosen: str, allowed: list[str]) -> str:
     for code in allowed:
         if lowered in code.lower() or code.lower() in lowered:
             return code
-    return allowed[-1]
+    return _preferred_constructive_code(allowed)
+
+
+def _is_negative_code(code: str) -> bool:
+    c = (code or "").strip().lower()
+    if not c:
+        return False
+    if c in {"no", "none", "n/a", "na"}:
+        return True
+    return any(h in c for h in _NEGATIVE_CODE_HINTS)
+
+
+def _preferred_constructive_code(allowed: list[str]) -> str:
+    """Prefer a positive capability code over trailing Not Available defaults."""
+    if not allowed:
+        return "Configuration"
+    ranked = ("standard", "configuration", "config", "yes", "fully", "meets",
+              "compliant", "supported", "modification", "third party", "partner")
+    lowered = [(code, code.strip().lower()) for code in allowed]
+    for hint in ranked:
+        for code, low in lowered:
+            if hint in low and not _is_negative_code(code):
+                return code
+    for code, _ in lowered:
+        if not _is_negative_code(code):
+            return code
+    return allowed[0]
+
+
+def _looks_like_cannot_do(text: str) -> bool:
+    t = (text or "").lower()
+    return any(h in t for h in _CANNOT_DO_HINTS)
+
+
+def _ensure_human_flag(text: str, reason: str) -> str:
+    body = (text or "").strip()
+    if "[NEEDS HUMAN" in body.upper():
+        return body
+    flag = f"[NEEDS HUMAN: {reason}]"
+    return f"{flag} {body}".strip() if body else flag
 
 
 async def answer_question(question: str, module: str | None = None,
                           allowed_codes: list[str] | None = None) -> dict:
-    """Answer one questionnaire row. Confidence reflects how well iteria's own
-    material actually supports the answer, so weak rows route to a human."""
+    """Answer one questionnaire row. Library miss must still get a constructive
+    draft; weak rows are flagged for human review instead of "cannot complete"."""
     codes = allowed_codes or DEFAULT_CODES
     context, sources, strong = _grounding(question, module)
     has_chunks = any(s["kind"] == "chunk" for s in sources)
+    library_miss = not strong and not has_chunks
 
     user = (
         f"QUESTION:\n{question}\n\n"
         f"ALLOWED RESPONSE CODES: {', '.join(codes)}\n\n"
         f"ITERIA MATERIAL:\n{context}\n\n"
-        "Answer now as JSON."
+        "Answer now as JSON. Remember: a thin library is not a decline. "
+        "Draft constructively from Oracle Fusion / iteria practice and mark "
+        "only true unknowns with [NEEDS HUMAN: ...]."
     )
     result = await llm.complete_json(prompts.QA_SYSTEM, user, expect=dict,
                                      model=cfg.draft_model, max_tokens=900)
 
     code = _match_code(str(result.get("response_code", "")), codes)
+    text = str(result.get("response_text", "")).strip()
     try:
         confidence = float(result.get("confidence", 0.4))
     except (TypeError, ValueError):
         confidence = 0.4
     confidence = max(0.0, min(1.0, confidence))
+    needs_human = bool(result.get("needs_human")) or (HUMAN_FLAG in text)
 
     if strong:
         confidence = max(confidence, 0.82)
         answers.mark_used(strong["ans_id"])
-    if not strong and not has_chunks:
-        confidence = min(confidence, 0.30)
+
+    # Library miss / weak grounding: never leave a "we can't do it" answer.
+    if library_miss or _looks_like_cannot_do(text) or (
+        not strong and _is_negative_code(code)
+    ):
+        if _is_negative_code(code) and (library_miss or _looks_like_cannot_do(text)):
+            code = _preferred_constructive_code(codes)
+        if library_miss or _looks_like_cannot_do(text) or needs_human:
+            text = _ensure_human_flag(
+                text,
+                "no approved library exemplar — verify this draft before submission",
+            )
+            needs_human = True
+        if library_miss:
+            confidence = min(confidence, 0.30)
+        elif needs_human:
+            confidence = min(confidence, 0.45)
 
     return {
         "response_code": code,
-        "response_text": str(result.get("response_text", "")).strip(),
+        "response_text": text,
         "confidence": round(confidence, 2),
         "source_answer_id": strong["ans_id"] if strong else None,
         "sources": sources,
+        "needs_human": needs_human,
     }
 
 

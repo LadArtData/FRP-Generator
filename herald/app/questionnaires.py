@@ -359,8 +359,18 @@ async def fill(q_id: int, actor: str | None = None) -> None:
                 )
             except Exception as exc:
                 log.warning("fill failed qi_id=%s: %s", item["qi_id"], exc)
-                result = {"response_code": "", "response_text": "",
-                          "confidence": 0.0, "source_answer_id": None}
+                # Never leave a blank "can't do it" cell — flag for a human.
+                codes = item.get("allowed_codes") or []
+                result = {
+                    "response_code": generation._preferred_constructive_code(codes)
+                    if codes else "",
+                    "response_text": (
+                        "[NEEDS HUMAN: fill failed automatically — "
+                        f"{type(exc).__name__}. Complete this row manually.]"
+                    ),
+                    "confidence": 0.0,
+                    "source_answer_id": None,
+                }
             _persist_fill(item["qi_id"], result)
 
         await asyncio.gather(*(answer_one(item) for item in pending))

@@ -27,7 +27,7 @@ You are running the humanize pass on an existing draft. Keep every fact, number,
 
 CHAT_SYSTEM = VOICE_RULES + """
 
-You are HARALD's assistant. Answer using iteria's own past proposal responses and approved answers, which are supplied to you as context. Ground the answer in that material. If the library does not cover the question, say so plainly rather than inventing an answer. Be direct and useful."""
+You are HAROLD's assistant. Prefer iteria's own past proposal responses and approved answers when they are supplied as context. When the library does not cover the question, still answer from iteria's standard public-sector Oracle Cloud Fusion practice and widely documented Oracle Fusion capabilities. Never say iteria cannot meet a requirement solely because the library is thin. If a client-specific fact is missing, mark that fact in [NEEDS HUMAN: ...] and keep a constructive draft. Be direct and useful."""
 
 RTM_SYSTEM = """You build a requirements traceability matrix from a government ERP solicitation.
 
@@ -48,18 +48,27 @@ rfp_number, due_date, pain_points, required_modules (an array of module names).
 
 Use an empty string, or an empty array, when a field is not stated in the document. Do not invent values."""
 
-QA_SYSTEM = """You answer a single vendor questionnaire question about iteria's Oracle Cloud Fusion ERP capability for a public-sector client.
+QA_SYSTEM = """You answer a single vendor questionnaire / technical matrix row about iteria's Oracle Cloud Fusion ERP capability for a public-sector client.
 
-You are given the allowed response codes for this workbook and iteria's own approved material. Choose EXACTLY ONE response code from the allowed list. Write a short, concrete vendor response in iteria's voice.
+You may receive approved library excerpts and past proposal text. Prefer that material when it is present. When it is missing or thin, you MUST still draft a constructive vendor answer using:
+1. iteria's standard public-sector Oracle Cloud Fusion implementation approach, and
+2. widely documented Oracle Fusion / Oracle Cloud ERP product capabilities (modules, configuration, security, integrations, reporting, and typical public-sector patterns).
 
-Ground the answer only in the material provided. If the material does not support a confident answer, choose the most honest code and lower your confidence accordingly. Never claim a capability the material does not support.
+Choose EXACTLY ONE response code from the allowed list. Write a short, concrete vendor response in iteria's voice.
 
-No em dashes. No buzzwords. No rule-of-three.
+Hard rules:
+- NEVER answer that iteria cannot complete, cannot meet, cannot support, or cannot respond to the requirement solely because the library has no matching exemplar.
+- Do NOT choose codes such as "Not Available", "N/A", "Unavailable", "No", or similar just because the library is empty. Those codes are only for a true product or scope limitation that you can state specifically.
+- Prefer Standard or Configuration (or the closest positive code in the allowed list) when Oracle Fusion can address the need through standard functionality or configuration.
+- If a client-specific fact, volume, interface name, or commitment is unknown, keep a constructive draft and wrap ONLY the missing fact in [NEEDS HUMAN: ...]. Lower confidence so a human reviews it.
+- Never invent fake client metrics, fake go-live dates, or fake certifications. Mark unknowns instead.
+- No em dashes. No buzzwords. No rule-of-three.
 
 Return ONLY a JSON object:
 {"response_code": one of the allowed codes exactly as written,
  "response_text": the vendor answer,
- "confidence": a number between 0 and 1}"""
+ "confidence": a number between 0 and 1,
+ "needs_human": true when any [NEEDS HUMAN: ...] marker is present or library support was weak, else false}"""
 
 RELEASE_IMPACT_SYSTEM = """You assess whether a software release note affects an existing standing answer in a proposal answer library.
 

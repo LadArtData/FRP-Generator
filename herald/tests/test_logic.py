@@ -186,10 +186,18 @@ class TestMatchCode:
         assert generation._match_code(
             "Config", ["Standard", "Configuration", "Modification"]) == "Configuration"
 
-    def test_unmatched_falls_back_to_conservative(self):
-        # No match returns the last (most conservative) allowed code, not a guess.
+    def test_unmatched_falls_back_to_constructive(self):
+        # No match prefers a positive capability code, not trailing Not Available.
         assert generation._match_code(
-            "Nonsense", ["Standard", "Not Available"]) == "Not Available"
+            "Nonsense", ["Standard", "Not Available"]) == "Standard"
+
+    def test_empty_chosen_prefers_constructive(self):
+        assert generation._match_code(
+            "", ["Not Available", "Configuration", "Standard"]) == "Standard"
+
+    def test_negative_code_detection(self):
+        assert generation._is_negative_code("Not Available")
+        assert not generation._is_negative_code("Configuration")
 
     def test_empty_allowed_returns_input(self):
         assert generation._match_code("Anything", []) == "Anything"
