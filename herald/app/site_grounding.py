@@ -16,6 +16,7 @@ from urllib.parse import urlparse
 import httpx
 
 from .config import cfg
+from .engagement import EngagementProfile
 
 log = logging.getLogger("harald.site_grounding")
 
@@ -73,7 +74,8 @@ def _module_hint(module: str | None) -> str:
     return titles.get((module or "").upper(), "Oracle Fusion Cloud ERP")
 
 
-def build_queries(question: str, module: str | None = None) -> list[str]:
+def build_queries(question: str, module: str | None = None,
+                  profile: EngagementProfile | None = None) -> list[str]:
     q = _WS_RE.sub(" ", (question or "").strip())
     if len(q) > 220:
         q = q[:220].rsplit(" ", 1)[0]
@@ -81,8 +83,22 @@ def build_queries(question: str, module: str | None = None) -> list[str]:
     queries = [
         f"{product} {q}",
         f"site:docs.oracle.com {product} {q[:140]}",
-        f"site:iteria.us Oracle Fusion {q[:120]}",
+        f"site:iteria.us iteria consulting {q[:120]}",
     ]
+    kind = (profile.kind if profile else "")
+    if kind == "ai_enablement":
+        queries.extend([
+            f"site:iteria.us AI enablement enterprise adoption {q[:100]}",
+            f"Oracle Cloud AI embedded Fusion {q[:120]}",
+            f"enterprise AI governance healthcare HIPAA {q[:100]}",
+        ])
+    elif kind in ("erp_modernization", "mixed"):
+        queries.extend([
+            f"site:iteria.us Oracle Fusion implementation {q[:100]}",
+            f"site:docs.oracle.com {product} public sector {q[:100]}",
+        ])
+    else:
+        queries.append(f"site:iteria.us public sector consulting {q[:100]}")
     # Deduplicate while preserving order.
     seen: set[str] = set()
     out: list[str] = []
@@ -92,7 +108,7 @@ def build_queries(question: str, module: str | None = None) -> list[str]:
             continue
         seen.add(key)
         out.append(item)
-    return out[: cfg.site_grounding_max_queries]
+    return out
 
 
 async def _serper_search(client: httpx.AsyncClient, query: str) -> list[dict]:
@@ -225,18 +241,21 @@ async def _fetch_snippet(client: httpx.AsyncClient, hit: dict) -> dict:
     return hit
 
 
-async def search(question: str, module: str | None = None) -> list[dict]:
+async def search(question: str, module: str | None = None,
+                 profile: EngagementProfile | None = None,
+                 *, max_queries: int | None = None) -> list[dict]:
     """Return grounded source dicts: title, url, snippet, provider, kind=site."""
     if not cfg.site_grounding_enabled:
         return []
     if not (question or "").strip():
         return []
 
+    query_limit = max_queries or cfg.site_grounding_max_queries
     collected: list[dict] = []
     seen_urls: set[str] = set()
 
     async with httpx.AsyncClient() as client:
-        for query in build_queries(question, module):
+        for query in build_queries(question, module, profile)[:query_limit]:
             batches: list[list[dict]] = []
             if cfg.serper_api_key:
                 batches.append(await _serper_search(client, query))

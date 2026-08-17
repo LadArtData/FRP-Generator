@@ -9,7 +9,8 @@ from __future__ import annotations
 import asyncio
 import logging
 
-from . import answers, classifier, llm, prompts, retrieval, site_grounding, voice
+from . import (answers, classifier, engagement, iteria_capabilities, llm, prompts,
+               retrieval, site_grounding, voice)
 from .config import cfg
 
 log = logging.getLogger("harald.generation")
@@ -107,20 +108,43 @@ def _grounding(question: str, module: str | None) -> tuple[str, list[dict], dict
 
 
 async def build_grounding(question: str, module: str | None = None,
-                          *, include_sites: bool = True
+                          *, include_sites: bool = True,
+                          rfp_text: str = "",
+                          parsed_fields: dict | None = None,
                           ) -> tuple[str, list[dict], dict | None]:
-    """Library + optional Oracle/Iteria site grounding."""
-    context, sources, strong = _library_grounding(question, module)
+    """Iteria capability baseline + library + Oracle/Iteria site research."""
+    profile = engagement.classify_opportunity(parsed_fields, rfp_text or question)
+    capability = iteria_capabilities.context_for(profile)
+
+    library_context, sources, strong = _library_grounding(question, module)
+    has_chunks = any(s.get("kind") == "chunk" for s in sources)
+    library_thin = not strong and not has_chunks
+
+    parts = [capability]
+    if library_context:
+        parts.append(library_context)
+    context = "\n\n---\n\n".join(parts)
+
     if include_sites and cfg.site_grounding_enabled:
+        max_queries = cfg.site_grounding_max_queries
+        if library_thin:
+            max_queries = max(max_queries, 4)
         try:
-            site_sources = await site_grounding.search(question, module)
+            site_sources = await site_grounding.search(
+                question, module, profile=profile, max_queries=max_queries,
+            )
         except Exception as exc:  # noqa: BLE001
             log.warning("site grounding failed: %s", exc)
             site_sources = []
         if site_sources:
             site_block = site_grounding.format_context(site_sources)
-            context = f"{context}\n\n---\n\n{site_block}" if context else site_block
+            context = f"{context}\n\n---\n\n{site_block}"
             sources = [*sources, *site_sources]
+        elif library_thin:
+            log.info(
+                "library thin for module=%s profile=%s — no site hits",
+                module, profile.kind,
+            )
     return context, sources, strong
 
 
@@ -152,8 +176,12 @@ async def polish(draft: str, client: str, source_text: str = "") -> str:
 
 
 async def draft_requirement(req_text: str, module: str, client: str,
-                            state: str | None = None) -> dict:
-    context, sources, strong = await build_grounding(req_text, module)
+                            state: str | None = None, *,
+                            rfp_text: str = "", parsed_fields: dict | None = None,
+                            ) -> dict:
+    context, sources, strong = await build_grounding(
+        req_text, module, rfp_text=rfp_text, parsed_fields=parsed_fields,
+    )
     user = (
         f"CLIENT: {client}{', ' + state if state else ''}\n"
         f"MODULE: {MODULE_TITLES.get(module, module)}\n"
@@ -339,11 +367,15 @@ def _ensure_human_flag(text: str, reason: str) -> str:
 
 
 async def answer_question(question: str, module: str | None = None,
-                          allowed_codes: list[str] | None = None) -> dict:
+                          allowed_codes: list[str] | None = None, *,
+                          rfp_text: str = "", parsed_fields: dict | None = None,
+                          ) -> dict:
     """Answer one questionnaire row. Library miss must still get a constructive
     draft; weak rows are flagged for human review instead of "cannot complete"."""
     codes = allowed_codes or DEFAULT_CODES
-    context, sources, strong = await build_grounding(question, module)
+    context, sources, strong = await build_grounding(
+        question, module, rfp_text=rfp_text, parsed_fields=parsed_fields,
+    )
     has_chunks = any(s["kind"] == "chunk" for s in sources)
     has_sites = any(s["kind"] == "site" for s in sources)
     library_miss = not strong and not has_chunks
@@ -412,8 +444,12 @@ async def chat(question: str) -> dict:
     return {"answer": text, "sources": sources}
 
 
-async def draft_section(client: str, title: str, module: str | None, brief: str) -> str:
-    context, _, _ = await build_grounding(f"{title}. {brief}", module)
+async def draft_section(client: str, title: str, module: str | None, brief: str,
+                        *, rfp_text: str = "", parsed_fields: dict | None = None,
+                        ) -> str:
+    context, _, _ = await build_grounding(
+        f"{title}. {brief}", module, rfp_text=rfp_text, parsed_fields=parsed_fields,
+    )
     user = (
         f"CLIENT: {client}\nSECTION: {title}\n"
         f"MODULE: {MODULE_TITLES.get(module, module) if module else 'general'}\n"
@@ -440,6 +476,8 @@ async def draft_many(items: list[dict]) -> list[dict]:
             result = await draft_requirement(
                 item["req_text"], item.get("module_tag", "GENERAL"),
                 item["client"], item.get("state"),
+                rfp_text=item.get("rfp_text") or "",
+                parsed_fields=item.get("parsed_fields"),
             )
             return {"req_id": item["req_id"], **result}
         except Exception as exc:

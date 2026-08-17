@@ -190,6 +190,28 @@ def get(opp_id: int) -> dict:
     return opp
 
 
+def grounding_context(opp: dict) -> tuple[str, dict]:
+    """RFP text + parsed fields for enterprise grounding on matrix and narrative fills."""
+    parsed_fields: dict = {}
+    try:
+        extracted = json.loads(opp.get("extracted_json") or "null") or {}
+        if isinstance(extracted, dict):
+            parsed_fields = {
+                **(extracted.get("parsed_fields") or {}),
+                **(extracted.get("studio_form") or {}),
+            }
+    except (json.JSONDecodeError, TypeError):
+        parsed_fields = {}
+
+    rfp_text = ""
+    if opp.get("rfp_doc_id"):
+        try:
+            rfp_text = documents.get_text(opp["rfp_doc_id"])
+        except Exception:
+            log.debug("grounding_context: no rfp text for opp=%s", opp.get("opp_id"))
+    return rfp_text, parsed_fields
+
+
 def compliance(opp_id: int) -> dict:
     with cursor() as cur:
         cur.execute(
@@ -354,9 +376,11 @@ async def generate_narrative(opp_id: int, actor: str | None = None) -> None:
     try:
         set_generation_state(opp_id, "generating")
         opp = get(opp_id)
+        rfp_text, parsed_fields = grounding_context(opp)
         pending = [
             {"req_id": r["req_id"], "req_text": r["req_text"],
-             "module_tag": r["module"], "client": opp["client_name"], "state": None}
+             "module_tag": r["module"], "client": opp["client_name"], "state": None,
+             "rfp_text": rfp_text, "parsed_fields": parsed_fields}
             for r in opp["requirements"]
             if r["response_type"] == "narrative" and not (r["draft"] or "").strip()
         ]

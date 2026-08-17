@@ -18,8 +18,8 @@ import zipfile
 from docx import Document
 from docx.shared import Pt
 
-from . import (audit, documents, generation, opportunities, packages,
-               pricing_matrix, questionnaires)
+from . import (audit, documents, engagement, generation, iteria_capabilities,
+               opportunities, packages, pricing_matrix, questionnaires)
 from .db import cursor, transaction
 from .errors import NotFound, ValidationFailed
 
@@ -154,19 +154,13 @@ async def generate(opp_id: int, actor: str) -> None:
 
 
 async def _draft_sections(opp_id: int, actor: str, opp: dict) -> None:
-    form: dict = {}
-    try:
-        extracted = json.loads(opp["extracted_json"] or "null") or {}
-        form = {**(extracted.get("parsed_fields") or {}),
-                **(extracted.get("studio_form") or {})}
-    except (json.JSONDecodeError, TypeError):
-        form = {}
-
+    rfp_text, form = opportunities.grounding_context(opp)
+    profile = engagement.classify_opportunity(form, rfp_text)
     client = opp["client_name"] or "the client"
     pain = form.get("pain_points")
     if isinstance(pain, list):
         pain = ", ".join(str(p) for p in pain)
-    brief_parts = []
+    brief_parts = [f"engagement profile {profile.label}"]
     for key, label, value in (
         ("industry", "industry", form.get("industry")),
         ("legacy_systems", "legacy systems", form.get("legacy_systems")),
@@ -176,20 +170,15 @@ async def _draft_sections(opp_id: int, actor: str, opp: dict) -> None:
     ):
         if value:
             brief_parts.append(f"{label} {value}")
-    brief = ", ".join(brief_parts) or (
-        "public-sector Oracle Cloud Fusion ERP modernization"
-    )
+    brief = ", ".join(brief_parts)
 
-    modules = _modules_from(form)
-    plan: list[tuple[str, str | None]] = [("Executive Summary", None)]
-    plan += [(generation.MODULE_TITLES[m], m) for m in modules]
-    plan += [("Implementation Approach", None),
-             ("Project Management and Governance", None),
-             ("Support and Managed Services", "TECH")]
-
+    plan = iteria_capabilities.section_plan(profile)
     blocks: list[str] = []
     for title, module in plan:
-        body = await generation.draft_section(client, title, module, brief)
+        body = await generation.draft_section(
+            client, title, module, brief,
+            rfp_text=rfp_text, parsed_fields=form,
+        )
         blocks.extend([title.upper(), "", body.strip(), ""])
 
     opportunities.update(opp_id, {"draft_text": "\n".join(blocks).strip()}, actor)
@@ -238,7 +227,7 @@ _MODULE_ALIASES = {
 }
 
 
-def _modules_from(form: dict) -> list[str]:
+def _modules_from(form: dict, profile=None) -> list[str]:
     raw = form.get("proposed_modules") or form.get("required_modules")
     if isinstance(raw, str):
         raw = [part for part in raw.replace(";", ",").split(",")]
@@ -255,7 +244,11 @@ def _modules_from(form: dict) -> list[str]:
             resolved.append(_MODULE_ALIASES[key.lower()])
 
     ordered = list(dict.fromkeys(resolved))
-    return ordered or ["FIN", "HCM", "PAYROLL", "PROC", "TECH"]
+    if ordered:
+        return ordered
+    if profile is not None:
+        return engagement.default_modules(profile)
+    return ["FIN", "HCM", "PAYROLL", "PROC", "TECH"]
 
 
 def _safe_filename(name: str | None) -> str:

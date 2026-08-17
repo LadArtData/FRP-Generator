@@ -21,7 +21,7 @@ from openpyxl.utils import get_column_letter
 from openpyxl.utils.cell import range_boundaries
 from openpyxl.worksheet.worksheet import Worksheet
 
-from . import audit, classifier, documents, generation
+from . import audit, classifier, documents, generation, opportunities
 from .db import clob, cursor, transaction
 from .errors import NotFound, ValidationFailed
 
@@ -350,12 +350,21 @@ async def fill(q_id: int, actor: str | None = None) -> None:
         set_status(q_id, "filling")
         questionnaire = get(q_id)
         pending = [i for i in questionnaire["items"] if i["status"] != "approved"]
+        rfp_text, parsed_fields = "", {}
+        if questionnaire.get("opp_id"):
+            try:
+                rfp_text, parsed_fields = opportunities.grounding_context(
+                    opportunities.get(questionnaire["opp_id"]),
+                )
+            except Exception:
+                log.debug("fill: no opp grounding for q_id=%s", q_id)
 
         async def answer_one(item: dict) -> None:
             module = classifier.module_of(item["question"])
             try:
                 result = await generation.answer_question(
-                    item["question"], module, item["allowed_codes"] or None
+                    item["question"], module, item["allowed_codes"] or None,
+                    rfp_text=rfp_text, parsed_fields=parsed_fields,
                 )
             except Exception as exc:
                 log.warning("fill failed qi_id=%s: %s", item["qi_id"], exc)
