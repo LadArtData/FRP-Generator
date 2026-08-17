@@ -12,6 +12,7 @@ that preserves the DOCX layout rather than re-rendering an approximation of it.
 """
 from __future__ import annotations
 
+import asyncio
 import io
 import json
 import logging
@@ -174,7 +175,10 @@ async def assemble(opp_id: int, actor: str | None = None) -> dict:
             ],
         )
 
-    render(package_id)
+    # render() shells out to LibreOffice with a 180 s timeout. Called directly
+    # from an async def it runs ON the event loop, so one package assembly
+    # freezes every other request in the process — health checks included.
+    await asyncio.to_thread(render, package_id)
     audit.record(actor, "package.assemble", "package", package_id,
                  {"opp_id": opp_id, "version": version, "sections": len(sections)})
     log.info("assembled package_id=%s opp=%s version=%s sections=%s",
@@ -527,12 +531,16 @@ def download(package_id: int, kind: str = "docx") -> tuple[bytes, str, str]:
             {"p": package_id},
         )
         row = cur.fetchone()
-    if not row or row[0] is None:
+        # BLOB locator: read before the connection returns to the pool, the way
+        # documents.get_blob and pricing.download already do.
+        blob = None
+        if row and row[0] is not None:
+            blob = row[0].read() if hasattr(row[0], "read") else row[0]
+    if not row or blob is None:
         raise NotFound(
             f"This package has no {kind.upper()}. Re-assemble it, or check whether PDF "
             f"conversion is available in the container."
         )
-    blob = row[0].read() if hasattr(row[0], "read") else row[0]
     filename = row[1] or f"package_{package_id}.docx"
     if kind == "pdf":
         filename = os.path.splitext(filename)[0] + ".pdf"

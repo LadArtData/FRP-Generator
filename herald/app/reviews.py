@@ -86,10 +86,11 @@ def get(review_id: int) -> dict:
             {"r": review_id},
         )
         row = cur.fetchone()
+        comments = clob(row[5]) if row else ""
     if not row:
         raise NotFound(f"Review {review_id} not found.")
     return {"review_id": row[0], "package_id": row[1], "gate": row[2], "reviewer": row[3],
-            "status": row[4], "comments": clob(row[5]),
+            "status": row[4], "comments": comments,
             "created_at": row[6].isoformat() if row[6] else None,
             "decided_at": row[7].isoformat() if row[7] else None}
 

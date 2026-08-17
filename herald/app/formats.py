@@ -56,14 +56,21 @@ def get(profile_id: int) -> dict:
             {"p": profile_id},
         )
         row = cur.fetchone()
+        # Four JSON CLOBs. _json_field reads the locator, so it must run while
+        # the connection is still checked out.
+        if row:
+            page_order = _json_field(row[3], [])
+            heading_scheme = _json_field(row[4], {"numbered": True, "style": "decimal"})
+            page_limits = _json_field(row[5], {})
+            required_forms = _json_field(row[6], [])
     if not row:
         raise NotFound(f"Format profile {profile_id} not found.")
     return {
         "profile_id": row[0], "name": row[1], "agency": row[2],
-        "page_order": _json_field(row[3], []),
-        "heading_scheme": _json_field(row[4], {"numbered": True, "style": "decimal"}),
-        "page_limits": _json_field(row[5], {}),
-        "required_forms": _json_field(row[6], []),
+        "page_order": page_order,
+        "heading_scheme": heading_scheme,
+        "page_limits": page_limits,
+        "required_forms": required_forms,
         "font_name": row[7] or "Calibri", "font_size": row[8] or 11,
         "margin_inches": row[9] or 1, "cover_required": row[10] or "Y",
         "toc_required": row[11] or "Y", "notes": row[12],
@@ -98,6 +105,23 @@ def _validate_page_order(page_order) -> str:
     return json.dumps(page_order)
 
 
+def _validate_mapping(value, field: str) -> dict:
+    """A JSON column read back with .get() must be a mapping.
+
+    packages.build_docx does profile["heading_scheme"].get("numbered"), so a
+    PATCH that stores a list here is accepted with a 200 and then breaks every
+    later assemble with an AttributeError that names neither the profile nor the
+    field. Rejecting it at the door keeps the bad value out of the database.
+    """
+    if value is None:
+        return {}
+    if not isinstance(value, dict):
+        raise ValidationFailed(
+            f"{field} must be a JSON object, not {type(value).__name__}."
+        )
+    return value
+
+
 def create(payload: dict, actor: str | None = None) -> int:
     name = (payload.get("name") or "").strip()
     if not name:
@@ -120,9 +144,11 @@ def create(payload: dict, actor: str | None = None) -> int:
                 "b_agency": payload.get("agency"),
                 "b_order": page_order,
                 "b_heading": json.dumps(
-                    payload.get("heading_scheme") or {"numbered": True, "style": "decimal"}
+                    _validate_mapping(payload.get("heading_scheme"), "heading_scheme")
+                    or {"numbered": True, "style": "decimal"}
                 ),
-                "b_limits": json.dumps(payload.get("page_limits") or {}),
+                "b_limits": json.dumps(
+                    _validate_mapping(payload.get("page_limits"), "page_limits")),
                 "b_forms": json.dumps(payload.get("required_forms") or []),
                 "b_font": payload.get("font_name") or "Calibri",
                 "b_size": payload.get("font_size") or 11,
@@ -144,9 +170,11 @@ def update(profile_id: int, payload: dict) -> None:
     if "page_order" in payload:
         columns["page_order"] = _validate_page_order(payload["page_order"])
     if "heading_scheme" in payload:
-        columns["heading_scheme"] = json.dumps(payload["heading_scheme"])
+        columns["heading_scheme"] = json.dumps(
+            _validate_mapping(payload["heading_scheme"], "heading_scheme"))
     if "page_limits" in payload:
-        columns["page_limits"] = json.dumps(payload["page_limits"])
+        columns["page_limits"] = json.dumps(
+            _validate_mapping(payload["page_limits"], "page_limits"))
     if "required_forms" in payload:
         columns["required_forms"] = json.dumps(payload["required_forms"])
     if "cover_required" in payload:
@@ -169,7 +197,19 @@ def update(profile_id: int, payload: dict) -> None:
 
 
 def clone(profile_id: int, name: str, agency: str | None = None) -> int:
+    """Copy a profile under a new name.
+
+    get() returns cover_required / toc_required as the database's 'Y'/'N'
+    strings; create() expects booleans and does `"Y" if payload.get(...) else "N"`.
+    'N' is a truthy string, so a profile that forbids a cover page used to clone
+    into one that requires it — a page-limit compliance failure on submission.
+    """
     source = get(profile_id)
-    source.update({"name": name, "agency": agency or source["agency"]})
+    source.update({
+        "name": name,
+        "agency": agency or source["agency"],
+        "cover_required": source.get("cover_required") == "Y",
+        "toc_required": source.get("toc_required") == "Y",
+    })
     source.pop("profile_id")
     return create(source)

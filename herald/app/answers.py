@@ -118,9 +118,11 @@ def get(ans_id: int) -> dict:
             {"a": ans_id},
         )
         row = cur.fetchone()
+        # CLOB locator: read inside the connection's lifetime.
+        answer_text = clob(row[2]) if row else ""
     if not row:
         raise NotFound(f"Answer {ans_id} not found.")
-    return {"ans_id": row[0], "question_canonical": row[1], "answer_text": clob(row[2]),
+    return {"ans_id": row[0], "question_canonical": row[1], "answer_text": answer_text,
             "module_tag": row[3], "tags": row[4], "owner_sme": row[5], "status": row[6],
             "effective_date": row[7].strftime("%Y-%m-%d") if row[7] else None,
             "review_due": row[8].strftime("%Y-%m-%d") if row[8] else None,
@@ -197,9 +199,10 @@ def best_match(question: str, module: str | None = None) -> dict | None:
     with cursor() as cur:
         cur.execute(sql, {"qvec": vector, "module": module.upper() if module else None})
         row = cur.fetchone()
+        answer_text = clob(row[2]) if row else ""
     if not row:
         return None
-    return {"ans_id": row[0], "question_canonical": row[1], "answer_text": clob(row[2]),
+    return {"ans_id": row[0], "question_canonical": row[1], "answer_text": answer_text,
             "module_tag": row[3], "score": round(float(row[4]), 4),
             "strong": float(row[4]) <= cfg.strong_match_distance}
 

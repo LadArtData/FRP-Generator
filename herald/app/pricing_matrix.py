@@ -11,6 +11,8 @@ import logging
 import statistics
 from collections import defaultdict
 
+import oracledb
+
 from . import audit, engagement, opportunities
 from .config import cfg
 from .db import clob, cursor, transaction
@@ -80,26 +82,26 @@ AI_ENABLEMENT_LINES = [
 ]
 
 
-def _table_exists() -> bool:
-    schema = cfg.app_schema.upper()
-    with cursor() as cur:
-        cur.execute(
-            """SELECT COUNT(*) FROM all_tables
-               WHERE owner = :owner AND table_name = 'HARALD_PRICING_MATRIX'""",
-            {"owner": schema},
-        )
-        return int(cur.fetchone()[0]) > 0
+_ORA_NAME_ALREADY_USED = 955
+
+# DDL is a startup concern, not a per-request one. Once the objects are known to
+# be in place this process stops issuing CREATE statements entirely.
+_table_ready = False
 
 
-def ensure_table() -> None:
-    """Create pricing matrix table if missing. Table may live in ITERIA_AI while
-    the pool connects as ADMIN — user_tables would miss it and ORA-00955 follows."""
-    if _table_exists():
-        return
-    try:
-        with transaction() as conn:
-            conn.cursor().execute(
-                """CREATE TABLE harald_pricing_matrix (
+def _ddl_statements(schema: str) -> list[tuple[str, str]]:
+    """(object name, statement) pairs, each schema-qualified.
+
+    Qualifying every name is the point. The previous version issued unqualified
+    DDL, so the create target was CURRENT_SCHEMA while the existence check
+    looked at ``cfg.app_schema``. Any drift between those two — a table created
+    by hand as ADMIN, a session whose callback had not run — made the check
+    permanently false and the create permanently collide, which is an ORA-00955
+    on every single request forever.
+    """
+    table = f"{schema}.harald_pricing_matrix"
+    return [
+        (table, f"""CREATE TABLE {table} (
                      matrix_id       NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
                      opp_id          NUMBER NOT NULL,
                      price_id        NUMBER,
@@ -115,19 +117,50 @@ def ensure_table() -> None:
                      locked          CHAR(1) DEFAULT 'N' NOT NULL,
                      owner           VARCHAR2(80),
                      created_at      TIMESTAMP DEFAULT SYSTIMESTAMP,
-                     updated_at      TIMESTAMP DEFAULT SYSTIMESTAMP
-                   )"""
-            )
-            conn.cursor().execute(
-                "CREATE INDEX harald_pmat_opp_idx ON harald_pricing_matrix(opp_id, updated_at DESC)"
-            )
-        log.info("created harald_pricing_matrix")
-    except Exception as exc:
-        err = exc.args[0] if exc.args else None
-        if getattr(err, "code", None) == 955:
-            log.info("harald_pricing_matrix already exists (ORA-00955)")
-            return
-        raise
+                     updated_at      TIMESTAMP DEFAULT SYSTIMESTAMP,
+                     CONSTRAINT harald_pmat_status_ck CHECK (status IN
+                       ('draft','suggested','reviewed','approved')),
+                     CONSTRAINT harald_pmat_locked_ck CHECK (locked IN ('Y','N'))
+                   )"""),
+        (f"{schema}.harald_pmat_opp_idx",
+         f"CREATE INDEX {schema}.harald_pmat_opp_idx "
+         f"ON {table}(opp_id, updated_at DESC)"),
+        # suggest() filters on status and orders by updated_at; without this the
+        # peer scan is a full table scan.
+        (f"{schema}.harald_pmat_status_idx",
+         f"CREATE INDEX {schema}.harald_pmat_status_idx "
+         f"ON {table}(status, industry)"),
+    ]
+
+
+def ensure_table() -> None:
+    """Create the pricing matrix table and its indexes if they are missing.
+
+    Idempotent by construction rather than by prediction: each statement runs in
+    its own transaction and an ORA-00955 on that statement means "already
+    there", which is success. Nothing is dropped or replaced — this table holds
+    approved, locked pricing and there is no backup path for it.
+    """
+    global _table_ready
+    if _table_ready:
+        return
+
+    schema = cfg.app_schema  # validated as an identifier in config.validate()
+    for name, statement in _ddl_statements(schema):
+        try:
+            with transaction() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(statement)
+            log.info("created %s", name)
+        except oracledb.DatabaseError as exc:
+            err = exc.args[0] if exc.args else None
+            if getattr(err, "code", None) != _ORA_NAME_ALREADY_USED:
+                # ORA-01031 insufficient privileges, ORA-00942, connection
+                # failures — all must surface. Swallowing them is what let a
+                # missing table look like a working one.
+                raise
+            log.debug("%s already present", name)
+    _table_ready = True
 
 
 def default_lines_for(opp_id: int) -> list[dict]:
@@ -280,7 +313,9 @@ def save(opp_id: int, payload: dict, actor: str, *, as_approver: bool = False) -
     if status == "approved" and not as_approver:
         raise Forbidden("Only the approver can approve pricing.")
 
-    engagement = payload.get("engagement_type") or ctx["engagement_type"]
+    # Named engagement_type, not engagement: the bare name shadows the imported
+    # engagement module for the rest of this function.
+    engagement_type = payload.get("engagement_type") or ctx["engagement_type"]
     industry = payload.get("industry") or ctx["industry"]
     modules = payload.get("modules") or ctx["modules"]
     client = payload.get("client_name") or ctx["client_name"]
@@ -303,7 +338,7 @@ def save(opp_id: int, payload: dict, actor: str, *, as_approver: bool = False) -
                        currency = :cur, status = :status, suggested_from = :sug,
                        locked = :locked, owner = :owner, updated_at = SYSTIMESTAMP
                    WHERE matrix_id = :id""",
-                {"eng": engagement, "ind": industry, "mod": modules, "client": client,
+                {"eng": engagement_type, "ind": industry, "mod": modules, "client": client,
                  "lines": lines_json, "tot": total, "cur": currency, "status": status,
                  "sug": suggested_json, "locked": locked, "owner": actor,
                  "id": existing["matrix_id"]},
@@ -318,7 +353,7 @@ def save(opp_id: int, payload: dict, actor: str, *, as_approver: bool = False) -
                    VALUES (:opp, :eng, :ind, :mod, :client, :lines, :tot, :cur, :status,
                            :sug, :locked, :owner)
                    RETURNING matrix_id INTO :out""",
-                {"opp": opp_id, "eng": engagement, "ind": industry, "mod": modules,
+                {"opp": opp_id, "eng": engagement_type, "ind": industry, "mod": modules,
                  "client": client, "lines": lines_json, "tot": total, "cur": currency,
                  "status": status, "sug": suggested_json, "locked": locked,
                  "owner": actor, "out": out},

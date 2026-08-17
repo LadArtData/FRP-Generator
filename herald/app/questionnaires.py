@@ -281,7 +281,7 @@ def get(q_id: int) -> dict:
         cur.execute(
             """SELECT qi_id, sheet_name, row_index, question_text, allowed_codes,
                       response_code, response_text, confidence, status, owner,
-                      source_answer_id
+                      source_answer_id, response_col, comment_col
                FROM harald_questionnaire_items WHERE q_id = :q ORDER BY sort_order""",
             {"q": q_id},
         )
@@ -295,6 +295,9 @@ def get(q_id: int) -> dict:
                 "allowed_codes": allowed, "response_code": r[5],
                 "response_text": clob(r[6]), "confidence": r[7], "status": r[8],
                 "owner": r[9], "source_answer_id": r[10],
+                # Carried here so export() does not re-query per row: a 600-row
+                # agency workbook was 600 sequential pool acquisitions.
+                "response_col": r[11], "comment_col": r[12],
             })
     return result
 
@@ -404,13 +407,8 @@ def export(q_id: int) -> tuple[bytes, str]:
         if item["sheet"] not in workbook.sheetnames:
             continue
         sheet = workbook[item["sheet"]]
-        with cursor() as cur:
-            cur.execute(
-                "SELECT response_col, comment_col FROM harald_questionnaire_items "
-                "WHERE qi_id = :qi",
-                {"qi": item["qi_id"]},
-            )
-            response_col, comment_col = cur.fetchone()
+        response_col = item.get("response_col")
+        comment_col = item.get("comment_col")
         if response_col and item["response_code"]:
             sheet[f"{response_col}{item['row']}"] = item["response_code"]
             written += 1

@@ -429,11 +429,13 @@ def requirement(req_id: int) -> dict:
             {"r": req_id},
         )
         row = cur.fetchone()
+        req_text = clob(row[3]) if row else ""
+        draft_text = clob(row[7]) if row else ""
     if not row:
         raise NotFound(f"Requirement {req_id} not found.")
     return {"req_id": row[0], "opp_id": row[1], "module_tag": row[2],
-            "req_text": clob(row[3]), "status": row[4], "client": row[5],
-            "agency": row[6], "draft": clob(row[7])}
+            "req_text": req_text, "status": row[4], "client": row[5],
+            "agency": row[6], "draft": draft_text}
 
 
 def save_draft(req_id: int, draft: str | None, sources: list | None = None,

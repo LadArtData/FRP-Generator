@@ -18,6 +18,22 @@ from .errors import NotFound, ValidationFailed
 log = logging.getLogger("harald.documents")
 
 
+# Mirrors the CHECK constraints on harald_documents. Validating here turns a
+# bad value into a 400 with a usable message instead of an ORA-02290 surfacing
+# as a 500 with a raw Oracle string.
+OUTCOMES = ("won", "lost", "in_progress", "test", "no_bid")
+DOC_ROLES = ("rfp", "addendum", "exhibit", "form", "cost_workbook",
+             "questionnaire", "attachment", "reference", "iteria_response")
+
+
+def _check_enum(value: str, allowed: tuple[str, ...], field: str) -> str:
+    if value not in allowed:
+        raise ValidationFailed(
+            f"{field} must be one of: {', '.join(allowed)}. Got {value!r}."
+        )
+    return value
+
+
 def store(filename: str, data: bytes, *, opp_id: int | None = None,
           doc_role: str = "reference", doc_class: str | None = None,
           client_name: str | None = None, state: str | None = None,
@@ -26,8 +42,9 @@ def store(filename: str, data: bytes, *, opp_id: int | None = None,
     """Store a document, classify it, and index it if it is iteria narrative."""
     if not data:
         raise ValidationFailed(f"{filename} is empty.")
+    _check_enum(outcome, OUTCOMES, "outcome")
+    _check_enum(doc_role, DOC_ROLES, "doc_role")
 
-    resolved_class = doc_class or classifier.classify_path(source_path or filename, filename)
     text = ""
     blocks: list[tuple[str, str]] = []
     try:
@@ -37,6 +54,16 @@ def store(filename: str, data: bytes, *, opp_id: int | None = None,
         # Forms and scans that cannot be parsed are still valid attachments; they
         # simply carry no extractable text and are never indexed.
         log.info("no extractable text from %s; storing as attachment", filename)
+
+    # Classify from the body, not just the name. classify_path alone returns
+    # UNCLASSIFIED for ordinary titles like "Brown County Proposal.docx", and
+    # only ITERIA_NARRATIVE is indexed — so filename-only classification meant a
+    # real past proposal uploaded to the library was stored, reported 200 OK
+    # with chunks: 0, and never retrieved again. Extraction has to happen first
+    # for the voice test to have anything to read.
+    resolved_class = doc_class or classifier.classify(
+        source_path or filename, text or None,
+    )
 
     digest = hashlib.sha256(data).hexdigest()
 
@@ -126,6 +153,7 @@ def promote(doc_id: int, *, client_name: str | None = None,
             outcome: str = "won") -> dict:
     """Promote a finished iteria proposal into the library. This is the compounding
     loop: a won bid becomes retrievable source for the next one."""
+    _check_enum(outcome, OUTCOMES, "outcome")
     meta = get(doc_id)
     with transaction() as conn:
         conn.cursor().execute(
@@ -172,9 +200,11 @@ def get_text(doc_id: int) -> str:
         cur.execute("SELECT doc_text, filename FROM harald_documents WHERE doc_id = :d",
                     {"d": doc_id})
         row = cur.fetchone()
+        # A CLOB arrives as a locator, not a string. Reading it needs the
+        # connection, so the read has to happen before the pool takes it back.
+        text = (clob(row[0]) or "") if row else ""
     if not row:
         raise NotFound(f"Document {doc_id} not found.")
-    text = clob(row[0]) or ""
     if text.strip():
         return text
     # Older uploads (e.g. plain .txt before extract support) may have blob only.

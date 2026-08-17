@@ -49,6 +49,31 @@ async def lifespan(_: FastAPI):
 app = FastAPI(title="HARALD", version="1.0.0", lifespan=lifespan)
 
 
+# asyncio holds only a weak reference to a bare create_task, so a long
+# generation can be garbage-collected mid-flight. The bid row is already set to
+# gen_status='generating' by then and the coroutine's own except block never
+# runs, which leaves the bid stuck on "generating" with no route to reset it.
+# Holding a strong reference until the task completes is the whole fix.
+_background_tasks: set[asyncio.Task] = set()
+
+
+def _spawn(coro, *, label: str) -> asyncio.Task:
+    task = asyncio.create_task(coro, name=label)
+    _background_tasks.add(task)
+
+    def _done(finished: asyncio.Task) -> None:
+        _background_tasks.discard(finished)
+        if finished.cancelled():
+            log.warning("background task cancelled: %s", label)
+            return
+        exc = finished.exception()
+        if exc is not None:
+            log.error("background task failed: %s", label, exc_info=exc)
+
+    task.add_done_callback(_done)
+    return task
+
+
 @app.exception_handler(HaraldError)
 async def harald_error_handler(_, exc: HaraldError):
     if exc.status >= 500:
@@ -156,8 +181,11 @@ async def library_upload(file: UploadFile = File(...),
                          client: str | None = Form(None),
                          user: dict = Depends(contributor)):
     data = await file.read()
-    result = documents.store(file.filename, data, client_name=client,
-                             outcome=deal_status, actor=user["username"])
+    # store() extracts text, embeds every chunk locally, and writes to Oracle —
+    # all blocking. Off the event loop it goes.
+    result = await asyncio.to_thread(
+        documents.store, file.filename, data, client_name=client,
+        outcome=deal_status, actor=user["username"])
     audit.record(user["username"], "library.upload", "document", result["doc_id"],
                  {"file": file.filename, "class": result["doc_class"]})
     return result
@@ -236,7 +264,8 @@ async def add_opportunity_document(opp_id: int, file: UploadFile = File(...),
                                    user: dict = Depends(contributor)):
     data = await file.read()
     opp = opportunities.get(opp_id)
-    result = documents.store(
+    result = await asyncio.to_thread(
+        documents.store,
         file.filename, data, opp_id=opp_id, doc_role=doc_role,
         doc_class="CLIENT_RFP" if doc_role in ("rfp", "addendum") else None,
         client_name=opp["client_name"], effective_date=effective_date,
@@ -321,7 +350,8 @@ async def humanize_requirement(req_id: int, body: HumanizeIn,
 @app.post("/api/opportunities/{opp_id}/generate")
 async def generate_all(opp_id: int, user: dict = Depends(contributor)):
     opportunities.set_generation_state(opp_id, "generating")
-    asyncio.create_task(opportunities.generate_narrative(opp_id, user["username"]))
+    _spawn(opportunities.generate_narrative(opp_id, user["username"]),
+           label=f"generate_narrative:{opp_id}")
     return {"status": "generating"}
 
 
@@ -410,7 +440,8 @@ def get_questionnaire(q_id: int):
 @app.post("/api/questionnaires/{q_id}/fill")
 async def fill_questionnaire(q_id: int, user: dict = Depends(contributor)):
     questionnaires.set_status(q_id, "filling")
-    asyncio.create_task(questionnaires.fill(q_id, user["username"]))
+    _spawn(questionnaires.fill(q_id, user["username"]),
+           label=f"questionnaire_fill:{q_id}")
     return {"status": "filling"}
 
 
@@ -712,7 +743,8 @@ def studio_attach(opp_id: int, body: AttachIn, user: dict = Depends(contributor)
 @app.post("/api/proposals/{opp_id}/generate")
 async def studio_generate(opp_id: int, user: dict = Depends(contributor)):
     opportunities.set_generation_state(opp_id, "generating")
-    asyncio.create_task(studio.generate(opp_id, user["username"]))
+    _spawn(studio.generate(opp_id, user["username"]),
+           label=f"studio_generate:{opp_id}")
     return {"status": "generating"}
 
 

@@ -117,9 +117,10 @@ def _note_body(note_id: int) -> tuple[str, str]:
         cur.execute("SELECT title, body FROM harald_release_notes WHERE note_id = :n",
                     {"n": note_id})
         row = cur.fetchone()
+        body = clob(row[1]) if row else ""
     if not row:
         raise ValidationFailed(f"Release note {note_id} not found.")
-    return row[0], clob(row[1])
+    return row[0], body
 
 
 async def assess_impact(note_id: int, actor: str | None = None) -> dict:
