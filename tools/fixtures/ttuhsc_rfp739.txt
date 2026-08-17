@@ -1,0 +1,48 @@
+REQUEST FOR PROPOSALS
+RFP 739-SL3821039
+Consulting Services — Enterprise AI Adoption and Enablement
+
+Issuing Agency: Texas Tech University Health Sciences Center (TTUHSC)
+State: Texas
+Response Deadline: September 21, 2026
+Period of Performance: August 14, 2026 through September 21, 2026
+Estimated Value: $150,000 - $900,000
+
+1.0 BACKGROUND
+TTUHSC seeks consulting services to support enterprise artificial intelligence adoption
+and enablement across the organization. The contractor shall assess current AI
+capabilities, develop a strategic integration plan, provide staff training, and
+support implementation aligned with TTUHSC operational goals and health outcomes mission.
+
+2.0 SCOPE OF WORK
+2.1 The Offeror shall conduct a current-state assessment of AI readiness, data
+governance, and existing technology platforms.
+2.2 The Offeror shall develop a strategic roadmap for enterprise AI adoption including
+governance, security, and change management.
+2.3 The Offeror shall deliver workshops and training for TTUHSC staff on responsible
+AI use, prompt engineering, and operational workflows.
+2.4 The Offeror shall provide documentation of best practices and ongoing transition support.
+2.5 The Offeror shall ensure all recommendations align with HIPAA, institutional policy,
+and applicable Texas procurement requirements.
+
+3.0 SUBMISSION REQUIREMENTS
+3.1 Proposer must submit a HUB Subcontracting Plan with the proposal.
+3.2 Proposer must include a signed W-9.
+3.3 Proposer must provide a point of contact name, email, and notification address.
+3.4 Proposer shall describe relevant experience with enterprise AI programs in
+healthcare or higher-education settings.
+3.5 Proposer shall provide a project schedule, staffing plan, and fixed-fee or
+time-and-materials pricing consistent with the estimated value range.
+
+4.0 EVALUATION CRITERIA
+4.1 Understanding of TTUHSC mission and AI enablement goals.
+4.2 Qualifications and experience of proposed personnel.
+4.3 Methodology for assessment, roadmap development, training, and support.
+4.4 Price reasonableness and value.
+4.5 Compliance with HUB and administrative requirements.
+
+Place of Performance: TTUHSC locations as required.
+Questions: Jaggaer portal / 1-800-233-1121.
+NAICS: 541611 Administrative Management and General Management Consulting Services;
+541512 Computer Systems Design Services.
+Contact: Shawn Olbeter (per posting).
