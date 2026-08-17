@@ -448,6 +448,16 @@ body {
 }
 .autoparse-action:hover { border-color: var(--accent); color: var(--accent-2); }
 .autoparse-body { padding: 4px 0; }
+.ap-conflict {
+  padding: 9px 16px;
+  font-size: 12px;
+  line-height: 1.5;
+  border-top: 1px dashed var(--paper-3);
+  color: var(--muted);
+}
+.ap-conflict b { color: var(--ink); font-weight: 600; }
+.ap-conflict-warn { color: var(--accent-2); }
+.ap-conflict-warn b { color: var(--accent-2); }
 .ap-field {
   display: grid;
   grid-template-columns: 140px 1fr auto;
@@ -1660,6 +1670,9 @@ textarea { min-height: 72px; resize: vertical; font-family: inherit; line-height
         <div class="autoparse-body" id="autoparse-body" style="display:none">
           <!-- ap-field rows injected by autoFillFromRfp() -->
         </div>
+        <!-- What the solicitation says that the form cannot represent, and any
+             saved value the solicitation contradicts. -->
+        <div id="autoparse-conflicts" style="display:none"></div>
       </div>
       <div style="display:flex;gap:8px;margin:8px 0 16px">
         <button class="autoparse-action" onclick="autoFillFromRfp()" id="ap-run-btn" style="font-weight:600">
@@ -2658,13 +2671,41 @@ function applyTagGroup(groupName, selected) {
   });
   const group = document.querySelector('[data-tag-group="' + groupName + '"]');
   if (!group) return;
+  const wanted = Object.keys(want).length;
   group.querySelectorAll('.tag-option').forEach(function (label) {
     const cb = label.querySelector('input[type="checkbox"]');
     if (!cb) return;
     const text = (label.textContent || '').trim().toLowerCase();
-    cb.checked = !!want[text];
+    if (want[text]) {
+      cb.checked = true;
+    } else if (wanted) {
+      // Only clear when the caller actually supplied a selection. Autofill on a
+      // solicitation whose needs match none of the seven fixed labels — an AI
+      // enablement RFP, say — used to arrive here with an empty list and
+      // silently unticked everything a human had chosen.
+      cb.checked = false;
+    }
     label.classList.toggle('sel', cb.checked);
   });
+}
+
+function _renderAutofillConflicts(conflicts, painText) {
+  const host = document.getElementById('autoparse-conflicts');
+  if (!host) return;
+  const bits = [];
+  if (painText) {
+    bits.push('<div class="ap-conflict"><b>From the solicitation:</b> ' +
+      escapeHtml(painText) + ' — no checkbox covers this; it is carried into the ' +
+      'drafting brief as written.</div>');
+  }
+  (conflicts || []).forEach(function (c) {
+    bits.push('<div class="ap-conflict ap-conflict-warn"><b>Check ' +
+      escapeHtml(String(c.field || '').replace(/_/g, ' ')) + ':</b> ' +
+      escapeHtml(c.reason || '') + ' Current value: "' +
+      escapeHtml(c.value || '') + '"</div>');
+  });
+  host.innerHTML = bits.join('');
+  host.style.display = bits.length ? '' : 'none';
 }
 
 function clearTagGroups() {
@@ -3427,10 +3468,13 @@ async function ensureAnswerBank() {
  * matching form inputs by data-field attribute.
  * ═══════════════════════════════════════════════════════════════════ */
 
+// Retained for the legacy fallback path only. The live autofill path now
+// applies the server's reconciled form_state, which covers engagement_type too
+// — it was never in this list, so autofill could not set it at all.
 const _AUTOFILL_FIELDS = [
   'client_name','industry','primary_contact','annual_budget',
-  'legacy_systems','rfp_number','due_date','pain_points',
-  'required_modules','matched_case_studies','matched_references'
+  'legacy_systems','rfp_number','due_date','engagement_type',
+  'pain_points','required_modules'
 ];
 
 async function autoFillFromRfp() {
@@ -3462,26 +3506,47 @@ async function autoFillFromRfp() {
     const matches = r.match_data || {};
     const elapsed = (r.elapsed_ms || 0) / 1000;
 
-    // 1. Populate form inputs by data-field.
+    // 1. Populate the form from the server's reconciled form_state.
+    //    The server maps parse vocabulary onto form vocabulary (industry prose
+    //    -> a real <select> option, "September 21, 2026" -> ISO for the date
+    //    input, snake_case engagement codes -> option labels) and merges the
+    //    result into the saved form. Doing that mapping here as well was how
+    //    the two halves drifted: parsed_fields was right, the form kept its
+    //    stale values, and every downstream consumer merges the form last.
+    const formState = r.form_state || {};
     let filled = 0;
-    _AUTOFILL_FIELDS.forEach(k => {
-      if (k === 'pain_points' || k === 'required_modules' || k === 'matched_case_studies' || k === 'matched_references') return;
-      const v = _autofillValueFor(fields, k);
-      if (v == null) return;
+    Object.keys(formState).forEach(k => {
+      const v = formState[k];
+      if (v == null || v === '' || Array.isArray(v)) return;
       const inp = document.querySelector('[data-field="' + k + '"]');
       if (!inp) return;
       if (inp.tagName === 'SELECT') {
-        for (const o of inp.options) { if (o.text === v || o.value === v) { inp.value = o.value; filled++; return; } }
+        // Exact first, then the fuzzy matcher, so a value the server produced
+        // for a select that has since changed still lands somewhere sensible.
+        let hit = false;
+        for (const o of inp.options) {
+          if (o.text === v || o.value === v) { inp.value = o.value; hit = true; break; }
+        }
+        if (!hit) hit = _matchSelectOption(inp, v);
+        if (hit) filled++;
+      } else if (inp.type === 'date') {
+        const iso = _parseDueDate(v);
+        if (iso) { inp.value = iso; filled++; }
       } else {
         inp.value = String(v);
         filled++;
       }
     });
 
-    // 1b. Pain points + modules from what the solicitation asks for.
-    applyAutofillTags(fields);
+    // 1b. Pain points + modules, from the server's mapping where it produced
+    //     one, falling back to the raw parse for older servers.
+    applyAutofillTags(Object.keys(formState).length ? formState : fields);
 
-    // 1c. Library matches from Cohere-style retrieval against the ask.
+    // 1c. Anything the solicitation states that the checkbox vocabulary cannot
+    //     express is kept as text rather than dropped on the floor.
+    _renderAutofillConflicts(r.conflicts || [], formState.pain_points_text || '');
+
+    // 1d. Library matches from Cohere-style retrieval against the ask.
     const matchList = (matches && matches.matches) || r.matches || [];
     renderLibraryMatches(matchList);
 
