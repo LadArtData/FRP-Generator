@@ -11,7 +11,8 @@ import logging
 import statistics
 from collections import defaultdict
 
-from . import audit, opportunities
+from . import audit, engagement, opportunities
+from .config import cfg
 from .db import clob, cursor, transaction
 from .errors import Conflict, Forbidden, NotFound, ValidationFailed
 
@@ -53,39 +54,89 @@ DEFAULT_LINES = [
 ]
 
 
-def ensure_table() -> None:
+AI_ENABLEMENT_LINES = [
+    {"category": "Discovery", "line_item": "AI readiness assessment workshops", "unit": "hours",
+     "qty": None, "rate": None, "amount": None, "notes": "", "ai_suggested": False},
+    {"category": "Discovery", "line_item": "Current-state data & governance review", "unit": "hours",
+     "qty": None, "rate": None, "amount": None, "notes": "", "ai_suggested": False},
+    {"category": "Strategy", "line_item": "Enterprise AI roadmap development", "unit": "hours",
+     "qty": None, "rate": None, "amount": None, "notes": "", "ai_suggested": False},
+    {"category": "Governance", "line_item": "AI governance operating model (HIPAA-aware)", "unit": "hours",
+     "qty": None, "rate": None, "amount": None, "notes": "", "ai_suggested": False},
+    {"category": "Enablement", "line_item": "Staff training & responsible AI workshops", "unit": "hours",
+     "qty": None, "rate": None, "amount": None, "notes": "", "ai_suggested": False},
+    {"category": "Enablement", "line_item": "Executive & stakeholder facilitation", "unit": "hours",
+     "qty": None, "rate": None, "amount": None, "notes": "", "ai_suggested": False},
+    {"category": "Delivery", "line_item": "Project management", "unit": "hours",
+     "qty": None, "rate": None, "amount": None, "notes": "", "ai_suggested": False},
+    {"category": "Delivery", "line_item": "Solution architecture / technical advisory", "unit": "hours",
+     "qty": None, "rate": None, "amount": None, "notes": "", "ai_suggested": False},
+    {"category": "Transition", "line_item": "Documentation & transition support", "unit": "hours",
+     "qty": None, "rate": None, "amount": None, "notes": "", "ai_suggested": False},
+    {"category": "Other", "line_item": "Travel & expenses", "unit": "lump",
+     "qty": 1, "rate": None, "amount": None, "notes": "", "ai_suggested": False},
+    {"category": "Other", "line_item": "Contingency", "unit": "lump",
+     "qty": 1, "rate": None, "amount": None, "notes": "", "ai_suggested": False},
+]
+
+
+def _table_exists() -> bool:
+    schema = cfg.app_schema.upper()
     with cursor() as cur:
         cur.execute(
-            """SELECT COUNT(*) FROM user_tables
-               WHERE table_name = 'HARALD_PRICING_MATRIX'"""
+            """SELECT COUNT(*) FROM all_tables
+               WHERE owner = :owner AND table_name = 'HARALD_PRICING_MATRIX'""",
+            {"owner": schema},
         )
-        if int(cur.fetchone()[0]) > 0:
+        return int(cur.fetchone()[0]) > 0
+
+
+def ensure_table() -> None:
+    """Create pricing matrix table if missing. Table may live in ITERIA_AI while
+    the pool connects as ADMIN — user_tables would miss it and ORA-00955 follows."""
+    if _table_exists():
+        return
+    try:
+        with transaction() as conn:
+            conn.cursor().execute(
+                """CREATE TABLE harald_pricing_matrix (
+                     matrix_id       NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                     opp_id          NUMBER NOT NULL,
+                     price_id        NUMBER,
+                     engagement_type VARCHAR2(80),
+                     industry        VARCHAR2(120),
+                     modules         VARCHAR2(400),
+                     client_name     VARCHAR2(200),
+                     lines_json      CLOB NOT NULL,
+                     total_amount    NUMBER,
+                     currency        VARCHAR2(8) DEFAULT 'USD' NOT NULL,
+                     status          VARCHAR2(20) DEFAULT 'draft' NOT NULL,
+                     suggested_from  CLOB,
+                     locked          CHAR(1) DEFAULT 'N' NOT NULL,
+                     owner           VARCHAR2(80),
+                     created_at      TIMESTAMP DEFAULT SYSTIMESTAMP,
+                     updated_at      TIMESTAMP DEFAULT SYSTIMESTAMP
+                   )"""
+            )
+            conn.cursor().execute(
+                "CREATE INDEX harald_pmat_opp_idx ON harald_pricing_matrix(opp_id, updated_at DESC)"
+            )
+        log.info("created harald_pricing_matrix")
+    except Exception as exc:
+        err = exc.args[0] if exc.args else None
+        if getattr(err, "code", None) == 955:
+            log.info("harald_pricing_matrix already exists (ORA-00955)")
             return
-    with transaction() as conn:
-        conn.cursor().execute(
-            """CREATE TABLE harald_pricing_matrix (
-                 matrix_id       NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-                 opp_id          NUMBER NOT NULL,
-                 price_id        NUMBER,
-                 engagement_type VARCHAR2(80),
-                 industry        VARCHAR2(120),
-                 modules         VARCHAR2(400),
-                 client_name     VARCHAR2(200),
-                 lines_json      CLOB NOT NULL,
-                 total_amount    NUMBER,
-                 currency        VARCHAR2(8) DEFAULT 'USD' NOT NULL,
-                 status          VARCHAR2(20) DEFAULT 'draft' NOT NULL,
-                 suggested_from  CLOB,
-                 locked          CHAR(1) DEFAULT 'N' NOT NULL,
-                 owner           VARCHAR2(80),
-                 created_at      TIMESTAMP DEFAULT SYSTIMESTAMP,
-                 updated_at      TIMESTAMP DEFAULT SYSTIMESTAMP
-               )"""
-        )
-        conn.cursor().execute(
-            "CREATE INDEX harald_pmat_opp_idx ON harald_pricing_matrix(opp_id, updated_at DESC)"
-        )
-    log.info("created harald_pricing_matrix")
+        raise
+
+
+def default_lines_for(opp_id: int) -> list[dict]:
+    opp = opportunities.get(opp_id)
+    rfp_text, parsed = opportunities.grounding_context(opp)
+    profile = engagement.classify_opportunity(parsed, rfp_text)
+    if profile.kind == "ai_enablement":
+        return [dict(row) for row in AI_ENABLEMENT_LINES]
+    return [dict(row) for row in DEFAULT_LINES]
 
 
 def _num(value):
@@ -149,10 +200,13 @@ def _context_from_opp(opp_id: int) -> dict:
     modules = form.get("proposed_modules") or form.get("required_modules") or []
     if isinstance(modules, str):
         modules = [m.strip() for m in modules.replace(";", ",").split(",") if m.strip()]
+    rfp_text, parsed = opportunities.grounding_context(opp)
+    profile = engagement.classify_opportunity({**form, **parsed}, rfp_text)
+    engagement_label = form.get("engagement_type") or profile.label
     return {
         "client_name": opp.get("client_name") or form.get("client_name"),
         "industry": form.get("industry") or opp.get("agency"),
-        "engagement_type": form.get("engagement_type") or "",
+        "engagement_type": engagement_label,
         "modules": ", ".join(str(m) for m in modules)[:400],
     }
 
@@ -196,7 +250,7 @@ def get_for_opportunity(opp_id: int) -> dict:
     if row:
         return _row_to_dict(row)
     ctx = _context_from_opp(opp_id)
-    lines = [dict(x) for x in DEFAULT_LINES]
+    lines = default_lines_for(opp_id)
     return {
         "matrix_id": None, "opp_id": opp_id, "price_id": None,
         "engagement_type": ctx["engagement_type"], "industry": ctx["industry"],

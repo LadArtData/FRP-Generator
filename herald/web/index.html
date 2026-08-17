@@ -1682,7 +1682,7 @@ textarea { min-height: 72px; resize: vertical; font-family: inherit; line-height
           <div class="field-grid">
             <div class="field"><label>Client name <span class="req">*</span> <span class="hint" style="color:var(--accent-2)">• from solicitation</span></label><input type="text" id="f-client-name" data-field="client_name" placeholder="e.g. City of ——, State Agency of ——"></div>
             <div class="field"><label>Industry <span class="req">*</span></label>
-              <select id="f-industry" data-field="industry"><option>Select…</option><option>City / Municipality</option><option>County Government</option><option>State Agency</option><option>Federal</option><option>K-12 / Higher Ed</option><option>Utility / Special District</option></select>
+              <select id="f-industry" data-field="industry"><option>Select…</option><option>City / Municipality</option><option>County Government</option><option>State Agency</option><option>Federal</option><option>K-12 / Higher Ed</option><option>Healthcare / Health Sciences</option><option>Utility / Special District</option></select>
             </div>
             <div class="field"><label>Primary contact <span class="hint" style="color:var(--accent-2)">• from solicitation</span></label><input type="text" id="f-primary-contact" data-field="primary_contact" placeholder="Name, title"></div>
             <div class="field"><label>Annual budget / revenue <span class="hint" style="color:var(--accent-2)">• from solicitation</span></label><input type="text" id="f-budget" data-field="annual_budget" placeholder="e.g. $——M operating budget"></div>
@@ -1745,10 +1745,13 @@ textarea { min-height: 72px; resize: vertical; font-family: inherit; line-height
         <div class="section-body">
           <div class="field-grid">
             <div class="field"><label>Engagement type</label>
-              <select data-field="engagement_type"><option value="">Select…</option><option>Full implementation</option><option>Upgrade</option><option>Advisory</option><option>Staff augmentation</option></select>
+              <select data-field="engagement_type"><option value="">Select…</option><option>Full implementation</option><option>Upgrade</option><option>AI enablement &amp; consulting</option><option>Advisory</option><option>Staff augmentation</option></select>
             </div>
             <div class="field"><label>Primary competition</label><input type="text" data-field="primary_competition" placeholder="e.g. Workday, SAP S/4HANA"></div>
-            <div class="field full"><label>Proposed modules</label>
+            <div class="field full"><label>Services / scope from solicitation</label>
+              <input type="text" data-field="services_scope" placeholder="e.g. AI readiness assessment, governance, staff training — from the RFP">
+            </div>
+            <div class="field full"><label>Proposed modules <span class="hint">ERP bids only</span></label>
               <div class="tag-group" data-tag-group="proposed_modules">
                 <label class="tag-option accent"><input type="checkbox">Financials</label>
                 <label class="tag-option accent"><input type="checkbox">Procurement</label>
@@ -2538,36 +2541,113 @@ function _parseExtractedJson(p) {
   } catch (e) { return {}; }
 }
 
+function _matchSelectOption(select, value) {
+  if (!select || value == null || value === '') return false;
+  const v = String(value).trim().toLowerCase();
+  for (let i = 0; i < select.options.length; i++) {
+    const o = select.options[i];
+    if (o.text.trim().toLowerCase() === v || String(o.value).trim().toLowerCase() === v) {
+      select.value = o.value;
+      return true;
+    }
+  }
+  if (/health|higher ed|ttuhsc/.test(v)) {
+    for (let i = 0; i < select.options.length; i++) {
+      if (/health|higher ed/i.test(select.options[i].text)) {
+        select.value = select.options[i].value;
+        return true;
+      }
+    }
+  }
+  if (/state|agency/.test(v)) {
+    for (let i = 0; i < select.options.length; i++) {
+      if (/state agency/i.test(select.options[i].text)) {
+        select.value = select.options[i].value;
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+function _parseDueDate(raw) {
+  if (!raw) return '';
+  const s = String(raw).trim();
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+  const t = Date.parse(s);
+  if (!isNaN(t)) return new Date(t).toISOString().slice(0, 10);
+  return '';
+}
+
+function _servicesScopeFromForm(form) {
+  if (!form) return '';
+  if (form.services_scope) return String(form.services_scope);
+  const mods = form.required_modules || form.proposed_modules;
+  if (Array.isArray(mods)) return mods.join(', ');
+  if (mods) return String(mods);
+  return '';
+}
+
+function _inferEngagementType(form) {
+  const blob = JSON.stringify(form || {}).toLowerCase();
+  if (/ai enablement|artificial intelligence|generative ai|ai adoption|ai readiness/.test(blob)) {
+    return 'AI enablement & consulting';
+  }
+  if (/erp|fusion|financials|hcm|payroll|implementation/.test(blob)) {
+    return 'Full implementation';
+  }
+  return '';
+}
+
 function applyFormFromProposal(p) {
   const ext = _parseExtractedJson(p);
   const form = ext.studio_form || ext.form || ext.parsed_fields || {};
   const keys = Object.keys(form);
-  if (!keys.length && p && p.client_name) {
-    const cn = document.querySelector('[data-field="client_name"]');
+  if (p && p.client_name) {
+    const cn = document.getElementById('f-client-name') || document.querySelector('[data-field="client_name"]');
     if (cn) cn.value = p.client_name;
   }
   keys.forEach(function (k) {
-    if (k === 'pain_points' || k === 'proposed_modules') return;
+    if (k === 'pain_points' || k === 'proposed_modules' || k === 'required_modules') return;
     const v = _autofillValueFor(form, k);
     if (v == null) return;
     const inp = document.querySelector('[data-field="' + k + '"]');
     if (!inp) return;
     if (inp.tagName === 'SELECT') {
-      for (const o of inp.options) {
-        if (o.text === v || o.value === v) { inp.value = o.value; return; }
+      if (!_matchSelectOption(inp, v)) {
+        for (const o of inp.options) {
+          if (o.text === v || o.value === v) { inp.value = o.value; return; }
+        }
       }
     } else {
       inp.value = String(v);
     }
   });
-  applyTagGroup('pain_points', form.pain_points);
-  applyTagGroup('proposed_modules', form.proposed_modules);
-  if (p && p.client_name) {
-    const cn = document.querySelector('[data-field="client_name"]');
-    if (cn && !cn.value) cn.value = p.client_name;
+  applyAutofillTags(form);
+  const scope = _servicesScopeFromForm(form);
+  if (scope) {
+    const scopeEl = document.querySelector('[data-field="services_scope"]');
+    if (scopeEl) scopeEl.value = scope;
+    const pm = document.getElementById('pricing-modules');
+    if (pm && !pm.value) pm.value = scope;
+  }
+  const ind = document.getElementById('f-industry');
+  if (ind && form.industry) _matchSelectOption(ind, form.industry);
+  const eng = document.querySelector('[data-field="engagement_type"]');
+  const inferred = _inferEngagementType(form);
+  if (eng && (form.engagement_type || inferred)) {
+    _matchSelectOption(eng, form.engagement_type || inferred);
   }
   const due = document.getElementById('f-due-date');
-  if (due && form.due_date) due.value = String(form.due_date).slice(0, 10);
+  if (due && form.due_date) due.value = _parseDueDate(form.due_date);
+  if (form.primary_contact) {
+    const pc = document.querySelector('[data-field="primary_contact"]');
+    if (pc && !pc.value) pc.value = String(form.primary_contact);
+  }
+  if (form.rfp_number) {
+    const rn = document.getElementById('f-rfp-number');
+    if (rn && !rn.value) rn.value = String(form.rfp_number);
+  }
   window._formDirty = false;
 }
 
