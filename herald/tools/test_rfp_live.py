@@ -123,6 +123,9 @@ def main() -> int:
             if status not in ("generating",):
                 break
         print("draft preview:", (detail.get("draft_text") or "")[:800])
+        if detail.get("gen_error"):
+            print("gen_error:", detail.get("gen_error"))
+            print("NOTE: restart OCI Container Instance to pull latest image if ORA-02290.")
         print("questionnaires:", len(detail.get("questionnaires") or []))
 
     print(f"\n=== live test complete — open {base}/ and load proposal {opp_id} ===")

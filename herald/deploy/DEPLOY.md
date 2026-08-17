@@ -20,6 +20,19 @@ Console → Developer Services → Container Instances → Create.
 
 Open firewall / NSG: TCP **8000**.
 
+## After every push to `main`
+
+GitHub Actions builds and pushes `bom.ocir.io/bmi3vxyqnzrv/harald/harald:latest`.
+The running Container Instance does **not** pull it automatically.
+
+1. Console → Developer Services → **Container Instances** → `harald`
+2. **Stop** the instance (or delete and recreate with the same settings)
+3. **Start** / **Create** again using image `bom.ocir.io/bmi3vxyqnzrv/harald/harald:latest`
+4. Confirm health: `http://<PUBLIC_IP>:8000/api/health`
+
+Until you restart, Generate can finish with an empty draft and `ORA-02290` in logs
+(old code wrote requirement status `review` instead of `reviewed` when auto-humanize runs).
+
 ## Done when
 
 `http://<PUBLIC_IP>:8000/api/health` returns OK  

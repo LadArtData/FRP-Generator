@@ -385,15 +385,34 @@ async def generate_narrative(opp_id: int, actor: str | None = None) -> None:
             if r["response_type"] == "narrative" and not (r["draft"] or "").strip()
         ]
         if pending:
-            for result in await generation.draft_many(pending):
+            results = await generation.draft_many(pending)
+            errors = [r for r in results if "error" in r]
+            saved = 0
+            for result in results:
                 if "error" in result:
+                    log.warning(
+                        "draft failed req_id=%s: %s",
+                        result.get("req_id"), result.get("error"),
+                    )
                     continue
-                save_draft(
-                    result["req_id"],
-                    result.get("draft"),
-                    result.get("sources"),
-                    final=result.get("final"),
+                try:
+                    save_draft(
+                        result["req_id"],
+                        result.get("draft"),
+                        result.get("sources"),
+                        final=result.get("final"),
+                    )
+                    saved += 1
+                except Exception as exc:
+                    log.exception("save_draft failed req_id=%s", result.get("req_id"))
+                    errors.append({"req_id": result.get("req_id"), "error": str(exc)})
+            if pending and saved == 0:
+                hint = (errors[0].get("error") if errors else "unknown error")
+                set_generation_state(
+                    opp_id, "error",
+                    f"All {len(pending)} narrative drafts failed. First error: {hint}",
                 )
+                return
 
         refreshed = get(opp_id)
         blocks: list[str] = []
