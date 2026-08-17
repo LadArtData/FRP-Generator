@@ -102,7 +102,17 @@
       });
     },
     getProposal: function (id) { return call("/api/proposals/" + encodeURIComponent(id)); },
-    listProposals: function (n) { return call("/api/proposals?limit=" + (n || 100)); },
+    listProposals: function (n, includeEmpty) {
+      var q = "?limit=" + (n || 100);
+      if (includeEmpty) q += "&include_empty=true";
+      return call("/api/proposals" + q);
+    },
+    deleteProposal: function (id) {
+      return call("/api/proposals/" + encodeURIComponent(id), { method: "DELETE" });
+    },
+    cleanupDemos: function () {
+      return call("/api/proposals/cleanup-demos", { method: "POST", body: "{}" });
+    },
     updateProposal: function (id, payload) {
       return call("/api/proposals/" + encodeURIComponent(id), {
         method: "PUT", body: JSON.stringify(payload || {})

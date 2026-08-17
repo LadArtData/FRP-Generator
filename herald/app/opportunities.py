@@ -114,7 +114,8 @@ def list_all(limit: int = 200) -> list[dict]:
                       (SELECT COUNT(*) FROM harald_requirements r WHERE r.opp_id = o.opp_id),
                       (SELECT COUNT(*) FROM harald_requirements r
                         WHERE r.opp_id = o.opp_id AND r.status = 'complete'),
-                      (SELECT COUNT(*) FROM harald_packages p WHERE p.opp_id = o.opp_id)
+                      (SELECT COUNT(*) FROM harald_packages p WHERE p.opp_id = o.opp_id),
+                      LENGTH(NVL(o.draft_text, ''))
                FROM harald_opportunities o ORDER BY o.updated_at DESC
              ) WHERE ROWNUM <= :lim"""
     with cursor() as cur:
@@ -124,9 +125,115 @@ def list_all(limit: int = 200) -> list[dict]:
              "title": r[4], "due_date": r[5], "status": r[6], "gen_status": r[7],
              "updated_at": r[8].isoformat() if r[8] else None,
              "doc_count": r[9], "req_count": r[10], "req_complete": r[11],
-             "package_count": r[12]}
+             "package_count": r[12], "draft_chars": int(r[13] or 0)}
             for r in cur.fetchall()
         ]
+
+
+_DEMO_CLIENT_NAMES = frozenset({
+    "untitled client", "untitled", "untitled bid", "untitled proposal",
+    "smoke_test_client", "audit_client", "test client", "demo client",
+})
+
+
+def display_label(opp: dict) -> str:
+    """Human label for Studio lists — client/agency/RFP, not internal IDs."""
+    client = (opp.get("client_name") or "").strip()
+    agency = (opp.get("agency") or "").strip()
+    sol = (opp.get("solicitation_no") or "").strip()
+    due = (opp.get("due_date") or "").strip()
+    parts: list[str] = []
+    if client and client.lower() not in _DEMO_CLIENT_NAMES:
+        parts.append(client)
+    elif agency:
+        parts.append(agency)
+    else:
+        parts.append("Unnamed bid")
+    if agency and agency not in parts:
+        parts.append(agency)
+    if sol:
+        parts.append(f"#{sol}")
+    if due:
+        parts.append(f"due {due[:10]}")
+    return " · ".join(parts)
+
+
+def is_demo_or_blank(opp: dict, *, draft_chars: int | None = None) -> bool:
+    """True for smoke tests, audit rows, and empty shells with no real work."""
+    name = (opp.get("client_name") or "").strip().lower()
+    if name in _DEMO_CLIENT_NAMES or name.startswith(("smoke", "audit_", "test_")):
+        return True
+    chars = draft_chars if draft_chars is not None else int(opp.get("draft_chars") or 0)
+    docs = int(opp.get("doc_count") or 0)
+    reqs = int(opp.get("req_count") or 0)
+    if chars == 0 and docs == 0 and reqs == 0:
+        return True
+    if name in ("untitled client", "untitled", "") and chars == 0 and docs == 0:
+        return True
+    return False
+
+
+def delete(opp_id: int, actor: str | None = None) -> None:
+    """Remove a bid and its attached documents (not library-only docs)."""
+    get(opp_id)
+    with transaction() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT doc_id FROM harald_documents WHERE opp_id = :o", {"o": opp_id})
+        doc_ids = [row[0] for row in cur.fetchall()]
+        cur.execute(
+            "UPDATE harald_opportunities SET rfp_doc_id = NULL WHERE opp_id = :o",
+            {"o": opp_id},
+        )
+        for doc_id in doc_ids:
+            cur.execute(
+                "UPDATE harald_opportunities SET rfp_doc_id = NULL WHERE rfp_doc_id = :d",
+                {"d": doc_id},
+            )
+            cur.execute("DELETE FROM harald_documents WHERE doc_id = :d", {"d": doc_id})
+        cur.execute("DELETE FROM harald_opportunities WHERE opp_id = :o", {"o": opp_id})
+    audit.record(actor, "opportunity.delete", "opportunity", opp_id, {})
+
+
+def cleanup_workspace(actor: str | None = None) -> dict:
+    """Delete demo/blank bids and duplicate empty shells (keep the best draft per client)."""
+    all_rows = list_all(500)
+    removed: list[str] = []
+
+    for opp in list(all_rows):
+        if is_demo_or_blank(opp):
+            delete(opp["opp_id"], actor)
+            removed.append(display_label(opp))
+
+    remaining = list_all(500)
+    by_client: dict[str, list[dict]] = {}
+    for opp in remaining:
+        key = (opp.get("client_name") or opp.get("agency") or "").strip().lower()[:120]
+        if not key or key in _DEMO_CLIENT_NAMES:
+            continue
+        by_client.setdefault(key, []).append(opp)
+
+    for group in by_client.values():
+        if len(group) < 2:
+            continue
+        group.sort(
+            key=lambda row: (
+                int(row.get("draft_chars") or 0),
+                int(row.get("req_count") or 0),
+                int(row.get("doc_count") or 0),
+                row.get("updated_at") or "",
+            ),
+            reverse=True,
+        )
+        keeper = group[0]
+        for dup in group[1:]:
+            if int(dup.get("draft_chars") or 0) > 0:
+                continue
+            if dup["opp_id"] == keeper["opp_id"]:
+                continue
+            delete(dup["opp_id"], actor)
+            removed.append(display_label(dup) + " (duplicate)")
+
+    return {"removed": removed, "remaining": len(list_all(500))}
 
 
 def get(opp_id: int) -> dict:

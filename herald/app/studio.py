@@ -38,13 +38,37 @@ def create_proposal(payload: dict, actor: str) -> dict:
     return {"proposal_id": opp_id}
 
 
-def list_proposals(limit: int = 100) -> list[dict]:
-    return [
-        {"proposal_id": o["opp_id"], "client_name": o["client_name"],
-         "status": o["gen_status"] if o["gen_status"] == "generating" else o["status"],
-         "updated_at": o["updated_at"]}
-        for o in opportunities.list_all(limit)
-    ]
+def list_proposals(limit: int = 100, *, include_empty: bool = False) -> list[dict]:
+    rows: list[dict] = []
+    for o in opportunities.list_all(limit):
+        draft_chars = int(o.get("draft_chars") or 0)
+        demo = opportunities.is_demo_or_blank(o, draft_chars=draft_chars)
+        if demo and not include_empty:
+            continue
+        gen = o.get("gen_status") or "idle"
+        rows.append({
+            "proposal_id": o["opp_id"],
+            "client_name": o["client_name"],
+            "agency": o.get("agency"),
+            "solicitation_no": o.get("solicitation_no"),
+            "due_date": o.get("due_date"),
+            "display_label": opportunities.display_label(o),
+            "status": gen if gen == "generating" else o["status"],
+            "updated_at": o["updated_at"],
+            "attachment_count": o.get("doc_count", 0),
+            "draft_chars": draft_chars,
+            "is_demo": demo,
+        })
+    return rows
+
+
+def delete_proposal(opp_id: int, actor: str) -> dict:
+    opportunities.delete(opp_id, actor)
+    return {"ok": True, "proposal_id": opp_id}
+
+
+def cleanup_demos(actor: str) -> dict:
+    return opportunities.cleanup_workspace(actor)
 
 
 def get_proposal(opp_id: int) -> dict:
@@ -56,13 +80,27 @@ def get_proposal(opp_id: int) -> dict:
         status = "error"
     else:
         status = opp["status"]
+    label = opportunities.display_label({
+        "client_name": opp["client_name"], "agency": opp.get("agency"),
+        "solicitation_no": opp.get("solicitation_no"), "due_date": opp.get("due_date"),
+    })
+    draft_chars = len(opp.get("draft_text") or "")
     return {
         "proposal_id": opp["opp_id"],
         "client_name": opp["client_name"],
+        "display_label": label,
+        "agency": opp.get("agency"),
+        "solicitation_no": opp.get("solicitation_no"),
+        "due_date": opp.get("due_date"),
+        "draft_chars": draft_chars,
+        "is_demo": opportunities.is_demo_or_blank(
+            {"client_name": opp["client_name"], "doc_count": len(opp.get("documents") or []),
+             "req_count": len(opp.get("requirements") or [])},
+            draft_chars=draft_chars,
+        ),
         "status": status,
         "gen_status": gen,
         "rfp_doc_id": opp["rfp_doc_id"],
-        "due_date": opp["due_date"],
         "draft_text": opp["draft_text"],
         "extracted_json": opp["extracted_json"],
         "gen_error": opp["gen_error"],

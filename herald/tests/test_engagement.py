@@ -58,3 +58,26 @@ def test_capability_context_always_present():
     block = iteria_capabilities.context_for(profile)
     assert "ITERIA CAPABILITY BASELINE" in block
     assert "AI adoption" in block
+
+
+def test_display_label_uses_client_not_id():
+    from app import opportunities
+    label = opportunities.display_label({
+        "client_name": "Texas Tech University Health Sciences Center",
+        "agency": "TTUHSC",
+        "solicitation_no": "739-SL3821039",
+        "due_date": "2026-09-21",
+    })
+    assert "Texas Tech" in label
+    assert "739" in label
+    assert "83" not in label
+
+
+def test_is_demo_or_blank():
+    from app import opportunities
+    assert opportunities.is_demo_or_blank({"client_name": "SMOKE_TEST_CLIENT", "doc_count": 0})
+    assert opportunities.is_demo_or_blank({"client_name": "Untitled client", "doc_count": 0, "req_count": 0})
+    assert not opportunities.is_demo_or_blank(
+        {"client_name": "City of Nashua", "doc_count": 2, "req_count": 5},
+        draft_chars=1200,
+    )

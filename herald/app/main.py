@@ -674,8 +674,19 @@ def studio_create(body: dict = Body(...), user: dict = Depends(contributor)):
 
 
 @app.get("/api/proposals")
-def studio_list(limit: int = Query(100, le=200)):
-    return {"proposals": studio.list_proposals(limit)}
+def studio_list(limit: int = Query(100, le=200),
+                include_empty: bool = Query(False)):
+    return {"proposals": studio.list_proposals(limit, include_empty=include_empty)}
+
+
+@app.delete("/api/proposals/{opp_id}")
+def studio_delete(opp_id: int, user: dict = Depends(contributor)):
+    return studio.delete_proposal(opp_id, user["username"])
+
+
+@app.post("/api/proposals/cleanup-demos")
+def studio_cleanup_demos(user: dict = Depends(contributor)):
+    return studio.cleanup_demos(user["username"])
 
 
 @app.get("/api/proposals/{opp_id}")

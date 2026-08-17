@@ -2458,9 +2458,47 @@ window._formDirty = false;
 
 const FRP_STORAGE_KEY = 'frp_active_proposal_id';
 
+function _proposalDisplayLabel(item) {
+  if (item && item.display_label) return item.display_label;
+  const client = (item && item.client_name || '').trim();
+  const agency = (item && item.agency || '').trim();
+  const sol = (item && item.solicitation_no || '').trim();
+  const due = (item && item.due_date || '').trim();
+  const parts = [];
+  if (client && !/^untitled/i.test(client) && !/^smoke/i.test(client) && !/^audit/i.test(client)) {
+    parts.push(client);
+  } else if (agency) {
+    parts.push(agency);
+  } else {
+    parts.push('Unnamed bid');
+  }
+  if (agency && parts.indexOf(agency) === -1) parts.push(agency);
+  if (sol) parts.push('#' + sol);
+  if (due) parts.push('due ' + String(due).slice(0, 10));
+  return parts.join(' · ');
+}
+
+function _proposalMetaLine(item) {
+  const bits = [];
+  if (item.draft_chars > 0) bits.push('draft ready');
+  else if ((item.attachment_count || 0) > 0) bits.push('RFP attached');
+  else bits.push('not started');
+  if (item.updated_at) bits.push('updated ' + _formatRelativeTime(item.updated_at));
+  return bits.join(' · ');
+}
+
+function _isBlankProposal(p) {
+  if (!p) return true;
+  if (p.is_demo) return true;
+  const name = (p.client_name || '').trim().toLowerCase();
+  if (/^(untitled|smoke|audit_)/.test(name)) return true;
+  return !(p.draft_text && p.draft_text.length) &&
+    !(p.attachments && p.attachments.length) &&
+    name.indexOf('untitled') !== -1;
+}
+
 function _shortProposalId(id) {
-  if (!id) return '';
-  return id.length > 12 ? id.slice(0, 8) + '…' : id;
+  return id ? String(id) : '';
 }
 
 function _formatRelativeTime(iso) {
@@ -2488,7 +2526,7 @@ function updateProposalSwitcher(p) {
     title.textContent = 'Pick a proposal or start new…';
     return;
   }
-  const name = (p.client_name || '').trim() || 'Untitled proposal';
+  const name = _proposalDisplayLabel(p);
   const st = (p.status || 'draft').toLowerCase();
   title.textContent = name + ' · ' + st;
 }
@@ -2670,7 +2708,7 @@ async function ensureActiveProposal(opts) {
   if (!cp || !cp.proposal_id) throw new Error('create proposal did not return proposal_id');
   window._activeProposalId = cp.proposal_id;
   localStorage.setItem(FRP_STORAGE_KEY, cp.proposal_id);
-  setDocSaveStatus('saved', 'Draft created · ' + _shortProposalId(cp.proposal_id));
+  setDocSaveStatus('saved', 'Saved · ' + (payload.client_name || 'add client name'));
   updateProposalSwitcher({ proposal_id: cp.proposal_id, client_name: payload.client_name, status: 'draft' });
   return cp.proposal_id;
 }
@@ -2755,28 +2793,76 @@ function filterProposalPickerList() {
   });
 }
 
+window._showEmptyProposals = false;
+
+function toggleEmptyProposals() {
+  window._showEmptyProposals = !window._showEmptyProposals;
+  refreshProposalPickerList();
+}
+
+async function deleteProposalById(proposalId, label, ev) {
+  if (ev) ev.stopPropagation();
+  if (!window.FRP || !window.FRP.deleteProposal) return;
+  if (!confirm('Delete "' + label + '"? This cannot be undone.')) return;
+  try {
+    await window.FRP.deleteProposal(proposalId);
+    if (String(window._activeProposalId) === String(proposalId)) {
+      window._activeProposalId = null;
+      localStorage.removeItem(FRP_STORAGE_KEY);
+    }
+    await refreshProposalPickerList();
+    await renderProposalsInLibrary();
+  } catch (e) {
+    alert('Delete failed: ' + e.message);
+  }
+}
+
+async function cleanupDemoProposals(ev) {
+  if (ev) ev.preventDefault();
+  if (!window.FRP || !window.FRP.cleanupDemos) return;
+  if (!confirm('Remove all blank, test, and duplicate empty bids? Real drafts are kept.')) return;
+  try {
+    const r = await window.FRP.cleanupDemos();
+    const n = (r.removed || []).length;
+    alert('Removed ' + n + ' empty/test bid' + (n === 1 ? '' : 's') + '.');
+    window._activeProposalId = null;
+    localStorage.removeItem(FRP_STORAGE_KEY);
+    await refreshProposalPickerList();
+    await renderProposalsInLibrary();
+    openProposalPicker(false);
+  } catch (e) {
+    alert('Cleanup failed: ' + e.message);
+  }
+}
 async function refreshProposalPickerList() {
   const host = document.getElementById('proposal-picker-list');
   if (!host || !window.FRP) return;
   host.innerHTML = '<div class="proposal-picker-empty">Loading proposals…</div>';
   try {
-    const r = await window.FRP.listProposals(100);
+    const r = await window.FRP.listProposals(100, window._showEmptyProposals);
     const list = (r && r.proposals) || [];
     if (!list.length) {
-      host.innerHTML = '<div class="proposal-picker-empty">No saved proposals yet.<br>Click <strong>Start new proposal</strong> below.</div>';
+      host.innerHTML = '<div class="proposal-picker-empty">No active bids yet.<br>Click <strong>Start new proposal</strong> below.</div>';
       return;
     }
     host.innerHTML = list.map(function (item) {
       const active = item.proposal_id === window._activeProposalId ? ' active' : '';
-      const name = escapeHtml((item.client_name || '').trim() || 'Untitled proposal');
+      const name = escapeHtml(_proposalDisplayLabel(item));
       const st = escapeHtml((item.status || 'draft').toLowerCase());
-      const updated = escapeHtml(_formatRelativeTime(item.updated_at));
-      const search = escapeHtml((item.client_name || '') + ' ' + (item.proposal_id || '') + ' ' + (item.status || ''));
+      const meta = escapeHtml(_proposalMetaLine(item));
+      const search = escapeHtml(
+        (item.display_label || '') + ' ' + (item.client_name || '') + ' ' +
+        (item.agency || '') + ' ' + (item.solicitation_no || '') + ' ' + (item.status || '')
+      );
+      const del = item.is_demo
+        ? '<button type="button" class="tb-btn" style="font-size:10px;padding:4px 8px;margin-left:8px" onclick="deleteProposalById(' +
+          JSON.stringify(String(item.proposal_id)) + ',' + JSON.stringify(_proposalDisplayLabel(item)) + ', event)">Delete</button>'
+        : '';
       return '<div class="proposal-picker-row' + active + '" data-search="' + search + '" data-id="' + escapeHtml(item.proposal_id) + '" onclick="selectProposalFromPicker(\'' + escapeHtml(item.proposal_id).replace(/'/g, "\\'") + '\')">' +
         '<div class="proposal-picker-row-body">' +
         '<div class="proposal-picker-row-title">' + name + ' <span class="proposal-status-pill ' + st + '">' + st + '</span></div>' +
-        '<div class="proposal-picker-row-meta">' + escapeHtml(_shortProposalId(item.proposal_id)) + ' · updated ' + updated + '</div>' +
-        '</div></div>';
+        '<div class="proposal-picker-row-meta">' + meta + '</div>' +
+        '</div>' + del + '</div>';
     }).join('');
     filterProposalPickerList();
   } catch (e) {
@@ -2804,9 +2890,9 @@ async function renderProposalsInLibrary() {
         'No proposals yet.<br><button type="button" class="tb-btn tb-btn-primary" style="margin-top:12px" onclick="startNewProposal()">Start new</button></div>';
       return;
     }
-    host.innerHTML = '<div class="lib-group">Your proposals (newest first)</div>' + list.map(function (item) {
+    host.innerHTML = '<div class="lib-group">Your active bids</div>' + list.map(function (item) {
       const active = item.proposal_id === window._activeProposalId;
-      const name = escapeHtml((item.client_name || '').trim() || 'Untitled');
+      const name = escapeHtml(_proposalDisplayLabel(item));
       const st = (item.status || 'draft').toLowerCase();
       return '<div class="lib-item proposal-item' + (active ? ' active' : '') + '"' +
         ' style="' + (active ? 'border-color:var(--accent);background:var(--accent-soft)' : '') + '"' +
@@ -2814,8 +2900,7 @@ async function renderProposalsInLibrary() {
         '<div class="lib-ico ref">H</div>' +
         '<div class="lib-item-body">' +
         '<div class="lib-item-name">' + name + ' <span class="proposal-status-pill ' + st + '">' + escapeHtml(st) + '</span></div>' +
-        '<div class="lib-item-meta"><span>' + escapeHtml(_shortProposalId(item.proposal_id)) + '</span>' +
-        '<span>' + escapeHtml(_formatRelativeTime(item.updated_at)) + '</span></div>' +
+        '<div class="lib-item-meta"><span>' + escapeHtml(_proposalMetaLine(item)) + '</span></div>' +
         '</div></div>';
     }).join('');
   } catch (e) {
@@ -2843,6 +2928,12 @@ async function initProposalSession() {
   const lastId = localStorage.getItem(FRP_STORAGE_KEY);
   if (lastId) {
     try {
+      const p = await window.FRP.getProposal(lastId);
+      if (_isBlankProposal(p)) {
+        localStorage.removeItem(FRP_STORAGE_KEY);
+        openProposalPicker(true);
+        return;
+      }
       await loadProposalById(lastId, { quiet: true, skipConfirm: true });
       return;
     } catch (e) {
@@ -2869,8 +2960,8 @@ function renderProposal(p) {
   if (live)  live.style.display = '';
 
   const setText = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v == null ? '' : v; };
-  setText('rp-eyebrow', 'Proposal · ' + (p.proposal_id || '') + ' · status ' + (p.status || '—'));
-  setText('rp-h1', p.client_name || 'Untitled proposal');
+  setText('rp-eyebrow', (p.display_label || _proposalDisplayLabel(p)) + ' · ' + (p.status || '—'));
+  setText('rp-h1', p.client_name || p.display_label || 'Add client name');
   setText('rp-status', p.status || '—');
   setText('rp-attcount', (p.attachments || []).length);
   setText('rp-updated', (p.updated_at || '').replace('T', ' ').replace('Z', ''));
@@ -3833,11 +3924,11 @@ document.addEventListener('DOMContentLoaded', function () {
       hint.innerHTML = '<span style="color:var(--muted-2)">No saved proposals yet — start new above.</span>';
       return;
     }
-    hint.innerHTML = '<div style="color:var(--muted-2);margin-bottom:8px">Recent:</div>' +
+    hint.innerHTML = '<div style="color:var(--muted-2);margin-bottom:8px">Recent bids:</div>' +
       list.map(function (item) {
         return '<button type="button" class="tb-btn" style="margin:4px;font-size:11px" onclick="selectProposalFromPicker(\'' +
           escapeHtml(item.proposal_id).replace(/'/g, "\\'") + '\')">' +
-          escapeHtml((item.client_name || 'Untitled').slice(0, 28)) + '</button>';
+          escapeHtml(_proposalDisplayLabel(item).slice(0, 42)) + '</button>';
       }).join('');
   }).catch(function () {});
 });
@@ -3871,12 +3962,16 @@ document.addEventListener('DOMContentLoaded', function () {
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"></path></svg>
       </button>
       <div class="modal-eyebrow"><span class="modal-eyebrow-dot"></span>Drafts in FRP</div>
-      <h2 style="font-family:'Instrument Serif',serif;font-weight:400;margin:0">Pick a <em>proposal</em> or start new</h2>
-      <p class="modal-sub">Drafts save to the database. Search the library, attach solicitations, generate — pick up any in-progress ERP anytime.</p>
+      <h2 style="font-family:'Instrument Serif',serif;font-weight:400;margin:0">Pick a <em>client bid</em></h2>
+      <p class="modal-sub">Each row is labeled by client and RFP — not internal numbers. Blank and test bids are hidden unless you show them.</p>
     </div>
     <div class="modal-body">
       <button type="button" class="proposal-new-cta" onclick="startNewProposal()">+ Start new proposal</button>
-      <input type="search" class="proposal-picker-search" id="proposal-picker-search" placeholder="Search by client name or ID…" oninput="filterProposalPickerList()">
+      <div style="display:flex;gap:8px;margin:8px 0">
+        <button type="button" class="tb-btn" style="font-size:11px" onclick="cleanupDemoProposals(event)">Remove blank &amp; test bids</button>
+        <button type="button" class="tb-btn" style="font-size:11px" onclick="toggleEmptyProposals()">Show/hide empty</button>
+      </div>
+      <input type="search" class="proposal-picker-search" id="proposal-picker-search" placeholder="Search by client, agency, or RFP number…" oninput="filterProposalPickerList()">
       <div class="proposal-picker-list" id="proposal-picker-list">
         <div class="proposal-picker-empty">Loading…</div>
       </div>
