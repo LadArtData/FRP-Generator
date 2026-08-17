@@ -169,11 +169,21 @@ def get(doc_id: int) -> dict:
 
 def get_text(doc_id: int) -> str:
     with cursor() as cur:
-        cur.execute("SELECT doc_text FROM harald_documents WHERE doc_id = :d", {"d": doc_id})
+        cur.execute("SELECT doc_text, filename FROM harald_documents WHERE doc_id = :d",
+                    {"d": doc_id})
         row = cur.fetchone()
     if not row:
         raise NotFound(f"Document {doc_id} not found.")
-    return clob(row[0])
+    text = clob(row[0]) or ""
+    if text.strip():
+        return text
+    # Older uploads (e.g. plain .txt before extract support) may have blob only.
+    try:
+        blob, filename = get_blob(doc_id)
+        blocks = chunking.extract(filename, blob)
+        return chunking.plain_text(blocks)
+    except Exception:
+        return text
 
 
 def get_blob(doc_id: int) -> tuple[bytes, str]:

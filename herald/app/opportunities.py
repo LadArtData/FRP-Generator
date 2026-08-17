@@ -310,7 +310,7 @@ def requirement(req_id: int) -> dict:
 def save_draft(req_id: int, draft: str | None, sources: list | None = None,
                final: str | None = None) -> None:
     """Upsert a draft. Writing a draft sets status drafted; a humanize pass sets
-    review. A requirement already marked complete is not downgraded."""
+    reviewed. A requirement already marked complete is not downgraded."""
     payload = json.dumps(sources or [])
     with transaction() as conn:
         cur = conn.cursor()
@@ -344,7 +344,7 @@ def save_draft(req_id: int, draft: str | None, sources: list | None = None,
         cur.execute(
             "UPDATE harald_requirements SET status = :s WHERE req_id = :r "
             "AND status NOT IN ('complete', 'reviewed')",
-            {"s": "review" if final is not None else "drafted", "r": req_id},
+            {"s": "reviewed" if final is not None else "drafted", "r": req_id},
         )
 
 

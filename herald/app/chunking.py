@@ -242,6 +242,18 @@ def extract_xlsx(data: bytes) -> list[tuple[str, str]]:
     return blocks
 
 
+def extract_txt(data: bytes) -> list[tuple[str, str]]:
+    for encoding in ("utf-8", "utf-8-sig", "cp1252", "latin-1"):
+        try:
+            text = data.decode(encoding).strip()
+            break
+        except UnicodeDecodeError:
+            text = ""
+    if not text:
+        raise ValidationFailed("The text file is empty or uses an unsupported encoding.")
+    return [("body", text)]
+
+
 def extract(filename: str, data: bytes) -> list[tuple[str, str]]:
     name = (filename or "").lower()
     try:
@@ -251,6 +263,8 @@ def extract(filename: str, data: bytes) -> list[tuple[str, str]]:
             return extract_xlsx(data)
         if name.endswith(".docx"):
             return extract_docx(data)
+        if name.endswith((".txt", ".md", ".csv")):
+            return extract_txt(data)
     except ValidationFailed:
         raise
     except Exception as exc:
@@ -265,7 +279,7 @@ def extract(filename: str, data: bytes) -> list[tuple[str, str]]:
         raise ValidationFailed(
             f"{filename} is the legacy Word format. Save it as .docx and upload again.")
     raise ValidationFailed(
-        f"Unsupported file type: {filename}. Upload DOCX, PDF, or XLSX.")
+        f"Unsupported file type: {filename}. Upload DOCX, PDF, XLSX, or TXT.")
 
 
 def plain_text(blocks: list[tuple[str, str]]) -> str:
