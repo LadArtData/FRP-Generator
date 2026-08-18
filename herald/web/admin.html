@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HAROLD — Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com/">
+<link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/harald.css">
+</head>
+<body>
+<div id="nav"></div>
+<div class="h-wrap wide" id="screen"></div>
+<script src="/harald.js"></script>
+<script>
+(function () {
+  "use strict";
+  var H = window.Harald;
+  var esc = H.escapeHtml;
+  var state = { tab: "formats", formats: [], queue: null, notes: [], audit: [], health: null };
+
+  function on(sel, evt, fn) {
+    document.querySelectorAll(sel).forEach(function (n) { n.addEventListener(evt, fn); });
+  }
+
+  async function boot() {
+    document.getElementById("nav").innerHTML = H.nav("/admin");
+    H.bindNav();
+    if (!H.requireSession()) return;
+    await loadTab();
+    render();
+  }
+
+  async function loadTab() {
+    try {
+      if (state.tab === "formats") {
+        state.formats = await H.api.get("/api/formats");
+      } else if (state.tab === "freshness") {
+        state.queue = await H.api.get("/api/freshness/queue");
+        state.notes = await H.api.get("/api/freshness/notes");
+      } else if (state.tab === "audit") {
+        state.audit = await H.api.get("/api/audit?limit=200");
+      } else if (state.tab === "health") {
+        state.health = await H.api.get("/api/health");
+      }
+    } catch (error) { H.toast(error.message, "error"); }
+  }
+
+  function render() {
+    var tabs = [["formats", "Format profiles"], ["freshness", "Freshness"],
+                ["audit", "Audit trail"], ["health", "System"]];
+    var body = state.tab === "formats" ? formatsView()
+      : state.tab === "freshness" ? freshnessView()
+      : state.tab === "audit" ? auditView()
+      : healthView();
+
+    document.getElementById("screen").innerHTML =
+      '<div class="h-h1">Admin</div><div class="h-sub">Per-agency submission formats, the ' +
+      "freshness of the answer library, and the audit trail of every state change.</div>" +
+      '<div class="h-tabs">' + tabs.map(function (t) {
+        return '<button data-tab="' + t[0] + '"' + (state.tab === t[0] ? ' class="on"' : "") +
+          ">" + t[1] + "</button>";
+      }).join("") + "</div>" +
+      '<div style="margin-top:20px">' + body + "</div>";
+
+    on("[data-tab]", "click", async function (e) {
+      state.tab = e.currentTarget.getAttribute("data-tab");
+      await loadTab();
+      render();
+    });
+    bindBody();
+  }
+
+  function formatsView() {
+    var rows = state.formats.map(function (f) {
+      return '<div class="h-listrow"><div style="flex:1"><div class="name">' + esc(f.name) +
+        "</div>" +
+        '<div class="meta">' + (f.agency ? esc(f.agency) + " &middot; " : "") +
+        f.section_count + " sections &middot; " + esc(f.font_name) + " " + f.font_size + "pt" +
+        " &middot; " + f.margin_inches + '" margins</div></div>' +
+        '<button class="h-btn ghost sm" data-clone="' + f.profile_id + '">Clone</button>' +
+        '<button class="h-btn ghost sm" data-editfmt="' + f.profile_id + '">Edit</button></div>';
+    }).join("");
+    return '<div class="h-row" style="justify-content:space-between">' +
+      '<div class="h-section" style="margin:0">Submission formats</div>' +
+      '<button class="h-btn sm" id="new-format">New profile</button></div>' +
+      '<div style="margin-top:10px">' + rows + "</div>" +
+      '<div class="h-hint">A profile drives package assembly: the page order, the heading ' +
+      "scheme, fonts and margins, and the forms that must accompany the response. Clone the " +
+      "default per agency and set its page order to the agency's required structure.</div>";
+  }
+
+  function freshnessView() {
+    var q = state.queue || { overdue: [], overdue_count: 0, current_count: 0 };
+    var overdue = q.overdue.length ? q.overdue.map(function (a) {
+      return '<div class="h-listrow"><div style="flex:1"><div class="name">' +
+        esc(a.question_canonical) + "</div>" +
+        '<div class="meta">' + (a.module_tag || "") +
+        (a.owner_sme ? " &middot; " + esc(a.owner_sme) : "") +
+        (a.review_due ? " &middot; due " + esc(a.review_due) : " &middot; never dated") +
+        (a.times_used ? " &middot; used " + a.times_used + "x" : "") + "</div></div>" +
+        '<button class="h-btn ghost sm" data-reviewed="' + a.ans_id + '">Still accurate</button>' +
+        "</div>";
+    }).join("") : '<div class="h-hint">Nothing overdue. Every approved answer has a future ' +
+      "review date.</div>";
+
+    var notes = state.notes.length ? state.notes.map(function (n) {
+      return '<div class="h-listrow"><div style="flex:1"><div class="name">' + esc(n.title) +
+        "</div>" +
+        '<div class="meta">' + (n.release_version ? esc(n.release_version) + " &middot; " : "") +
+        (n.published_date || "") + "</div></div>" +
+        '<button class="h-btn sm" data-assess="' + n.note_id + '">Assess impact</button></div>';
+    }).join("") : '<div class="h-hint">No release notes ingested yet.</div>';
+
+    return '<div class="h-metrics">' +
+      '<div class="h-metric' + (q.overdue_count ? " warn" : "") + '"><div class="v">' +
+      q.overdue_count + '</div><div class="l">Answers overdue</div></div>' +
+      '<div class="h-metric good"><div class="v">' + q.current_count +
+      '</div><div class="l">Current</div></div>' +
+      '<div class="h-metric"><div class="v">' + state.notes.length +
+      '</div><div class="l">Release notes</div></div>' +
+      '<div class="h-metric"><div class="v">6</div><div class="l">Month cadence</div></div></div>' +
+      '<div class="h-section">Review queue</div>' + overdue +
+      '<div class="h-row" style="justify-content:space-between;margin-top:22px">' +
+      '<div class="h-section" style="margin:0">Oracle release notes</div>' +
+      '<label class="h-btn sm" style="cursor:pointer">Ingest release note' +
+      '<input type="file" style="display:none" id="note-file"></label></div>' +
+      '<div style="margin-top:10px">' + notes + "</div>" +
+      '<div class="h-hint">Assess impact finds the approved answers nearest to a release and ' +
+      "asks the model whether the release actually changes what each one claims. Answers that are " +
+      "genuinely affected are flagged for their SME. A capability that was a modification and is " +
+      "now standard is exactly the drift that loses bids.</div>";
+  }
+
+  function auditView() {
+    var rows = state.audit.map(function (e) {
+      return "<tr><td class=\"mono\" style=\"font-size:10px;color:var(--muted);white-space:nowrap\">" +
+        esc((e.at || "").replace("T", " ").slice(0, 19)) + "</td>" +
+        "<td>" + esc(e.actor) + "</td>" +
+        '<td><span class="h-tag">' + esc(e.action) + "</span></td>" +
+        "<td>" + esc(e.entity_type || "") + (e.entity_id ? " " + e.entity_id : "") + "</td>" +
+        '<td class="mono" style="font-size:10px;color:var(--muted)">' +
+        esc((e.detail || "").slice(0, 120)) + "</td></tr>";
+    }).join("");
+    return '<table class="h-table"><thead><tr><th>When</th><th>Actor</th><th>Action</th>' +
+      "<th>Entity</th><th>Detail</th></tr></thead><tbody>" + rows + "</tbody></table>";
+  }
+
+  function healthView() {
+    var h = state.health || {};
+    var library = h.library || {};
+    var ans = h.answers || {};
+    return '<div class="h-metrics">' +
+      '<div class="h-metric' + (h.ok ? " good" : " warn") + '"><div class="v">' +
+      (h.ok ? "up" : "down") + '</div><div class="l">Database</div></div>' +
+      '<div class="h-metric"><div class="v">' + (library.narrative_docs || 0) +
+      '</div><div class="l">Library documents</div></div>' +
+      '<div class="h-metric"><div class="v">' + (library.total_chunks || 0) +
+      '</div><div class="l">Indexed passages</div></div>' +
+      '<div class="h-metric"><div class="v">' + (ans.approved || 0) +
+      '</div><div class="l">Approved answers</div></div></div>' +
+      '<div class="h-card" style="padding:18px;margin-top:16px">' +
+      '<div class="h-section" style="margin-top:0">Models</div>' +
+      '<div class="mono" style="font-size:12px;line-height:1.9">' +
+      "draft: " + esc(h.draft_model || "") + "<br>polish: " + esc(h.polish_model || "") +
+      "<br>embeddings: " + esc(h.embed_model || "") + " (" + (h.embed_dim || 0) + "d, local)" +
+      "</div>" +
+      '<div class="h-hint">OCI Generative AI is the only model service. Embeddings run inside this container, so ' +
+      "no OCI Generative AI service is called anywhere in the system.</div></div>" +
+      (library.by_module && library.by_module.length
+        ? '<div class="h-card" style="padding:18px;margin-top:14px">' +
+          '<div class="h-section" style="margin-top:0">Library by module</div>' +
+          library.by_module.map(function (m) {
+            return '<div class="h-row" style="justify-content:space-between;padding:4px 0">' +
+              '<span class="h-tag">' + esc(m.module) + "</span>" +
+              '<span style="font-size:12px;color:var(--muted)">' + m.count + " passages</span></div>";
+          }).join("") + "</div>"
+        : "");
+  }
+
+  function bindBody() {
+    on("#new-format", "click", function () { formatEditor(null); });
+    on("[data-editfmt]", "click", async function (e) {
+      try {
+        formatEditor(await H.api.get("/api/formats/" + e.currentTarget.getAttribute("data-editfmt")));
+      } catch (error) { H.toast(error.message, "error"); }
+    });
+    on("[data-clone]", "click", async function (e) {
+      var name = prompt("Name for the cloned profile?");
+      if (!name) return;
+      var agency = prompt("Agency (optional)?") || null;
+      try {
+        await H.api.post("/api/formats/" + e.currentTarget.getAttribute("data-clone") + "/clone",
+                         { name: name, agency: agency });
+        await loadTab();
+        render();
+        H.toast("Profile cloned.");
+      } catch (error) { H.toast(error.message, "error"); }
+    });
+    on("[data-reviewed]", "click", async function (e) {
+      try {
+        await H.api.post("/api/answers/" + e.currentTarget.getAttribute("data-reviewed") +
+                         "/reviewed", { months: 6 });
+        await loadTab();
+        render();
+        H.toast("Marked reviewed.");
+      } catch (error) { H.toast(error.message, "error"); }
+    });
+    on("[data-assess]", "click", async function (e) {
+      var button = e.currentTarget;
+      button.disabled = true;
+      button.innerHTML = '<span class="h-spin"></span> Assessing...';
+      try {
+        var result = await H.api.post("/api/freshness/notes/" +
+                                      button.getAttribute("data-assess") + "/assess");
+        await loadTab();
+        render();
+        if (!result.affected.length) {
+          H.toast("Assessed " + result.assessed + " answers. None affected.");
+        } else {
+          H.modal(
+            '<div class="h-modal-head">' + result.affected.length + " answer(s) affected</div>" +
+            '<div class="h-modal-body">' + result.affected.map(function (a) {
+              return '<div class="h-card" style="padding:12px 14px;margin-bottom:10px">' +
+                '<div style="font-weight:600;font-size:13px">' + esc(a.question) + "</div>" +
+                '<div style="font-size:12px;color:var(--muted);margin-top:5px">' +
+                esc(a.reason) + "</div>" +
+                (a.suggested_update
+                  ? '<div style="font-size:12px;margin-top:6px"><b>Suggested:</b> ' +
+                    esc(a.suggested_update) + "</div>"
+                  : "") +
+                (a.owner_sme
+                  ? '<div class="mono" style="font-size:10px;color:var(--muted);margin-top:6px">' +
+                    "owner " + esc(a.owner_sme) + "</div>"
+                  : "") + "</div>";
+            }).join("") +
+            '<div class="h-hint">These answers are flagged for review now. Their owners should ' +
+            "confirm or update them.</div></div>" +
+            '<div class="h-modal-foot"><button class="h-btn" id="ok">Close</button></div>',
+            function (root) { root.querySelector("#ok").addEventListener("click", H.closeModal); }
+          );
+        }
+      } catch (error) {
+        H.toast(error.message, "error");
+        button.disabled = false;
+        button.textContent = "Assess impact";
+      }
+    });
+    on("#note-file", "change", async function (e) {
+      var file = e.target.files[0];
+      if (!file) return;
+      e.target.value = "";
+      var version = prompt("Oracle release version (optional), e.g. 25C") || "";
+      var form = new FormData();
+      form.append("file", file);
+      if (version) form.append("release_version", version);
+      try {
+        await H.api.upload("/api/freshness/notes", form);
+        await loadTab();
+        render();
+        H.toast("Release note ingested. Press Assess impact to check the library against it.");
+      } catch (error) { H.toast(error.message, "error"); }
+    });
+  }
+
+  function formatEditor(profile) {
+    var p = profile || {
+      name: "", agency: "", font_name: "Calibri", font_size: 11, margin_inches: 1,
+      cover_required: "Y", toc_required: "Y",
+      page_order: [{ key: "exec_summary", title: "Executive Summary", source: "generated" }],
+      required_forms: []
+    };
+    H.modal(
+      '<div class="h-modal-head">' + (p.profile_id ? "Edit" : "New") + " format profile</div>" +
+      '<div class="h-modal-body">' +
+      '<div class="h-row" style="gap:12px"><div class="h-field" style="flex:1"><label>Name</label>' +
+      '<input class="h-input" id="f-name" value="' + esc(p.name) + '"></div>' +
+      '<div class="h-field" style="flex:1"><label>Agency</label>' +
+      '<input class="h-input" id="f-agency" value="' + esc(p.agency || "") + '"></div></div>' +
+      '<div class="h-row" style="gap:12px"><div class="h-field" style="flex:1"><label>Font</label>' +
+      '<input class="h-input" id="f-font" value="' + esc(p.font_name) + '"></div>' +
+      '<div class="h-field" style="flex:1"><label>Size (pt)</label>' +
+      '<input class="h-input" id="f-size" type="number" value="' + p.font_size + '"></div>' +
+      '<div class="h-field" style="flex:1"><label>Margin (in)</label>' +
+      '<input class="h-input" id="f-margin" type="number" step="0.25" value="' +
+      p.margin_inches + '"></div></div>' +
+      '<div class="h-field"><label>Page order (JSON)</label>' +
+      '<textarea class="h-input mono" id="f-order" style="min-height:180px;font-size:11px">' +
+      esc(JSON.stringify(p.page_order, null, 2)) + "</textarea></div>" +
+      '<div class="h-field"><label>Required forms (JSON array)</label>' +
+      '<textarea class="h-input mono" id="f-forms" style="min-height:60px;font-size:11px">' +
+      esc(JSON.stringify(p.required_forms || [], null, 2)) + "</textarea></div>" +
+      '<div class="h-hint">Each page-order entry needs a title and a source. Sources: ' +
+      "<b>generated</b> (the model drafts it from the library), <b>requirements</b> (the drafted " +
+      "requirements, grouped by module), <b>pricing</b> (the approver's cost proposal), " +
+      "<b>form</b> (the required forms list), <b>manual</b> (left blank for the team).</div></div>" +
+      '<div class="h-modal-foot"><button class="h-btn ghost" id="f-cancel">Cancel</button>' +
+      '<button class="h-btn" id="f-save">Save</button></div>',
+      function (root) {
+        root.querySelector("#f-cancel").addEventListener("click", H.closeModal);
+        root.querySelector("#f-save").addEventListener("click", async function () {
+          var payload;
+          try {
+            payload = {
+              name: root.querySelector("#f-name").value.trim(),
+              agency: root.querySelector("#f-agency").value.trim() || null,
+              font_name: root.querySelector("#f-font").value.trim(),
+              font_size: +root.querySelector("#f-size").value,
+              margin_inches: +root.querySelector("#f-margin").value,
+              page_order: JSON.parse(root.querySelector("#f-order").value),
+              required_forms: JSON.parse(root.querySelector("#f-forms").value)
+            };
+          } catch (error) {
+            H.toast("The JSON is not valid: " + error.message, "error");
+            return;
+          }
+          var button = root.querySelector("#f-save");
+          button.disabled = true;
+          button.innerHTML = '<span class="h-spin"></span>';
+          try {
+            if (p.profile_id) await H.api.patch("/api/formats/" + p.profile_id, payload);
+            else await H.api.post("/api/formats", payload);
+            H.closeModal();
+            await loadTab();
+            render();
+            H.toast("Profile saved.");
+          } catch (error) {
+            H.toast(error.message, "error");
+            button.disabled = false;
+            button.textContent = "Save";
+          }
+        });
+      }
+    );
+  }
+
+  boot();
+})();
+</script>
+</body>
+</html>
