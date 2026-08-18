@@ -54,5 +54,5 @@ jobs:
 
       - name: Summary
         run: |
-          echo "Pushed bom.ocir.io/bmi3vxyqnzrv/harald/harald:latest"
+          echo "Pushed bom.ocir.io/bmi3vxyqnzrv/harald/harald:Latest"
           echo "Create a Container Instance with that image. No env vars."
