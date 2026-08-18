@@ -82,6 +82,37 @@ AI_ENABLEMENT_LINES = [
 ]
 
 
+# Public-sector consulting that is neither an Oracle module rollout nor an AI
+# programme — needs assessments, procurement support, process work. Naming ERP
+# modules on one of these bids is a tell that nobody read the solicitation.
+CONSULTING_LINES = [
+    {"category": "Discovery", "line_item": "Current-state assessment & stakeholder interviews",
+     "unit": "hours", "qty": None, "rate": None, "amount": None, "notes": "", "ai_suggested": False},
+    {"category": "Discovery", "line_item": "Requirements definition & documentation", "unit": "hours",
+     "qty": None, "rate": None, "amount": None, "notes": "", "ai_suggested": False},
+    {"category": "Analysis", "line_item": "Business process analysis & redesign", "unit": "hours",
+     "qty": None, "rate": None, "amount": None, "notes": "", "ai_suggested": False},
+    {"category": "Analysis", "line_item": "Alternatives analysis & recommendations", "unit": "hours",
+     "qty": None, "rate": None, "amount": None, "notes": "", "ai_suggested": False},
+    {"category": "Advisory", "line_item": "Procurement & solicitation support", "unit": "hours",
+     "qty": None, "rate": None, "amount": None, "notes": "", "ai_suggested": False},
+    {"category": "Advisory", "line_item": "Implementation oversight & quality assurance",
+     "unit": "hours", "qty": None, "rate": None, "amount": None, "notes": "", "ai_suggested": False},
+    {"category": "Delivery", "line_item": "Project management", "unit": "hours",
+     "qty": None, "rate": None, "amount": None, "notes": "", "ai_suggested": False},
+    {"category": "Enablement", "line_item": "Stakeholder facilitation & workshops", "unit": "hours",
+     "qty": None, "rate": None, "amount": None, "notes": "", "ai_suggested": False},
+    {"category": "Enablement", "line_item": "Training & knowledge transfer", "unit": "hours",
+     "qty": None, "rate": None, "amount": None, "notes": "", "ai_suggested": False},
+    {"category": "Transition", "line_item": "Documentation & transition support", "unit": "hours",
+     "qty": None, "rate": None, "amount": None, "notes": "", "ai_suggested": False},
+    {"category": "Other", "line_item": "Travel & expenses", "unit": "lump",
+     "qty": 1, "rate": None, "amount": None, "notes": "", "ai_suggested": False},
+    {"category": "Other", "line_item": "Contingency", "unit": "lump",
+     "qty": 1, "rate": None, "amount": None, "notes": "", "ai_suggested": False},
+]
+
+
 _ORA_NAME_ALREADY_USED = 955
 
 # DDL is a startup concern, not a per-request one. Once the objects are known to
@@ -164,12 +195,34 @@ def ensure_table() -> None:
 
 
 def default_lines_for(opp_id: int) -> list[dict]:
+    """Starting line items matched to what the bid actually is.
+
+    There used to be two shapes here — AI enablement, and everything else gets
+    the Oracle ERP module list. That put "Financials configuration", "HCM
+    configuration" and "Payroll configuration" on the Jefferson County Sheriff's
+    Office and Town of Salem bids, which are public-sector consulting
+    engagements with no ERP modules in scope. A pricing sheet that names work
+    the client never asked for is worse than an empty one: it reads as a
+    template nobody looked at.
+    """
     opp = opportunities.get(opp_id)
     rfp_text, parsed = opportunities.grounding_context(opp)
     profile = engagement.classify_opportunity(parsed, rfp_text)
     if profile.kind == "ai_enablement":
         return [dict(row) for row in AI_ENABLEMENT_LINES]
-    return [dict(row) for row in DEFAULT_LINES]
+    if profile.kind == "erp_modernization":
+        return [dict(row) for row in DEFAULT_LINES]
+    if profile.kind == "mixed":
+        # Oracle delivery plus the AI advisory work, de-duplicated by line item.
+        merged, seen = [], set()
+        for row in list(DEFAULT_LINES) + list(AI_ENABLEMENT_LINES):
+            key = row["line_item"].strip().lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            merged.append(dict(row))
+        return merged
+    return [dict(row) for row in CONSULTING_LINES]
 
 
 def _num(value):
@@ -273,6 +326,7 @@ _SELECT = """SELECT matrix_id, opp_id, price_id, engagement_type, industry, modu
 
 def get_for_opportunity(opp_id: int) -> dict:
     ensure_table()
+    saved = None
     with cursor() as cur:
         cur.execute(
             f"{_SELECT} WHERE opp_id = :o ORDER BY updated_at DESC "
@@ -280,8 +334,15 @@ def get_for_opportunity(opp_id: int) -> dict:
             {"o": opp_id},
         )
         row = cur.fetchone()
-    if row:
-        return _row_to_dict(row)
+        # lines_json and suggested_from are CLOBs. _row_to_dict reads both
+        # locators, so it has to run before the pool takes the connection back —
+        # otherwise the first time anyone reloads a bid whose matrix has been
+        # saved, section 07 dies. It has not fired yet only because every bid
+        # currently has matrix_id None and never reaches this branch.
+        if row:
+            saved = _row_to_dict(row)
+    if saved is not None:
+        return saved
     ctx = _context_from_opp(opp_id)
     lines = default_lines_for(opp_id)
     return {
