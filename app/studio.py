@@ -20,7 +20,7 @@ from docx.shared import Pt
 
 from . import (audit, documents, engagement, field_mapping, generation,
                iteria_capabilities, opportunities, packages, pricing_matrix,
-               questionnaires)
+               proposal_docx, questionnaires)
 from .db import cursor, transaction
 from .errors import NotFound, ValidationFailed
 
@@ -438,80 +438,38 @@ async def assemble_package(opp_id: int, actor: str) -> dict:
 
 
 def export_docx(opp_id: int) -> tuple[bytes, str]:
-    """Build a Word document from the saved Studio draft for download."""
+    """Build a submittable Word proposal from the saved Studio draft.
+
+    Rendering lives in proposal_docx: title page, live table of contents,
+    heading hierarchy, real tables, and page numbers. What used to come out of
+    here was a heading followed by the draft as flat paragraphs, which is not
+    something a procurement office can accept.
+    """
     opp = opportunities.get(opp_id)
     form = _studio_form(opp)
     client = (opp.get("client_name") or form.get("client_name") or "Proposal").strip()
 
-    document = Document()
-    style = document.styles["Normal"]
-    style.font.name = "Calibri"
-    style.font.size = Pt(11)
+    solicitation = (opp.get("solicitation_no") or form.get("rfp_number") or "").strip()
+    due = opp.get("due_date") or form.get("due_date") or ""
+    engagement_label = (form.get("engagement_type") or "").strip()
 
-    document.add_heading(client, level=0)
-    meta = document.add_paragraph()
-    meta_bits = [f"Status: {opp.get('status') or 'draft'}"]
-    if opp.get("due_date"):
-        meta_bits.append(f"Due: {opp['due_date']}")
-    if form.get("rfp_number"):
-        meta_bits.append(f"Solicitation: {form['rfp_number']}")
-    meta_bits.append(f"Proposal ID: {opp_id}")
-    meta.add_run(" · ".join(meta_bits)).italic = True
+    meta = {
+        "title": client,
+        "subtitle": engagement_label or "Proposal",
+        "client": client,
+        "solicitation": f"RFP {solicitation}" if solicitation else None,
+        "due_date": str(due) if due else None,
+        "firm": "iteria.us, Inc.",
+        "firm_address": "1712 Pioneer Ave, Suite 1983, Cheyenne, WY 82001",
+        "firm_contact": "Brian Schell, President & CEO · 630-240-4072 · brian.schell@iteria.us",
+        "footer": f"{client}{' · ' + solicitation if solicitation else ''}",
+    }
 
-    summary_keys = [
-        ("industry", "Industry"),
-        ("primary_contact", "Primary contact"),
-        ("annual_budget", "Annual budget / revenue"),
-        ("legacy_systems", "Current ERP / systems"),
-        ("engagement_type", "Engagement type"),
-        ("primary_competition", "Primary competition"),
-        ("win_theme", "Win theme"),
-        ("project_manager", "Project manager"),
-        ("solution_architect", "Solution architect"),
-    ]
-    summary_rows = []
-    for key, label in summary_keys:
-        value = form.get(key)
-        if value:
-            summary_rows.append((label, str(value)))
-    for key, label in (("pain_points", "Pain points"), ("proposed_modules", "Proposed modules")):
-        value = form.get(key)
-        if isinstance(value, list) and value:
-            summary_rows.append((label, ", ".join(str(v) for v in value)))
-        elif value:
-            summary_rows.append((label, str(value)))
-
-    if summary_rows:
-        document.add_heading("Proposal inputs", level=1)
-        for label, value in summary_rows:
-            paragraph = document.add_paragraph()
-            paragraph.add_run(f"{label}: ").bold = True
-            paragraph.add_run(value)
-
-    draft = (opp.get("draft_text") or "").strip()
-    document.add_heading("Draft", level=1)
-    if not draft:
-        document.add_paragraph("No draft text yet. Run Generate, then export again.")
-    else:
-        for block in re.split(r"\n\s*\n", draft):
-            block = block.strip()
-            if not block:
-                continue
-            lines = block.splitlines()
-            first = lines[0].strip()
-            if first.startswith("#"):
-                level = min(len(first) - len(first.lstrip("#")), 3)
-                title = first.lstrip("#").strip() or "Section"
-                document.add_heading(title, level=level)
-                body = "\n".join(lines[1:]).strip()
-                if body:
-                    document.add_paragraph(body)
-            else:
-                document.add_paragraph(block)
+    document = proposal_docx.build(opp.get("draft_text") or "", meta)
 
     buffer = io.BytesIO()
     document.save(buffer)
-    filename = f"{_safe_filename(client)}.docx"
+    filename = f"{_safe_filename(client)}_Proposal.docx"
     return buffer.getvalue(), filename
 
 
