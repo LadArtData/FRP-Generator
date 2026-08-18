@@ -141,6 +141,77 @@ def attach(opp_id: int, doc_id: int, role: str | None, actor: str) -> dict:
     return {"ok": True}
 
 
+# Filename signals for picking the real solicitation out of an attachment set.
+# A bid arrives as "RFP Specifications.pdf" plus Attachments A through C2, or as
+# six files numbered 5259-5264. Parsing whichever one happens to be rfp_doc_id
+# gives you the requirements matrix, or a school finance workbook, and the bid
+# comes back with client_name "County" and nothing else.
+_PRIMARY_NAME_HINTS = (
+    (r"\bspecification", 40), (r"\brfp\b", 30), (r"\brfq\b", 30), (r"\brfi\b", 25),
+    (r"solicitation", 30), (r"scope of work", 30), (r"\bsow\b", 20),
+    (r"invitation to bid", 25), (r"\bitb\b", 20), (r"request for", 25),
+)
+_SECONDARY_NAME_HINTS = (
+    (r"attachment", -35), (r"appendix", -35), (r"exhibit", -30),
+    (r"addend", -10), (r"worksheet", -30), (r"matrix", -25),
+    (r"\bform\b", -30), (r"certification", -30), (r"calculator", -35),
+    (r"pricing", -20), (r"cost", -15), (r"reference", -20),
+)
+# A requirements workbook is a spreadsheet; the solicitation almost never is.
+_EXT_WEIGHT = {".pdf": 25, ".docx": 20, ".doc": 15, ".txt": 10,
+               ".xlsx": -30, ".xls": -30, ".xlsm": -30}
+
+
+def _solicitation_rank(filename: str, text_len: int) -> float:
+    name = (filename or "").lower()
+    score = 0.0
+    for pattern, weight in _PRIMARY_NAME_HINTS + _SECONDARY_NAME_HINTS:
+        if re.search(pattern, name):
+            score += weight
+    for ext, weight in _EXT_WEIGHT.items():
+        if name.endswith(ext):
+            score += weight
+            break
+    # Length is the tie-breaker, not the driver: a 60-page RFP beats a 2-page
+    # form, but a huge spreadsheet should not beat a modest specification.
+    score += min(text_len, 120_000) / 4000.0
+    return score
+
+
+def _pick_solicitation(opp: dict, requested_doc_id: int) -> tuple[int, str]:
+    """Choose the document that actually is the solicitation.
+
+    Returns (doc_id, reason). Falls back to the requested document whenever the
+    opportunity has no better candidate, so a single-attachment bid behaves
+    exactly as before.
+    """
+    candidates = [d for d in (opp.get("documents") or [])
+                  if (d.get("doc_role") or d.get("role")) == "rfp"]
+    if len(candidates) <= 1:
+        return requested_doc_id, "only attachment"
+
+    ranked: list[tuple[float, int, str]] = []
+    for doc in candidates:
+        try:
+            text_len = len(documents.get_text(doc["doc_id"]) or "")
+        except Exception:  # noqa: BLE001 — a document we cannot read cannot win
+            log.warning("solicitation ranking: no text for doc=%s", doc.get("doc_id"))
+            text_len = 0
+        ranked.append((_solicitation_rank(doc.get("filename") or "", text_len),
+                       doc["doc_id"], doc.get("filename") or ""))
+    ranked.sort(key=lambda r: r[0], reverse=True)
+
+    best_score, best_id, best_name = ranked[0]
+    requested = next((r for r in ranked if r[1] == requested_doc_id), None)
+    # Only override the caller when the winner is clearly better, so an explicit
+    # choice by a human is not quietly discarded over a rounding difference.
+    if requested is not None and best_score - requested[0] < 15:
+        return requested_doc_id, "requested document ranked competitively"
+    log.info("solicitation pick: %s (score %.1f) over doc %s",
+             best_name, best_score, requested_doc_id)
+    return best_id, f"selected {best_name} from {len(candidates)} attachments"
+
+
 async def parse(doc_id: int) -> dict:
     """Autofill: read the solicitation, extract its fields, and persist them onto
     the bid so the Studio form and package assembly share the same understanding.
@@ -153,9 +224,15 @@ async def parse(doc_id: int) -> dict:
     still wins. Reconciling both halves in one transaction is what makes the
     button do what its label says.
     """
+    doc = documents.get(doc_id)
+    pick_reason = "single document"
+    if doc.get("opp_id"):
+        opp_for_pick = opportunities.get(doc["opp_id"])
+        doc_id, pick_reason = _pick_solicitation(opp_for_pick, doc_id)
+        doc = documents.get(doc_id)
+
     text = documents.get_text(doc_id)
     result = await generation.parse_rfp(text)
-    doc = documents.get(doc_id)
 
     fields = result["parsed_fields"]
     match_data = {"matches": result["matches"]}
@@ -189,6 +266,8 @@ async def parse(doc_id: int) -> dict:
             "changed_fields": changed,
             "conflicts": conflicts,
             "match_data": match_data,
+            "parsed_doc_id": doc_id,
+            "selection_reason": pick_reason,
             "filename": doc["filename"]}
 
 
