@@ -37,8 +37,14 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Inches, Pt, RGBColor
 
-ACCENT = RGBColor(0x1E, 0x4B, 0x77)
-MUTED = RGBColor(0x59, 0x59, 0x59)
+# Black text, serif body, no accent colour anywhere. Coloured headings and
+# heavy bold read as a generated deck; procurement offices expect a document
+# that looks like it came out of a law firm or an engineering practice. This
+# also matches iteria's own drafting rules, which prohibit decorative writing.
+INK = RGBColor(0x00, 0x00, 0x00)
+MUTED = RGBColor(0x44, 0x44, 0x44)
+BODY_FONT = "Times New Roman"
+HEAD_FONT = "Times New Roman"
 
 
 # ---------------------------------------------------------------------------
@@ -76,7 +82,7 @@ def _field(paragraph, instruction: str, placeholder: str = "") -> None:
     run._r.append(end)
 
 
-def _bottom_border(paragraph, size: int = 6, color: str = "1E4B77") -> None:
+def _bottom_border(paragraph, size: int = 6, color: str = "000000") -> None:
     pPr = paragraph._p.get_or_add_pPr()
     borders = OxmlElement("w:pBdr")
     bottom = OxmlElement("w:bottom")
@@ -144,18 +150,20 @@ def _runs(paragraph, text: str, *, bold: bool = False, size: int | None = None,
 
 def _configure_styles(document: Document) -> None:
     normal = document.styles["Normal"]
-    normal.font.name = "Calibri"
+    normal.font.name = BODY_FONT
     normal.font.size = Pt(11)
-    normal.paragraph_format.space_after = Pt(6)
+    normal.font.color.rgb = INK
+    normal.paragraph_format.space_after = Pt(8)
     normal.paragraph_format.line_spacing = 1.15
 
-    for level, size in ((1, 16), (2, 13), (3, 11.5)):
+    for level, size in ((1, 14), (2, 12), (3, 11)):
         style = document.styles[f"Heading {level}"]
-        style.font.name = "Calibri"
+        style.font.name = HEAD_FONT
         style.font.size = Pt(size)
         style.font.bold = True
-        style.font.color.rgb = ACCENT
-        style.paragraph_format.space_before = Pt(16 if level == 1 else 12)
+        style.font.italic = (level == 3)
+        style.font.color.rgb = INK
+        style.paragraph_format.space_before = Pt(18 if level == 1 else 12)
         style.paragraph_format.space_after = Pt(6)
         style.paragraph_format.keep_with_next = True
 
@@ -167,20 +175,20 @@ def _title_page(document: Document, meta: dict) -> None:
     title = document.add_paragraph()
     title.alignment = WD_ALIGN_PARAGRAPH.CENTER
     run = title.add_run(meta.get("title") or "Proposal")
-    run.font.size = Pt(26)
+    run.font.size = Pt(20)
     run.bold = True
-    run.font.color.rgb = ACCENT
+    run.font.color.rgb = INK
 
     if meta.get("subtitle"):
         subtitle = document.add_paragraph()
         subtitle.alignment = WD_ALIGN_PARAGRAPH.CENTER
         run = subtitle.add_run(meta["subtitle"])
-        run.font.size = Pt(14)
-        run.font.color.rgb = MUTED
+        run.font.size = Pt(13)
+        run.font.color.rgb = INK
 
     rule = document.add_paragraph()
     rule.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    _bottom_border(rule, size=12)
+    _bottom_border(rule, size=6)
 
     document.add_paragraph()
     for label, value in (
@@ -193,10 +201,9 @@ def _title_page(document: Document, meta: dict) -> None:
         line = document.add_paragraph()
         line.alignment = WD_ALIGN_PARAGRAPH.CENTER
         label_run = line.add_run(f"{label}: ")
-        label_run.font.color.rgb = MUTED
+        label_run.font.color.rgb = INK
         label_run.font.size = Pt(11)
         value_run = line.add_run(str(value))
-        value_run.bold = True
         value_run.font.size = Pt(11)
 
     for _ in range(6):
@@ -210,9 +217,9 @@ def _title_page(document: Document, meta: dict) -> None:
 
     firm = document.add_paragraph()
     firm.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    run = firm.add_run(meta.get("firm") or "iteria.us, Inc.")
+    run = firm.add_run(meta.get("firm") or "iteria")
     run.bold = True
-    run.font.size = Pt(14)
+    run.font.size = Pt(13)
 
     for line_text in (meta.get("firm_address"), meta.get("firm_contact")):
         if not line_text:
@@ -235,9 +242,9 @@ def _title_page(document: Document, meta: dict) -> None:
 def _toc_page(document: Document) -> None:
     heading = document.add_paragraph()
     run = heading.add_run("Table of Contents")
-    run.font.size = Pt(16)
+    run.font.size = Pt(14)
     run.bold = True
-    run.font.color.rgb = ACCENT
+    run.font.color.rgb = INK
     _bottom_border(heading)
 
     body = document.add_paragraph()
@@ -296,9 +303,9 @@ def _add_table(document: Document, rows: list[list[str]]) -> None:
             text = row_cells[column] if column < len(row_cells) else ""
             paragraph = cells[column].paragraphs[0]
             paragraph.paragraph_format.space_after = Pt(2)
-            _runs(paragraph, text, bold=(index == 0), size=9.5)
+            _runs(paragraph, text, bold=(index == 0), size=10)
             if index == 0:
-                _shade(cells[column], "EDF1F6")
+                _shade(cells[column], "F2F2F2")
         if index == 0:
             _repeat_header(table.rows[0])
     document.add_paragraph()
