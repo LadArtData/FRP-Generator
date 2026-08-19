@@ -60,6 +60,12 @@ MAX_HEADER_LABEL_LENGTH = 60
 # "placing an X in the most appropriate column".
 MATRIX_MARK = "X"
 
+# How many rows may be in flight at once during a fill, and how often to log
+# progress. A real requirements workbook runs to thousands of rows; answering
+# them all at once takes the application down with it.
+FILL_CONCURRENCY = 8
+FILL_LOG_EVERY = 50
+
 
 def _text(cell) -> str:
     if cell is None or cell.value is None:
@@ -505,8 +511,18 @@ def _persist_fill(qi_id: int, result: dict) -> None:
 
 
 async def fill(q_id: int, actor: str | None = None) -> None:
-    """Answer every unapproved row. Concurrency is bounded inside the model client,
-    so this runs as fast as the allowance permits without stampeding the API."""
+    """Answer every unapproved row, a bounded number at a time.
+
+    The comment this docstring replaced said concurrency was bounded inside the
+    model client. It is not. A bare gather over every pending row opened one
+    request per row, which was survivable at the 45 rows a mis-parsed workbook
+    produced and is not survivable at the 3,041 a correct parse produces: the
+    fan-out saturated the event loop and the whole application stopped
+    answering, including the pages an operator would use to see why.
+
+    A semaphore caps in-flight work. Progress is logged so a long fill is
+    observable rather than indistinguishable from a hang.
+    """
     import asyncio
 
     try:
@@ -522,7 +538,19 @@ async def fill(q_id: int, actor: str | None = None) -> None:
             except Exception:
                 log.debug("fill: no opp grounding for q_id=%s", q_id)
 
+        gate = asyncio.Semaphore(FILL_CONCURRENCY)
+        done = 0
+        total = len(pending)
+
         async def answer_one(item: dict) -> None:
+            nonlocal done
+            async with gate:
+                await _answer_row(item, rfp_text, parsed_fields)
+            done += 1
+            if done % FILL_LOG_EVERY == 0 or done == total:
+                log.info("fill q_id=%s %s/%s rows", q_id, done, total)
+
+        async def _answer_row(item: dict, rfp_text: str, parsed_fields: dict) -> None:
             module = classifier.module_of(item["question"])
             try:
                 result = await generation.answer_question(
@@ -545,6 +573,8 @@ async def fill(q_id: int, actor: str | None = None) -> None:
                 }
             _persist_fill(item["qi_id"], result)
 
+        log.info("fill q_id=%s starting %s rows, %s at a time",
+                 q_id, total, FILL_CONCURRENCY)
         await asyncio.gather(*(answer_one(item) for item in pending))
         set_status(q_id, "filled")
         audit.record(actor, "questionnaire.fill", "questionnaire", q_id,
