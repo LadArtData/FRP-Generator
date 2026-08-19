@@ -205,3 +205,32 @@ def test_matrix_export_survives_round_trip():
     workbook.save(buffer)
     buffer.seek(0)
     assert load_workbook(buffer).active["D12"].value == MATRIX_MARK
+
+
+# ---------------------------------------------------------------------------
+# Fill concurrency. A bare gather over 3,041 rows took the application down.
+# ---------------------------------------------------------------------------
+
+def test_fill_bounds_concurrency():
+    import inspect
+    from app import questionnaires
+    src = inspect.getsource(questionnaires.fill)
+    assert "asyncio.Semaphore(FILL_CONCURRENCY)" in src, (
+        "fill must cap in-flight rows; an unbounded gather over a real "
+        "requirements workbook saturates the event loop"
+    )
+    gate = src.index("async with gate")
+    call = src.index("_answer_row(item")
+    assert gate < call, "the semaphore must be held across the model call"
+
+
+def test_fill_concurrency_is_sane():
+    from app import questionnaires
+    assert 1 <= questionnaires.FILL_CONCURRENCY <= 32
+
+
+def test_fill_logs_progress():
+    import inspect
+    from app import questionnaires
+    src = inspect.getsource(questionnaires.fill)
+    assert "FILL_LOG_EVERY" in src, "a long fill must be distinguishable from a hang"
