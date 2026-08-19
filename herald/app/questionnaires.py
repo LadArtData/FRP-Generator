@@ -458,7 +458,26 @@ def export(q_id: int) -> tuple[bytes, str]:
     buffer = io.BytesIO()
     workbook.save(buffer)
     buffer.seek(0)
-    set_status(q_id, "exported")
+
+    # A workbook with no mapped response column -- a cost worksheet is the usual
+    # case -- writes nothing, and the file handed back is the agency's original.
+    # Calling that "exported" is the most expensive lie the system can tell,
+    # because it reads as done on the screen the operator checks before
+    # submitting. Report what actually happened instead. The answers are kept:
+    # the import path is deliberately left intact so this material is already
+    # structured on the day there is enough pricing data to answer it properly.
+    if written == 0:
+        set_status(q_id, "filled",
+                   "No response column is mapped on this workbook, so none of "
+                   f"the {len(questionnaire['items'])} answers were written. "
+                   "The downloaded file is the agency's original. Cost and "
+                   "pricing worksheets normally land here and need a human.")
+        log.warning("questionnaire q_id=%s exported 0 cells (file=%s)",
+                    q_id, filename)
+    else:
+        set_status(q_id, "exported",
+                   f"{len(skipped)} cell(s) could not be placed." if skipped else None)
+
     stem = filename.rsplit(".", 1)[0]
     if skipped:
         log.warning("questionnaire q_id=%s could not place %s cell(s): %s",
