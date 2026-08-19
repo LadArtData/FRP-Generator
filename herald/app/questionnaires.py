@@ -17,6 +17,7 @@ import json
 import logging
 
 from openpyxl import load_workbook
+from openpyxl.cell.cell import MergedCell
 from openpyxl.utils import get_column_letter
 from openpyxl.utils.cell import range_boundaries
 from openpyxl.worksheet.worksheet import Worksheet
@@ -394,6 +395,39 @@ async def fill(q_id: int, actor: str | None = None) -> None:
         set_status(q_id, "error", str(exc))
 
 
+def _write_cell(sheet: Worksheet, coordinate: str, value) -> bool:
+    """Write ``value`` into ``coordinate``, resolving merged ranges.
+
+    openpyxl exposes every cell of a merged range except the top-left anchor as
+    a read-only ``MergedCell``; assigning to one raises AttributeError. Agency
+    requirements workbooks merge response and comment columns constantly, so a
+    blind write kills the whole export over a single cell. We redirect the
+    write to the range's anchor, which is the cell the merge actually displays,
+    and return False for the cases we cannot place so the caller can log them
+    rather than lose the file.
+    """
+    try:
+        cell = sheet[coordinate]
+    except (ValueError, IndexError):
+        return False
+
+    if isinstance(cell, MergedCell):
+        anchor = None
+        for merged in sheet.merged_cells.ranges:
+            if coordinate in merged:
+                anchor = sheet.cell(row=merged.min_row, column=merged.min_col)
+                break
+        if anchor is None:
+            return False
+        cell = anchor
+
+    try:
+        cell.value = value
+    except AttributeError:
+        return False
+    return True
+
+
 def export(q_id: int) -> tuple[bytes, str]:
     """Write answers back into the original workbook. Loading without data_only
     preserves formulas, styles, and data validations, so the exported file is the
@@ -403,6 +437,7 @@ def export(q_id: int) -> tuple[bytes, str]:
     workbook = load_workbook(io.BytesIO(blob))
 
     written = 0
+    skipped: list[str] = []
     for item in questionnaire["items"]:
         if item["sheet"] not in workbook.sheetnames:
             continue
@@ -410,15 +445,24 @@ def export(q_id: int) -> tuple[bytes, str]:
         response_col = item.get("response_col")
         comment_col = item.get("comment_col")
         if response_col and item["response_code"]:
-            sheet[f"{response_col}{item['row']}"] = item["response_code"]
-            written += 1
+            target = f"{response_col}{item['row']}"
+            if _write_cell(sheet, target, item["response_code"]):
+                written += 1
+            else:
+                skipped.append(f"{item['sheet']}!{target}")
         if comment_col and item["response_text"]:
-            sheet[f"{comment_col}{item['row']}"] = item["response_text"]
+            target = f"{comment_col}{item['row']}"
+            if not _write_cell(sheet, target, item["response_text"]):
+                skipped.append(f"{item['sheet']}!{target}")
 
     buffer = io.BytesIO()
     workbook.save(buffer)
     buffer.seek(0)
     set_status(q_id, "exported")
     stem = filename.rsplit(".", 1)[0]
-    log.info("exported questionnaire q_id=%s cells_written=%s", q_id, written)
+    if skipped:
+        log.warning("questionnaire q_id=%s could not place %s cell(s): %s",
+                    q_id, len(skipped), ", ".join(skipped[:20]))
+    log.info("exported questionnaire q_id=%s cells_written=%s skipped=%s",
+             q_id, written, len(skipped))
     return buffer.read(), f"{stem}_iteria_response.xlsx"
