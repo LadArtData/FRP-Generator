@@ -43,6 +43,23 @@ MAX_SCAN_COLUMNS = 60
 MIN_QUESTION_LENGTH = 8
 LOW_CONFIDENCE = 0.55
 
+# How far below a candidate header we look for real question text, and how much
+# of it we need before we believe the column is the question column.
+MAX_BODY_PROBE_ROWS = 400
+MIN_BODY_ROWS = 3
+
+# An X-mark rating matrix: adjacent columns headed with short codes rather than
+# prose. Nashua uses SUP / MOD / 3RD / CST / FUT / NS.
+MIN_CODE_COLUMNS = 3
+MAX_CODE_LABEL_LENGTH = 6
+
+# Longest a cell can be and still be plausibly a column label rather than prose.
+MAX_HEADER_LABEL_LENGTH = 60
+
+# What a rating matrix expects in the chosen column. Nashua's instruction is
+# "placing an X in the most appropriate column".
+MATRIX_MARK = "X"
+
 
 def _text(cell) -> str:
     if cell is None or cell.value is None:
@@ -93,6 +110,73 @@ def _list_validations(sheet: Worksheet) -> dict[int, list[str]]:
     return columns
 
 
+def _looks_like_header(value: str) -> bool:
+    """A column header is a label, not a sentence.
+
+    Salem prints its rating legend above the real header, and one legend row
+    reads "No: Feature/Function cannot be provided." That matches the question
+    keywords on "Feature" and sits one row higher than the true header, so on
+    keyword and body count alone it wins and the response column is lost. The
+    thing that actually separates them is that legends are prose: they run long
+    and they end in a full stop. Headers do neither.
+    """
+    if not value or len(value) > MAX_HEADER_LABEL_LENGTH:
+        return False
+    return not value.rstrip().endswith((".", "?", "!"))
+
+
+def _body_rows(sheet: Worksheet, header_row: int, column_index: int,
+               limit: int = MAX_BODY_PROBE_ROWS) -> int:
+    """How many rows below ``header_row`` carry real question text in this column.
+
+    This is the only signal that actually distinguishes a requirements column
+    from a banner. Nashua's workbook opens with a merged title cell reading
+    "Functional Requirements Matrix" in A2, which scores higher on keywords than
+    the true header eight rows further down, and column A holds nothing below it.
+    Counting the body is what tells the two apart.
+    """
+    last = min(sheet.max_row or 0, header_row + limit)
+    found = 0
+    for row_index in range(header_row + 1, last + 1):
+        if len(_text(sheet.cell(row=row_index, column=column_index))) >= MIN_QUESTION_LENGTH:
+            found += 1
+    return found
+
+
+def _code_columns(sheet: Worksheet, header_row: int,
+                  scan_cols: int) -> dict[str, int]:
+    """Detect an X-mark rating matrix: one column per response code.
+
+    Salem and Jefferson use a single dropdown column. Nashua uses six adjacent
+    columns headed SUP / MOD / 3RD / CST / FUT / NS, and the vendor marks an X
+    under one of them. Both are ordinary layouts and neither is inferable from
+    the other, so we look for a run of at least three adjacent columns whose
+    headers are short codes rather than prose.
+    """
+    # The code strip does not have to sit on the header row we picked. Nashua's
+    # question column starts at row 11 and its SUP/MOD/3RD/CST/FUT/NS strip is
+    # on row 10, so we look above as well as below.
+    for probe in (header_row, header_row - 1, header_row - 2, header_row - 3,
+                  header_row + 1, header_row + 2):
+        if probe < 1:
+            continue
+        run: list[tuple[int, str]] = []
+        best: list[tuple[int, str]] = []
+        for column_index in range(1, scan_cols + 1):
+            value = _text(sheet.cell(row=probe, column=column_index))
+            if value and len(value) <= MAX_CODE_LABEL_LENGTH and "\n" not in value:
+                run.append((column_index, value))
+                if len(run) > len(best):
+                    best = list(run)
+            else:
+                run = []
+        if len(best) >= MIN_CODE_COLUMNS:
+            labels = [v for _, v in best]
+            if len(set(labels)) == len(labels):
+                return {v: c for c, v in best}
+    return {}
+
+
 def _detect(sheet: Worksheet) -> dict | None:
     """Find the header row and the question, response, and comment columns."""
     validated = _list_validations(sheet)
@@ -101,33 +185,75 @@ def _detect(sheet: Worksheet) -> dict | None:
     if not scan_rows or not scan_cols:
         return None
 
-    best: tuple[int, dict[int, str]] | None = None
-    best_score = 0
+    # Score every plausible (header row, question column) pair rather than
+    # picking a header row on keywords alone and then hoping a question column
+    # falls out of it. The body count dominates deliberately: a column with 300
+    # requirements under it is the question column whatever its header says, and
+    # a keyword-perfect banner with an empty column under it is not.
+    best = None
+    best_score = -1
     for row_index in range(1, scan_rows + 1):
         headers: dict[int, str] = {}
-        score = 0
         for column_index in range(1, scan_cols + 1):
             value = _text(sheet.cell(row=row_index, column=column_index))
-            if not value or len(value) > 80:
+            if value and len(value) <= 80:
+                headers[column_index] = value
+        if not headers:
+            continue
+
+        support = sum(
+            1 for v in headers.values()
+            if _RESPONSE_HINT.search(v) or _COMMENT_HINT.search(v)
+        )
+        for column_index in sorted(headers):
+            if not _looks_like_header(headers[column_index]):
                 continue
-            headers[column_index] = value
-            if _QUESTION_HINT.search(value):
-                score += 2
-            if _RESPONSE_HINT.search(value) or _COMMENT_HINT.search(value):
-                score += 1
-        has_question = any(_QUESTION_HINT.search(v) for v in headers.values())
-        if has_question and score > best_score:
-            best, best_score = (row_index, headers), score
+            # The body count is a qualifier, not the ranking term. Salem's
+            # legend block sits above the real header and its definition column
+            # holds six more rows of text than the requirements column below,
+            # so ranking on body alone picks the legend. Keyword evidence ranks;
+            # the body count only rejects banners and breaks ties.
+            body = _body_rows(sheet, row_index, column_index)
+            if body < MIN_BODY_ROWS:
+                continue
+            # Strict precedence: keyword match, then how much of the sheet the
+            # candidate actually captures, then supporting headers. Letting
+            # support outrank body lets a section divider partway down the sheet
+            # beat the real header and silently truncate the import -- Nashua's
+            # General Ledger tab lost 17 requirements exactly that way.
+            score = body * 10 + support
+            if _QUESTION_HINT.search(headers[column_index]):
+                score += 100_000
+            if score > best_score:
+                best, best_score = (row_index, headers, column_index), score
 
-    if not best:
+    # Fall back to the old keyword-only rule for sheets whose question column is
+    # genuinely sparse, so narrow workbooks that used to import still do.
+    if best is None:
+        for row_index in range(1, scan_rows + 1):
+            headers = {}
+            score = 0
+            for column_index in range(1, scan_cols + 1):
+                value = _text(sheet.cell(row=row_index, column=column_index))
+                if not value or len(value) > 80:
+                    continue
+                headers[column_index] = value
+                if _QUESTION_HINT.search(value):
+                    score += 2
+                if _RESPONSE_HINT.search(value) or _COMMENT_HINT.search(value):
+                    score += 1
+            question_col = next(
+                (c for c, v in sorted(headers.items()) if _QUESTION_HINT.search(v)), None)
+            if question_col is not None and score > best_score:
+                best, best_score = (row_index, headers, question_col), score
+
+    if best is None:
         return None
 
-    header_row, headers = best
+    header_row, headers, question_col = best
 
-    question_col = next(
-        (c for c, v in sorted(headers.items()) if _QUESTION_HINT.search(v)), None)
-    if question_col is None:
-        return None
+    code_columns = _code_columns(sheet, header_row, scan_cols)
+    code_columns = {k: v for k, v in code_columns.items() if v != question_col}
 
     # Structural evidence wins: a validated column is the response column.
     response_col = next(
@@ -137,16 +263,48 @@ def _detect(sheet: Worksheet) -> dict | None:
             (c for c, v in sorted(headers.items())
              if c != question_col and _RESPONSE_HINT.search(v)), None)
 
+    # A rating matrix has no single response column. Marking one would put the
+    # answer in whichever rating column happened to sort first, which is a wrong
+    # answer rather than a missing one.
+    if code_columns and (response_col is None or response_col in code_columns.values()):
+        response_col = None
+
     comment_col = next(
         (c for c, v in sorted(headers.items())
-         if c not in (question_col, response_col) and _COMMENT_HINT.search(v)), None)
+         if c not in (question_col, response_col)
+         and c not in code_columns.values()
+         and _COMMENT_HINT.search(v)), None)
+
+    # Banner headings often sit a few rows above the row the requirements start
+    # on. Nashua puts "ADDITIONAL COMMENTS" three rows up. Widen the search
+    # rather than lose the comment column and with it every written answer.
+    if comment_col is None:
+        for probe in range(max(1, header_row - 4), header_row + 1):
+            for column_index in range(1, scan_cols + 1):
+                if column_index in (question_col, response_col):
+                    continue
+                if column_index in code_columns.values():
+                    continue
+                value = _text(sheet.cell(row=probe, column=column_index))
+                if value and len(value) <= 80 and _COMMENT_HINT.search(value):
+                    comment_col = column_index
+                    break
+            if comment_col is not None:
+                break
+
+    if code_columns:
+        allowed = sorted(code_columns, key=lambda k: code_columns[k])
+    else:
+        allowed = validated.get(response_col, []) if response_col else []
 
     return {
         "header_row": header_row,
         "question_col": question_col,
         "response_col": response_col,
         "comment_col": comment_col,
-        "allowed_codes": validated.get(response_col, []) if response_col else [],
+        "code_columns": {k: get_column_letter(v) for k, v in code_columns.items()},
+        "layout": "matrix" if code_columns else "single",
+        "allowed_codes": allowed,
         "headers": {get_column_letter(c): v for c, v in headers.items()},
     }
 
@@ -177,6 +335,7 @@ def import_workbook(opp_id: int, source_doc_id: int, actor: str | None = None) -
             "sheet": sheet.title, "detected": True,
             "header_row": detected["header_row"], "question_col": question_letter,
             "response_col": response_letter, "comment_col": comment_letter,
+            "code_columns": detected["code_columns"], "layout": detected["layout"],
             "allowed_codes": detected["allowed_codes"], "headers": detected["headers"],
         })
 
@@ -436,6 +595,14 @@ def export(q_id: int) -> tuple[bytes, str]:
     blob, filename = documents.get_blob(questionnaire["source_doc_id"])
     workbook = load_workbook(io.BytesIO(blob))
 
+    # Per-sheet layout, so a rating matrix can be written the way its own
+    # workbook expects rather than as text in a column that does not exist.
+    layouts = {
+        entry.get("sheet"): entry
+        for entry in (questionnaire.get("sheet_map") or [])
+        if isinstance(entry, dict)
+    }
+
     written = 0
     skipped: list[str] = []
     for item in questionnaire["items"]:
@@ -444,12 +611,34 @@ def export(q_id: int) -> tuple[bytes, str]:
         sheet = workbook[item["sheet"]]
         response_col = item.get("response_col")
         comment_col = item.get("comment_col")
-        if response_col and item["response_code"]:
+        code_columns = (layouts.get(item["sheet"]) or {}).get("code_columns") or {}
+
+        if code_columns and item["response_code"]:
+            # An X-mark matrix. The RFP treats more than one mark on a row as a
+            # non-response, so clear the whole strip before marking, otherwise a
+            # re-export after a changed answer leaves two X's and scores zero.
+            placed = False
+            for code, column in code_columns.items():
+                target = f"{column}{item['row']}"
+                if code == item["response_code"]:
+                    placed = _write_cell(sheet, target, MATRIX_MARK)
+                    if not placed:
+                        skipped.append(f"{item['sheet']}!{target}")
+                else:
+                    _write_cell(sheet, target, None)
+            if placed:
+                written += 1
+            elif item["response_code"] not in code_columns:
+                skipped.append(
+                    f"{item['sheet']}!row{item['row']} (no column for "
+                    f"{item['response_code']!r})")
+        elif response_col and item["response_code"]:
             target = f"{response_col}{item['row']}"
             if _write_cell(sheet, target, item["response_code"]):
                 written += 1
             else:
                 skipped.append(f"{item['sheet']}!{target}")
+
         if comment_col and item["response_text"]:
             target = f"{comment_col}{item['row']}"
             if not _write_cell(sheet, target, item["response_text"]):

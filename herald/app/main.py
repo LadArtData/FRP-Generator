@@ -215,6 +215,23 @@ def promote_doc(doc_id: int, body: Promote, user: dict = Depends(contributor)):
     return result
 
 
+class Demote(BaseModel):
+    reason: str | None = None
+
+
+@app.post("/api/documents/{doc_id}/demote")
+def demote_doc(doc_id: int, body: Demote, user: dict = Depends(contributor)):
+    """Remove a document from the retrieval index.
+
+    Promotion had no inverse. Without this the only way to stop drafting from a
+    document added in error was to give it a false outcome, which corrupts the
+    one signal that makes outcome weighting mean anything.
+    """
+    result = documents.demote(doc_id, reason=body.reason)
+    audit.record(user["username"], "library.demote", "document", doc_id, result)
+    return result
+
+
 # ---------------------------------------------------------------------------
 # Opportunities and the requirements traceability matrix
 # ---------------------------------------------------------------------------

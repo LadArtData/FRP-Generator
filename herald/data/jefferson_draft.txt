@@ -1,0 +1,304 @@
+# Jefferson County Sheriff's Office
+
+## Request for Proposals for Software and Implementation Services for Financial Accounting and Property Tax Collection Software Systems Environment
+
+Submitted by iteria
+
+Solicitation due: Friday, 21 August 2026, 3:00 p.m. Eastern Time
+Submitted electronically via louisvilleky.bonfirehub.com
+
+---
+
+# Tab 1. Company Introduction
+
+## 1.1 The firm
+
+iteria is an Oracle Cloud Fusion implementation and consulting firm founded in 2015. We are a certified member of the Oracle Partner Network and have been an Oracle partner since inception. We provide services solely on the Oracle Corporation suite of applications.
+
+Headquarters is in Cheyenne, Wyoming, with delivery offices in Bangalore and Hyderabad, India, and satellite offices in Wisconsin, Illinois and Texas. Our service lines are implementation, managed services and support, and custom development.
+
+iteria has no liens or judgments against it, has never had a contract terminated for cause, has no pending or past litigation, has never been debarred or suspended, and does not appear on the SAM.gov exclusion list. We are not listed under NDAA Section 889 or Section 1260H and are not owned or controlled by a government on the Commerce Department foreign adversaries list.
+
+## 1.2 The scope we are proposing, stated at the front
+
+Section 2.2 of this RFP permits Proposers to respond on a subset of functionality, provided the subset addresses at minimum one of the defined areas. iteria is responding on the **financial accounting scope**: General Ledger and Financial Reporting; Budgeting; Purchasing; Accounts Payable; and Accounts Receivable and Cash Receipting.
+
+**iteria is not proposing the property tax collection scope** covering Tax Billing, Real Estate, Refunds and Exemptions, and Business Personal (Tangible) Property.
+
+We want to be direct about why, because the County is entitled to know it now rather than at demonstration.
+
+Kentucky property tax billing and collection is a specialised body of law and process. The Sheriff's Office calculates bills using rates set by multiple independent taxing jurisdictions, including the Jefferson County School District, multiple fire districts and the downtown business district; issues 350,000 bills a year against $1,236,484,560.79 in assessed value; runs a single September through April collection cycle; and distributes collected revenue to each jurisdiction on a daily or monthly basis while retaining commissions and fees. Oracle Fusion does not provide that functionality, and no amount of configuration produces it. The requirement is properly met by a Kentucky property tax product.
+
+We would rather be scored on the half of this solicitation we can genuinely deliver than claim the whole of it and fail a scripted demonstration in October.
+
+If the County prefers a single award, we would welcome a partnership with a tax collection provider under Section 2.2, with the prime relationship defined as the County requires. We are equally prepared to serve as the financial systems provider alongside a separately awarded tax vendor, and our approach to the interface between the two is set out in Tab 7.
+
+## 1.3 Why the financial scope suits us
+
+The County's financial environment is well within the range we deliver: 30 funds, 3,450 general ledger lines, a four-segment chart of accounts of Fund, Department, Account and Object Code, an operating budget of $41,929,250 and a capital budget of $3,102,000, approximately 350 vendors, and 50 purchase cards in use. Check stock is printed by the Commonwealth of Kentucky, which is an interface rather than a print function.
+
+We have implemented this exact footprint for county government. At Fond du Lac County, Wisconsin, and Outagamie County, Wisconsin, iteria delivered Oracle Fusion Financials, Human Capital Management, Payroll, Projects and Enterprise Asset Management as prime contractor, without subcontractors, replacing JD Edwards in the first case and both JD Edwards and Tyler Munis in the second.
+
+---
+
+# Tab 2. Software Solution
+
+## 2.1 Proposed solution and deployment model
+
+Oracle Fusion Cloud Applications, delivered as **Software as a Service**, matching the County's stated strong preference. Licensing is subscription-based. There is no County-side server infrastructure to procure, house, patch or refresh.
+
+The proposed module footprint is General Ledger, Financial Reporting, Budgeting, Purchasing, Accounts Payable, Accounts Receivable and Cash Management.
+
+Our pricing is submitted on the Subscription Cost Worksheet of Attachment C1, in the County's unmodified workbook. We do not offer Oracle Fusion on-premise or vendor-hosted and would not recommend either to the County, so we bid only the subscription model and say so on the other two worksheets rather than leaving them ambiguous.
+
+> **PRICING PENDING. DO NOT SUBMIT UNTIL COMPLETE.** The figures on the cost worksheets for this response have not been entered. Owner: Brian Schell. This block is an internal marker and must be deleted once pricing is in.
+
+## 2.2 What changes for the Sheriff's Office
+
+The County currently runs an AS400 web portal for property tax collection. The financial accounting functions surrounding it are the subject of this proposal.
+
+The specific outcomes the County has asked for map to the solution as follows.
+
+**Timely, accurate and complete information available to citizens, County personnel and vendors.** Reporting is delivered through Oracle Transactional Business Intelligence against live transactional data, rather than through extracts. Departmental users see their own budget-to-actual position without a request to Finance.
+
+**A secure, stable, reliable and user-friendly solution.** Quarterly updates are applied by Oracle on a published schedule. There is no version the County can fall behind on, and no end-of-support date to plan against.
+
+**Robust integration capability, including Laserfiche.** Addressed in Tab 6.
+
+**An enhanced online payment portal and streamlined customer experience.** Receipting and cash application on the financial side integrate to the payment channel. The citizen-facing tax payment portal itself belongs to the tax solution, and we have scoped the interface rather than the portal.
+
+## 2.3 Chart of accounts
+
+The County's chart of accounts is Fund, Department (Division), Account, Object Code. Oracle Fusion's accounting structure accommodates that directly and allows additional segmentation where the County wants reporting it cannot obtain today.
+
+Chart of accounts design is the first substantive decision of the project. At Fond du Lac County, redesigning the chart of accounts was an explicit part of the work that recovered a failing implementation. We schedule it inside the first six weeks with a single named County decision owner.
+
+---
+
+# Tab 3. Project Approach and Implementation Methodology
+
+## 3.1 Method
+
+iteria follows a defined sequence:
+
+1. Conduct a Boundary Confirmation session covering the County's near-term and future goals, to frame the implementation approach
+2. Perform Solution Analysis sessions with the business covering requirements
+3. Document and review requirements and the solution with business users
+4. Obtain sign-offs and approvals from the business
+5. On approval of the solution, begin development
+6. Evaluate the data and the roadmap for conversion
+7. Review and design interfaces
+8. Conduct smoke testing
+9. Conduct multiple prototype sessions
+10. Support User Acceptance Testing
+11. Provide Train-the-Trainer training
+12. Develop and provide complete configuration documentation
+13. Review final output with the business and obtain final sign-offs
+
+Work areas are overall project management, integration point analysis, business process re-engineering, data extraction and cleansing, solution development, interface development, testing, training, go-live cutover, and post-implementation support.
+
+We do not implement from spreadsheets and questionnaires. We hold detailed conversations and interactive design sessions. A questionnaire records what staff believe the process to be. A working session shows what actually happens during the September to April collection season when the process is inconvenient.
+
+## 3.2 County resource hour estimates
+
+The County has stated it does not anticipate dedicating staff full-time to the implementation, that functional leads will carry core job responsibilities alongside project work, and that some leads will serve across more than one financial module. The County has asked Proposers to state the expected level of County involvement so it can plan. Our estimate follows.
+
+| County role | Estimated hours per month | Individuals |
+|---|---|---|
+| Executive Sponsor | 2 | 1 |
+| Steering Committee | 2 | 4 |
+| County Project Manager | 24 | 1 |
+| Functional Lead, General Ledger and Financial Reporting | 50 to 80 at peak | 1 |
+| Functional Lead, Budgeting | 30 to 50 at peak | 1 |
+| Functional Lead, Purchasing and Accounts Payable | 50 to 80 at peak | 1 |
+| Functional Lead, Accounts Receivable and Cash Receipting | 40 to 60 at peak | 1 |
+| Subject Matter Experts | 30 during testing | 1 per division |
+| Data Conversion Lead | 50 | 1 |
+| System Administrator | 40 | 1 |
+| Training Lead | 30 | 1 |
+
+Peak demand falls in requirements gathering, system integration testing, user acceptance testing and training. Where one individual holds more than one functional lead role, as the County anticipates, the hours are additive and the schedule must reflect that. We would rather build the plan around the County's real availability than around a staffing assumption that fails in month four.
+
+**One scheduling constraint we would raise at Boundary Confirmation.** The tax collection cycle runs September through April. Requirements sessions and user acceptance testing both demand sustained attention from Finance staff who are also processing collections and daily distributions during that window. Our proposed schedule places the heaviest County commitment outside the peak of that cycle.
+
+---
+
+# Tab 4. Key Proposed Personnel and Team Organization
+
+## 4.1 Staffing model
+
+All iteria resources are employees of the firm. We do not staff projects from bench, we do not place subcontractors in client-facing roles, and we do not assign resources to a proposal we are not prepared to field. Consultants are selected for skill set, geographic proximity and cultural fit.
+
+Resources are certified or cross-trained across multiple modules, typically three modules up and three modules down. All staff assigned on site are senior practitioners. That cross-training is what allows a team sized for the County's transaction volumes to cover General Ledger, Budgeting, Purchasing, Accounts Payable and Receivables without a handoff at each boundary.
+
+## 4.2 Reporting structure
+
+All iteria resources report to the Client Manager assigned to the engagement, who is a member of the iteria executive team. The Project Manager is a member of iteria's leadership team. Each functional area has a designated lead with staff reporting to that lead. Offshore resources are overseen by an executive team member locally together with a day-to-day offshore project manager who manages handover between shifts.
+
+If a team member departs during the engagement, executive and senior management involvement means project knowledge stays with the project rather than with the individual.
+
+## 4.3 Governance
+
+| Forum | Participants | Frequency |
+|---|---|---|
+| Executive Steering Committee | JCSO leadership, iteria Client Manager | Monthly |
+| Project Management Office | County Project Manager, iteria Project Manager | Bi-weekly |
+| Technical working sessions | Both technical teams | Weekly |
+
+Weekly written status reporting at minimum, carrying a Project Health Card that rates schedule, resources, budget, risks and issues as No Issues, Caution or Critical, together with completed and upcoming tasks, open items, and live risk and issue registers recording owner, mitigation and status for every entry.
+
+Resumes for proposed personnel are provided on the Attachment A forms in this tab.
+
+---
+
+# Tab 5. Project Schedule
+
+The County anticipates implementation beginning in January 2027, with August 2027 targeted as a potential go-live for tax modules. The schedule below covers the financial scope iteria is proposing and is built to align with, rather than compete against, a parallel tax implementation.
+
+| Phase | Period | Content |
+|---|---|---|
+| Boundary Confirmation and Solution Analysis | January to February 2027 | Scope boundary, requirements sessions, chart of accounts design, data profiling, interface inventory, instance strategy |
+| Build and Conference Room Pilot | February to May 2027 | Configuration, integration development, first conversion loads, Conference Room Pilot, change management launch |
+| System Integration Testing | May to June 2027 | Two complete end-to-end cycles, defect triage, report development |
+| User Acceptance Testing and Training | June to July 2027 | County-led acceptance testing, Train-the-Trainer, end-user training |
+| Go-Live and Stabilisation | July to August 2027 | Cutover, hypercare on site, transition to support |
+
+Go-live is aligned to a fiscal period boundary. The County's fiscal year runs 1 July to 30 June, which makes a July go-live the cleanest cut for the general ledger and avoids carrying a partial year across two systems.
+
+Cutover is a multi-day process governed by a Business Continuity Plan covering data extracts and conversion runs, planned downtime, shutdown of legacy applications, redirection of interfaces, final configuration review, and a formal go or no-go decision.
+
+## 5.1 Project management documentation
+
+Following contract signature iteria will develop and provide a Project Management Plan covering objectives, deliverables and milestones, project schedule, resource management, scope management, schedule management, risk management and quality management, together with the deliverable set listed in Tab 3.
+
+We recommend the County hold the project repository. We have seen many engagements where the implementation partner keeps the project record on internal systems, which leaves the client without control of its own documentation. We recommend against that arrangement including where we are the partner.
+
+---
+
+# Tab 6. System and Application Architecture
+
+Oracle Fusion Cloud Applications is a multi-tenant Software as a Service platform. Application, database and infrastructure layers are operated by Oracle. The County consumes the service through a browser with no local client installation.
+
+Quarterly updates are applied by Oracle on a published schedule with a defined testing window. We will build a County-specific regression playbook so the testing obligation fits inside that window and can be executed by County staff rather than by a consultant.
+
+## 6.1 Integration
+
+iteria differentiates itself by focusing on integration points. Our requirements process examines upstream and downstream dependencies for every process in scope, and interface error handling is specified at design time rather than added after a failure in production.
+
+The integration scope for the financial systems comprises:
+
+**Laserfiche.** The County has identified Laserfiche integration as a requirement. Document references are attached to transactions in the financial system, with the document itself remaining in Laserfiche as the system of record.
+
+**Property tax collection system.** Whichever product the County selects, the financial interface is the daily and monthly settlement: collections received, commissions and fees retained, and distributions payable to the School District, fire districts and the downtown business district. This posts to the general ledger and to receivables. We treat this as the single most important interface in the engagement and have specified it as bi-directional with a reconciliation control rather than a one-way feed.
+
+**Commonwealth of Kentucky check printing.** Payment files are produced for printing by the Commonwealth rather than locally, which is a file interface with a defined acknowledgement and exception path.
+
+**Banking.** Cash receipting, deposit and reconciliation.
+
+Interfaces are documented in an Interface Inventory during the first phase and specified individually, each with an owner, a trigger, a data contract, an error path and a reconciliation method.
+
+---
+
+# Tab 7. Data Conversion Plan
+
+Conversion is the most common cause of overrun in public sector financial system projects, and the cause is almost always the same: agreement on who owns data cleansing comes too late.
+
+Our proposed division of responsibility is that the County extracts source data and owns its quality, and iteria owns mapping, transformation, load and reconciliation. We provide extract specifications and validation templates in the first phase so cleansing can begin while configuration is still under way rather than after it.
+
+Proposed conversion scope, subject to confirmation at Boundary Confirmation:
+
+- Chart of accounts and trial balance, with opening balances by fund
+- Prior year comparative balances for financial reporting
+- Vendor master and 1099 history for approximately 350 vendors
+- Open purchase orders and encumbrances
+- Open payables
+- Accounts receivable and open items
+- Budget for the current and prior fiscal year
+
+Every conversion runs at least twice before user acceptance testing, and is reconciled to a County-signed control total on each run. A conversion that has not been reconciled to a signed total has not been completed, regardless of whether it loaded without error.
+
+The AS400 environment is the source for the tax side rather than the financial side, and we have not assumed access to it. If the County requires financial history to be extracted from the AS400 web portal, that is a scope item we would size during Boundary Confirmation rather than estimate blindly here.
+
+---
+
+# Tab 8. Security and Software Hosting
+
+Hosting is within the contiguous United States, meeting the County's stated requirement. The County has no preference as to specific location.
+
+Role-based access control is designed against the Sheriff's Office's actual segregation of duties, not from a generic template. For an organisation that collects and distributes public revenue, the controls that matter are the separation between receipting, distribution and reconciliation, and the audit trail behind every distribution to a taxing jurisdiction.
+
+Encryption is applied in transit and at rest. Single sign-on integrates to the County's identity provider. Access is reviewed and recertified on a defined cycle.
+
+Ownership of County data remains with the County throughout the term and on exit, and data is returned in a documented format at termination.
+
+---
+
+# Tab 9. Testing and Quality Assurance Plan
+
+Testing progresses through Conference Room Pilot, then System Integration Testing, then User Acceptance Testing, supported by system unit testing, a complete end-to-end cycle, and regression testing.
+
+**Conference Room Pilot** demonstrates the configured solution against the County's own processes using County data, with functional leads present. Exit is by sign-off from the functional leads.
+
+**System Integration Testing** runs a minimum of two complete end-to-end cycles, including the tax settlement interface and the Commonwealth check printing file. A live defect log is triaged daily.
+
+**User Acceptance Testing** is County-led against County-written scenarios. iteria supports rather than executes it, because acceptance testing performed by the implementer is not acceptance testing.
+
+**Financial period close** is exercised end to end before go-live authorisation, including a full month-end close and the distribution reconciliation, with results agreed against the legacy system.
+
+Go-live authorisation is a formal go or no-go decision against defined exit criteria, taken by the Steering Committee.
+
+---
+
+# Tab 10. Training Plan
+
+Training material is built from the County's own configured system, using screenshots from the County's environment. Generic courseware teaches staff a system they do not have.
+
+Delivery is Train-the-Trainer supported by classroom sessions, with material-only and one-to-one formats for low-volume functions. This is the structure we used at Fond du Lac County across approximately twenty departments and county functions.
+
+For the Sheriff's Office the audiences requiring distinct treatment are Finance staff performing daily receipting and distribution, budget preparers across divisions, purchasing and accounts payable staff, and approvers who use the system occasionally and therefore need the shortest possible path through it.
+
+Training is scheduled to avoid the peak of the September through April collection cycle wherever the go-live sequence permits.
+
+---
+
+# Tab 11. References
+
+References are provided on the Attachment A forms in this tab.
+
+**Fond du Lac County, Wisconsin.** County government, approximately 1,000 staff, approximately 104,000 residents. Full Oracle Fusion suite including Financials, Human Capital Management, Payroll, Projects and Enterprise Asset Management, replacing JD Edwards. Oracle Fusion 24D, Software as a Service. Start 1 March 2024, go-live 22 December 2024. iteria was prime contractor with no subcontractors. The engagement required re-baselining and re-implementation in a compressed timeframe, including redesign of the chart of accounts, and was delivered on time and on budget. Reference: Tammy Pinno-Supple, Finance Director, (920) 906-4771.
+
+**Outagamie County, Wisconsin.** County government, approximately 1,400 staff, approximately 190,000 residents. Full Oracle Fusion implementation replacing both JD Edwards and Tyler Munis. Oracle Fusion 26A, Software as a Service. iteria is prime contractor with no subcontractors. Heavy emphasis on change management and process streamlining, moving the County from manual to automated processes. Reference: Michelle Uitenbroek, Finance Director, (920) 832-1674.
+
+**Chicago Transit Authority.** Public transit authority. A relationship spanning 2015 to 2024 across multiple Oracle projects including an E-Business Suite R12 upgrade, with iteria as prime contractor providing client and internal project management. Concluded because the projects were completed.
+
+**Industries for the Blind and Visually Impaired.** Government-funded not-for-profit. Full Oracle Fusion implementation whose objective was to expand employment for visually impaired staff. Following implementation the organisation's entire customer service department is staffed by blind or visually impaired employees working in Oracle Order Management. Reference: Nicole Christman, Business Analyst, (414) 778-3057.
+
+---
+
+# Tab 12. Sample Contracts, Warranty, and Escrow
+
+iteria's standard Statement of Work and warranty terms are provided in this tab. Invoicing is biweekly against work performed.
+
+Oracle Fusion Cloud Applications is a Software as a Service subscription. Source code escrow is not applicable to a SaaS subscription, because the County does not take delivery of the code. The equivalent protections are data ownership and return on exit, which are addressed in Tab 8, and the subscription terms provided here.
+
+---
+
+# Tab 13. Exceptions to Project Scope and Contract Terms
+
+The scope exception stated in Tab 1 applies and is restated here for the record: iteria is proposing on the financial accounting scope only, and is not proposing Tax Billing, Real Estate, Refunds and Exemptions, or Business Personal (Tangible) Property.
+
+iteria is proposing the Software as a Service deployment model only. We have not priced on-premise or vendor-hosted alternatives.
+
+Any exceptions to the County's contract terms in Section 5 are recorded on the Attachment A form in this tab.
+
+---
+
+# Tab 14. Functional and Technical Requirements Response
+
+iteria's completed response to Attachment B, Functional and Technical Requirements and Capabilities, is submitted in Microsoft Excel and appended here in PDF.
+
+Responses are completed for the functional areas within our proposed scope, which are Tabs 1 through 6, together with Tab 11 Data Conversion and Tab 12 Interfaces as Section 2.2 requires of a Financial Management subset proposer.
+
+Tabs 7 through 10 cover property tax collection. Every requirement in those four tabs carries a response of No Bid, in the form Section 2.2 prescribes, because we are not proposing that scope. We have not answered them as configurable and we have not left them blank. A blank is scored as a response of N under Attachment A Tab 14, which would misrepresent our position as a claim that Oracle Fusion cannot do something we have simply chosen not to bid.
+
+Each answer records actual Oracle Fusion capability in the proposed release. Where a requirement is met through configuration, that is stated. Where it is met by a mechanism different from the one implied by the requirement text, the mechanism is described in the comment field.

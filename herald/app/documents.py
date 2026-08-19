@@ -175,6 +175,35 @@ def promote(doc_id: int, *, client_name: str | None = None,
             "outcome": outcome, "promoted": True}
 
 
+def demote(doc_id: int, *, reason: str | None = None) -> dict:
+    """Take a document back out of the retrieval index.
+
+    Promotion had no inverse, which meant a document added to the library in
+    error could only be demoted by giving it a false outcome. Retrieval filters
+    on doc_class, so reclassifying is what actually removes it; the chunks go
+    too, because a chunk with no reachable parent is dead weight in the vector
+    index and will outlive whatever mistake put it there.
+
+    Reversible: promote() re-chunks and re-indexes from the stored blob, so a
+    document demoted today can be restored once it is fit to draft from.
+    """
+    meta = get(doc_id)
+    with transaction() as conn:
+        cur = conn.cursor()
+        cur.execute("DELETE FROM harald_chunks WHERE doc_id = :d", {"d": doc_id})
+        removed = cur.rowcount
+        cur.execute(
+            """UPDATE harald_documents
+               SET doc_class = 'UNCLASSIFIED', promoted_to_lib = 'N'
+               WHERE doc_id = :d""",
+            {"d": doc_id},
+        )
+    log.info("demoted doc_id=%s chunks_removed=%s reason=%s",
+             doc_id, removed, reason or "-")
+    return {"doc_id": doc_id, "filename": meta["filename"],
+            "chunks_removed": removed, "promoted": False, "reason": reason}
+
+
 def get(doc_id: int) -> dict:
     with cursor() as cur:
         cur.execute(

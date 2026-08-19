@@ -1,0 +1,415 @@
+# Title Page
+
+**City of Nashua, New Hampshire**
+
+**Request for Proposals RFP# 0619-093026**
+**Enterprise Resource Planning (ERP) System Software**
+
+Submitted by **iteria**
+1712 Pioneer Ave, Suite 1983, Cheyenne, WY 82001
+
+Principal contact: Brian Schell, President & Chief Executive Officer
+630-240-4072 · brian.schell@iteria.us
+
+Submitted to: Amy Girard, Purchasing Manager, City of Nashua
+229 Main Street, Nashua, NH 03061 · purchasing@nashuanh.gov
+
+Proposal due: Wednesday, 30 September 2026, 3:00 PM EST
+Submitted electronically via Bonfire
+
+**Addendum 1, issued 12 August 2026, is hereby acknowledged. The executed signature page is included with this submission.**
+
+**Mandatory pre-proposal meeting, Tuesday 28 July 2026: [CONFIRM BEFORE SUBMISSION: attendance by an iteria representative must be verified against the City's attendance record. Addendum 1 question 153 states that the prime contractor itself must have been represented; attendance by an OEM or a proposed subcontractor does not satisfy the requirement. If iteria was not represented, iteria cannot bid as prime and this proposal must not be submitted.]**
+
+This proposal constitutes a firm offer and remains valid for one hundred and twenty days from the proposal due date, or from the date of any best and final offer, whichever is later.
+
+---
+
+# Letter of Transmittal
+
+Amy Girard, Purchasing Manager
+City of Nashua
+229 Main Street
+Nashua, NH 03061
+
+Dear Ms. Girard,
+
+iteria is pleased to submit this proposal in response to RFP# 0619-093026 for Enterprise Resource Planning System Software. We acknowledge receipt of Addendum 1, issued 12 August 2026, and have returned the executed signature page with this response.
+
+The City has been asking for this project for at least three budget cycles. The FY2025 Capital Improvements Program carried a request to upgrade the existing ERP. The FY2027 CIP escalated it to $3,000,000 across FY27 through FY29, ranked 19 of 125, scored 4.11 of 5, classified Urgent and Important, and marked "Old Request (not funded)." In the same budget the City consolidated its own and the School District's information technology departments into a single organisation.
+
+We read that history as the most important fact in the procurement file. This is not a City shopping for software. It is a City that has known for years what it needs, has been told by its incumbent vendor that the current path ends, and now has one window in which to do this properly. The City's own answer to question 57 of Addendum 1 states the constraint plainly: the existing solution ends support in 2030.
+
+That deadline defines the engagement. Forty-eight months of implementation, finance first, against a fixed vendor end-of-life, leaves no room for a programme that has to be re-planned in month nine because requirements were gathered on a spreadsheet.
+
+We have performed that recovery. At Fond du Lac County, Wisconsin, iteria was engaged as prime contractor on an Oracle Fusion implementation that required re-baselining and re-implementation within a compressed window. We redesigned the chart of accounts, re-established requirements and solution design, replaced third-party components that were not going to hold, and delivered go-live on 22 December 2024, on time and on budget. Tammy Pinno-Supple, the County's Finance Director, is available as a reference.
+
+We would prefer that Nashua never require that capability. The way to ensure it is to get the first ninety days right, and that is where this proposal concentrates its detail.
+
+Two aspects of how we work bear directly on the City's risk profile.
+
+We do not gather requirements by questionnaire. For an organisation running weekly and biweekly payrolls, with some employee groups on 37 or 48 pay periods per year, two workweek definitions, Fire on 48-hour shifts, 471 pay codes, 440 deduction codes and approximately 2,400 union employees across some 26 collective bargaining agreements, a spreadsheet will not surface what breaks. Face-to-face working sessions will.
+
+Every consultant assigned to this engagement is an iteria employee. We do not staff from bench, and we do not place subcontractors in client-facing roles. The Client Manager assigned to this engagement is a member of the iteria executive team.
+
+iteria accepts the City's contract terms as set out in Section VI of the RFP, and acknowledges that our responses in this proposal and in the Appendix A requirements worksheets will be incorporated into the resulting contract.
+
+This proposal constitutes a firm offer and remains valid for one hundred and twenty days from the proposal due date, or from the date of any best and final offer, whichever is later. The undersigned is authorised to bind the firm.
+
+Respectfully submitted,
+
+**Brian Schell**
+President & Chief Executive Officer
+iteria
+
+---
+
+# Table of Contents
+
+Sections 1.0 through 11.0 follow, tabbed and in the order prescribed by Table 5 of the RFP.
+
+---
+
+# Executive Summary
+
+## The City's position
+
+The City's current ERP is installed on premise and covers Account, Cashiering, Human Resources, Payroll, Reporting and Procurement Inventory. The incumbent vendor has announced end of support in 2030 for the version the City runs, and end of life for all on-premise installations. As the City's FY2027 Capital Improvements Program records, moving to the vendor's cloud product requires effort comparable to changing vendors outright. That is what created the opportunity for this competition.
+
+Around that core the City has accumulated separate applications for budgeting, wastewater billing, property tax billing, welfare, vital records and contracts, licensing and permitting, code enforcement, land management, timekeeping and scheduling, and document management, connected by 24 interfaces documented in Table 3 of the RFP. The City's stated preference is to replace as many of these as possible.
+
+## The environment
+
+| Measure | Value |
+|---|---|
+| Population served | Approximately 92,000 |
+| Employees, City and School combined | 3,500, rising to 3,600 with seasonal staff at peak |
+| Union employees and agreements | Approximately 2,400 across some 26 collective bargaining agreements |
+| Departments, funds, account units | 66 departments, 450 active funds, 5,480 account units |
+| School district | Dependent district: approximately 10,000 students, 20 schools |
+| FY2027 general fund | $384,288,315 |
+| Accounts payable | Approximately 15,000 vendors, 19,600 checks and 7,400 purchase orders annually |
+| Payroll | 110,000 checks and 12,500 personnel action forms annually |
+| Payroll configuration | 471 pay codes, 440 deduction codes, 1,200 job rate classes |
+| Timekeeping | 46 physical clocks, PIN and proximity credential |
+| Directory services | Four separate Active Directory domains requiring single sign-on |
+| Utility billing | 3,000 commercial accounts monthly, 21,000 residential quarterly |
+| Tax billing | 28,900 bills issued twice annually |
+
+## What we believe will decide this project
+
+**Payroll complexity, not financials, is the critical path.** The City has sequenced finance first across 48 months, which is the correct response to the 2030 deadline. The concentration of risk, however, sits in payroll: two cycles, non-standard period counts, two workweek definitions, 48-hour Fire shifts, 471 pay codes, 440 deduction codes, approximately 26 bargaining agreements, and four payroll staff supporting more than 100 approving managers. Our plan treats payroll parallel testing as a gate rather than a task, and requires a minimum of one complete pay period processed in parallel before go-live authorisation.
+
+**One award, two budget calendars.** The Nashua School District is a dependent district; the Board of Education governs and the Board of Aldermen approves the budget. This is one contract, one prime contractor and one award. The solution must nonetheless replace both the City's and the School Department's budgeting applications with distinct calendars and workflows, carry Student Activity Accounting and substitute and advanced scheduling, interface to the School District student information and budgeting systems, and produce DOE-25, Maintenance of Effort, Title I certification, SF425 and DRA reporting. The FY2027 consolidation of City and School information technology into a single department simplifies governance; it does not merge the two budget calendars.
+
+**Single sign-on across four Active Directory domains is an architecture decision.** It is identified in our integration approach and carried in our pricing rather than discovered during build.
+
+**Incumbent ancillary systems are not disclosed until short list.** The City has declined on four occasions to name the surrounding applications, and Addendum 1 moves disclosure from the successful bidder to the short-listed vendors. Estimates only are expected at submittal, with a best and final offer available after disclosure. We have therefore estimated integration effort against the functions named in Table 3 and stated our assumptions explicitly rather than concealing the uncertainty inside a number.
+
+## Why iteria
+
+iteria delivers exclusively on the Oracle platform. We have implemented the full Oracle Fusion suite, covering Financials, Human Capital Management, Payroll, Projects and Enterprise Asset Management, for county governments of comparable staff size and organisational complexity, as prime contractor, without subcontractors, replacing JD Edwards and Tyler Munis. We have recovered a public-sector Fusion implementation that was failing and delivered it on schedule. Our consultants are cross-trained across multiple modules, which is what allows a team sized appropriately for an organisation of 3,500 employees to cover 66 departments without a handoff at every functional boundary.
+
+---
+
+# Company Background and Experience
+
+## The firm
+
+| Attribute | Detail |
+|---|---|
+| Legal name | iteria, an S Corporation |
+| State of incorporation | Wyoming |
+| Registered office | 1712 Pioneer Ave, Suite 1983, Cheyenne, WY 82001 |
+| Year founded | 2015 |
+| Oracle Partner Network | Certified member in good standing; Oracle partner since inception |
+| Delivery locations | Cheyenne, Wyoming (headquarters); Bangalore and Hyderabad, India; satellite offices in Wisconsin, Illinois and Texas |
+| Years delivering Oracle Fusion | 10 |
+| Litigation, defaults, debarment | No liens or judgments; no contract terminations; no litigation; never debarred or suspended; not listed on the SAM.gov exclusion list |
+| Subcontractors | Not used as a general rule; none proposed for this engagement |
+
+iteria provides services solely on the Oracle Corporation suite of applications. We do not implement competing enterprise platforms. Our service lines are implementation, managed services and support, and custom development.
+
+## Financial and organisational stability
+
+iteria has operated continuously since 2015 as a privately held corporation. Financial statements are confidential and will be provided under separate cover at the City's request. The firm carries no liens or judgments and has never had a contract terminated for cause.
+
+## Comparable engagements
+
+### Fond du Lac County, Wisconsin
+
+County government of approximately 1,000 staff serving approximately 104,000 residents. Net-new implementation of the Oracle Fusion suite covering Financials (General Ledger, Accounts Payable, Accounts Receivable, Purchasing, Contract Management, Work Orders, Treasury, Project and Grant Accounting, Asset Management, Budgeting, Solicitation Management, Inventory and Point of Sale) together with Human Capital Management, Recruitment, basic and advanced Scheduling, Leave Management, Benefits, Time Entry, Payroll and Employee Reimbursement, Projects, and Enterprise Asset Management for the Highway Department's fleet maintenance and work order operations. The engagement replaced JD Edwards. Platform: Oracle Fusion 24D, software as a service. Project start 1 March 2024; go-live 22 December 2024.
+
+iteria served as prime contractor. No subcontractors were used. Departments in scope included Highway, Health, Human Services, Sheriff, Information Technology, Child Support, Corporation Counsel, Finance, Human Resources, Parks and Planning, and Administration.
+
+The engagement required re-baselining. In iteria's words at the time, the County faced the challenge of reworking previous solutions and designs; the project was re-baselined, re-implemented and condensed into a very tight timeframe, including redesigning the chart of accounts and properly baselining system capabilities, requirements and overall solution design. The project was delivered on budget and on time.
+
+Reference: Tammy Pinno-Supple, Finance Director, (920) 906-4771.
+
+**Relevance to Nashua:** a county-wide Fusion footprint across a comparable department count, delivered under schedule pressure, including Enterprise Asset Management for a public works fleet directly analogous to Nashua's Department of Public Works.
+
+### Outagamie County, Wisconsin
+
+County government of approximately 1,400 staff serving approximately 190,000 residents. Full Oracle Fusion implementation covering Financials, Human Capital Management, Payroll, Enterprise Asset Management and Project Portfolio Management, replacing both JD Edwards and Tyler Munis. Platform: Oracle Fusion 26A, software as a service. iteria serves as prime contractor; no subcontractors are used.
+
+The engagement is characterised by the delivery team as moving the County from entirely manual processes to automated processes, with heavy emphasis on change management and process streamlining.
+
+Reference: Michelle Uitenbroek, Finance Director, (920) 832-1674.
+
+**Relevance to Nashua:** multi-system consolidation of precisely the kind Nashua faces, at Nashua's staff scale.
+
+### Chicago Transit Authority
+
+A public transit authority engagement spanning 2015 to 2024 across multiple Oracle projects, including an E-Business Suite R12 upgrade, with iteria providing client management and internal project management. iteria served as prime contractor. The relationship concluded because the projects were completed.
+
+**Relevance to Nashua:** sustained delivery inside a large public agency with union workforces and public accountability, over nine years.
+
+### Industries for the Blind and Visually Impaired
+
+Full Oracle Fusion implementation for a government-funded not-for-profit. We cite this engagement for one reason directly relevant to a municipal buyer. Where most implementations aim to reduce headcount, this project's objective was to increase it and to widen the roles available to visually impaired employees. Following implementation, and through use of the accessibility capability within the Oracle applications, the organisation's entire customer service department is staffed by blind or visually impaired employees working in Oracle Order Management.
+
+Accessibility is a design input in our delivery method, not a remediation activity. The City's obligations under the Americans with Disabilities Act and applicable New Hampshire accessibility standards will be treated accordingly.
+
+Reference: Nicole Christman, Business Analyst, (414) 778-3057.
+
+### Stanford University
+
+Oracle Fusion Human Capital Management and Payroll for an institution of approximately 4,000 staff.
+
+## Client references
+
+Five client references are provided on the Appendix C form issued with Addendum 1, in accordance with the City's requirement for references from fully completed implementations.
+
+---
+
+# Project Understanding
+
+## Scope as we understand it
+
+The City seeks a fully integrated, cloud-based enterprise resource planning solution embedding sound business practice, covering Financials, Payroll, Human Resources, Tax Billing and Utility Billing, with Document Management, Licensing and Permitting, Event Management and Timekeeping identified as additional areas of interest. The solution will serve all City departments including the School District, Department of Public Works, Police, Fire and Library.
+
+We note the City's guidance that Licensing and Permitting is likely to fall in Phase II or a later phase, and that the Appendix A requirements worksheets are weighted, scored, subject to verification at any point in the procurement, and that misrepresentation of product functionality is grounds for disqualification. Our responses in those worksheets are made against actual Oracle Fusion capability.
+
+## The decisions that will shape the first ninety days
+
+**Chart of accounts.** With 5,480 account units, 450 active funds, 66 departments, one legal entity, one tax identification number and one bank, the chart of accounts redesign is the foundational decision of the programme. At Fond du Lac County, chart of accounts redesign was an explicit component of the re-baseline that recovered the project.
+
+**Payroll.** Two payroll cycles, non-standard pay period counts, two workweek definitions, 48-hour Fire shifts, 471 pay codes, 440 deduction codes, 1,200 job rate classes, approximately 26 collective bargaining agreements, and New Hampshire Retirement System reporting comprising an XML upload and monthly posting.
+
+**Utility billing.** Wastewater only. Consumption data arrives from Pennichuck Water Works as a manual weekly file, and solid waste and septic charges are billed from the same water usage data. That manual dependency is both a design constraint and a candidate for automation in its own right.
+
+**Tax billing.** 28,900 bills issued twice yearly under the standard New Hampshire RSA process with no modifications, together with a CAMA extract from the Assessing system supplying property characteristics.
+
+**Timekeeping.** 46 physical clocks using PIN and proximity credentials rather than biometrics; approximately 400 employees requiring advanced scheduling; no shift or vacation bidding required.
+
+**Data conversion.** Five years of transactional financial data. The City will export flat files and retains ownership of data cleansing. We will hold that boundary in the responsibility matrix, because uncontrolled conversion scope is the most common cause of overrun in public-sector ERP programmes.
+
+## Our role as we understand it
+
+The City expects the prime contractor to carry the solution, to provide a dedicated Project Manager for the full duration replaceable only with City approval, and to participate in a three-day on-site demonstration if short-listed. We accept each of these conditions.
+
+---
+
+# Project Staffing and Organization
+
+## Staffing philosophy
+
+All iteria resources are employees of the firm. Consultants are selected for each engagement on skill set, geographic proximity and cultural fit. We do not staff from bench and we do not assign resources to a proposal we are not prepared to field. Resources are certified or cross-trained across multiple modules, typically three modules up and three modules down, and all staff assigned on site are senior practitioners.
+
+All iteria resources report to the Client Manager assigned to the engagement, who is a member of the iteria executive team. The Project Manager is a member of iteria's leadership team. For each functional area a lead is designated, with staff reporting to that lead. Offshore resources are overseen by an executive team member in the local office together with a day-to-day offshore project manager who manages handover as work moves between onshore and offshore shifts.
+
+## Project team
+
+Resumes for all proposed personnel are provided under separate cover. The Project Manager proposed for this engagement is dedicated to the City for the full duration of the project and will participate in the entire on-site demonstration session if iteria is short-listed.
+
+## Organisational structure and responsibilities
+
+| Role | Responsibilities |
+|---|---|
+| Project Sponsor | Reviews and approves the project charter; commits resources; reviews weekly status reports; resolves scope issues against the scope definition; approves or rejects customisation requests |
+| Steering Committee | Champions the project; supports the project team; removes barriers; monitors organisational impact; resolves policy issues; reviews progress |
+| Project Managers | Coordinate and support all project work and staff; identify, escalate and resolve issues |
+| Analysis Team | Provides insight into current practice; defines functional requirements; participates in analysis sessions; attends status meetings |
+| Technical Team | Designs, develops and tests conversion, interface and report programs; coordinates Oracle instances, patches and technical environment requirements |
+| iteria Project Manager | Develops work plans and schedules; supervises daily activity of the iteria team; maintains communication with City project teams; reviews all interim and final deliverables; monitors progress against plan, schedule and budget |
+
+## On-site presence
+
+| Activity | On site |
+|---|---|
+| Project kickoff and boundary confirmation | 100% |
+| Requirements gathering | 100% |
+| Documentation | 25% |
+| Document review | 100% |
+| Conference room pilot build | 25% |
+| Conference room pilot execution | 100% |
+| Interface and conversion development | 25% |
+| System integration test build | 25% to 50% |
+| System integration test execution | 100% |
+| Training | 100% |
+| Go-live | 100% |
+| Post-implementation support | 100% |
+
+Travelling resources are on site Monday through Thursday.
+
+## City resource requirements
+
+Public-sector ERP programmes fail on client-side capacity more often than on vendor capability. Based on comparable engagements, we ask the City to plan for the following commitment.
+
+| City role | Estimated hours per month | Individuals |
+|---|---|---|
+| Executive Sponsor | 2 | 1 |
+| Steering Committee | 2 | 6 |
+| Project Manager | 24 | 1 |
+| Functional Area Leads | 80 to 120 at peak | 1 per module |
+| Subject Matter Experts | 60 during testing | 1 per department |
+| Integration Lead | 80 | 1 |
+| Data Conversion Lead | 80 | 1 |
+| System Administrator | 100 | 1 |
+| Reporting Lead | 100 | 1 |
+| Organisational Change Management Lead | 60 | 1 |
+| Training Lead | 60 | 1 |
+
+Peak demand coincides with requirements gathering, system integration testing, user acceptance testing and training. We state this at proposal stage rather than discovering it in month six.
+
+---
+
+# Project Work Plan and Schedule
+
+## Implementation approach
+
+iteria follows a defined step-by-step implementation method:
+
+1. Conduct a Boundary Confirmation session covering the City's near-term and future goals, to frame the overall implementation approach
+2. Perform Solution Analysis sessions with the business covering requirements
+3. Document and review requirements and the solution with business users
+4. Obtain sign-offs and approvals from the business
+5. On approval of the solution, begin development
+6. Evaluate the data and the roadmap for conversion
+7. Review and design interfaces
+8. Conduct smoke testing
+9. Conduct multiple prototype sessions
+10. Support User Acceptance Testing
+11. Provide Train-the-Trainer training
+12. Develop and provide complete configuration documentation
+13. Review final output with the business and obtain final sign-offs
+
+We do not implement from spreadsheets and questionnaires. We hold detailed conversations and interactive design sessions. A questionnaire records what staff believe the process to be; a working session reveals what actually happens when the process is inconvenient.
+
+## Work areas
+
+Overall project management; review of key decisions and integration points arising from requirements sessions; business process re-engineering; data extraction and cleansing; solution development; interface review and development; testing; training; go-live cutover; and post-implementation support.
+
+## Testing
+
+Testing progresses through Conference Room Pilot, System Integration Testing and User Acceptance Testing, supported by system unit testing, a complete end-to-end test cycle, regression testing, and payroll parallel testing.
+
+Payroll parallel testing runs for a minimum of one complete pay period across both the weekly and biweekly cycles before go-live authorisation is sought. Given the number of pay codes, deduction codes and bargaining agreements in scope, this is treated as a gate rather than a task.
+
+## Deliverables
+
+Project Boundary Confirmation Document; Business Requirements Documents; Interface Inventory; Data Conversion Strategy; Instance Strategy; Configuration Cookbooks; Interface Specification Documents; Conference Room Pilot test scripts; conversion templates; Change Impact Assessment; Stakeholder Communication Plan; System Integration Test Plan and executed scripts; defect log; report specifications; User Acceptance Test completion sign-off; training materials; training completion report; Cutover Plan; Go-Live Authorization; Production Confirmation.
+
+## Go-live cutover
+
+Cutover is a multi-day, 24-hour process requiring a detailed Business Continuity Plan and closely coordinated execution. It addresses data extracts and conversion processes, adherence to the Business Continuity Plan, planned downtime, shutdown of legacy applications, redirection of interfaces, 24-hour facility access, final configuration review, and a formal go/no-go decision. Go-live is aligned to a pay cycle boundary.
+
+## Governance and reporting
+
+| Forum | Participants | Frequency |
+|---|---|---|
+| Executive Steering Committee | City executive sponsors, iteria Client Manager | Monthly |
+| Project status meeting | City and iteria project teams | Weekly |
+| Technical working sessions | Technical leads, both parties | Weekly |
+
+A written status report is produced weekly at minimum. Each report carries a Project Health Card rating schedule, resources, budget, risks and issues as No Issues, Caution or Critical, together with completed and upcoming tasks, open service requests, and live risk and issue registers recording owner, mitigation and status for every entry.
+
+## Project repository
+
+We recommend that the City maintain the project repository so that the City is not dependent on its implementation partner for access to its own project record. We have seen numerous cases in which the implementation partner holds the repository on internal systems, which leaves the client without control. We recommend against that arrangement, including where we are the partner.
+
+---
+
+# System Description
+
+## Platform
+
+The proposed solution is Oracle Fusion Cloud Applications, delivered as software as a service. Addendum 1 confirms Oracle as an acceptable platform. All production data is hosted within the United States.
+
+## Architecture and security
+
+The solution is delivered from Oracle's cloud infrastructure with role-based access control, encryption in transit and at rest, and configuration managed through Oracle's standard quarterly release cycle.
+
+## Integration approach
+
+iteria differentiates itself by focusing on integration points. Our requirements process examines upstream and downstream dependencies for every process in scope, and interface error handling is designed at specification time rather than retrofitted after failure.
+
+For the City, the integration scope comprises the 24 interfaces documented in Table 3, together with:
+
+- Single sign-on across four separate Active Directory domains, treated as an architecture activity
+- New Hampshire Retirement System XML upload and monthly posting
+- Pennichuck Water Works consumption data, currently a manual weekly file and a candidate for automation
+- Assessing and CAMA extract supplying property characteristics to tax billing
+- Bi-directional timekeeping integration across 46 physical clocks
+- Bank positive pay in both directions, two lockbox interfaces, and credit card processing
+- School District student information system and School District budgeting system
+- Risk management, fuel, scale house, welfare, dog licensing and document management
+
+Where the City elects to replace an ancillary system rather than interface to it, the corresponding interface is removed from scope and the effort redirected to configuration.
+
+## Upgrade-safe configuration
+
+We extend Oracle's applications through configuration rather than customisation wherever possible, preserving the upgrade path. For an organisation that has just been compelled to leave an on-premise platform by vendor end-of-life, remaining on the standard upgrade path is the principal reason to move to software as a service.
+
+We will establish a quarterly patch playbook with the City so that regression testing can be completed inside Oracle's two-week window, and our method includes techniques for making that testing efficient.
+
+## Embedded artificial intelligence
+
+Addendum 1 requires that embedded artificial intelligence within the proposed solution must not contact external resources. Our response to this requirement is stated in the Appendix A worksheets and is based on documented Oracle product behaviour for the proposed release.
+
+---
+
+# System Functionality
+
+Detailed functional responses are provided in the Appendix A requirements worksheets, submitted electronically with this proposal, covering Systems, General Ledger, Licensing and Permitting, Projects, Grants, Purchasing, Budget, Accounts Payable, Accounts Receivable, Cash Receipts, Fixed Assets, Inventory, Document Management, Utility Billing, Tax Billing, Applicant Tracking, Leave Management, Personnel, Benefits, Training, Position Control, Payroll, Timekeeping and the Score Card.
+
+Each response records actual product capability in the proposed release. Where functionality is delivered through configuration, that is stated. Where it requires extension, that is stated. Where the City's requirement is met by a different mechanism than the one implied by the requirement text, the mechanism is described in the accompanying comment field.
+
+We understand that these worksheets are weighted and scored, that they may be verified at any time during the procurement, and that misrepresentation is grounds for disqualification.
+
+Every requirement row in all twenty-three functional tabs carries a rating. Where a row is rated SUP, the functionality is delivered out of the box in the proposed release and we expect to be asked to show it. Where a row is rated MOD, the accompanying comment names the configuration involved. We have not left rows blank: a blank is scored zero, and a zero we did not intend is a worse outcome for the City's evaluation than an honest NS. Sixteen rows across the twenty-three tabs are rated NS, and each states why.
+
+---
+
+# Software Maintenance, Updates and Support
+
+## Oracle release management
+
+Oracle Fusion Cloud Applications are updated on a quarterly release cycle, with a defined testing window before each release is applied to production. Our approach establishes a City-specific regression playbook so that the testing burden falls within that window and is repeatable by City staff rather than dependent on the implementation partner.
+
+## Post-implementation support
+
+Immediately following go-live, the implementing team remains engaged through hypercare. Our standard pattern is full on-site presence during the initial stabilisation period, moving to remote support as issue volume falls. The team that implemented the system performs the support, so that knowledge of the City's configuration decisions stays with the people answering the calls.
+
+## Managed services
+
+iteria provides ongoing managed services following stabilisation, covering functional and technical support, quarterly release regression, configuration change management and enhancement delivery.
+
+---
+
+# Cost Proposal
+
+> **PRICING PENDING. DO NOT SUBMIT UNTIL COMPLETE.** The figures on the cost worksheets for this response have not been entered. Owner: Brian Schell. This block is an internal marker and must be deleted once pricing is in.
+
+The cost proposal is submitted on the Appendix B pricing format, incorporating the revised Appendix E issued with Addendum 1, and includes:
+
+- Implementation services by phase and functional area
+- Oracle licence and subscription costs
+- Data conversion covering five years of transactional financial history
+- Interface development for the scope described above, including single sign-on across four Active Directory domains
+- Training development and delivery
+- Post-implementation support and ongoing managed services
+- A performance bond at 100% of the one-time implementation and licence cost
+- Technology errors and omissions and cyber liability insurance at the levels required
+
+Pricing reflects a 48-month implementation with finance delivered first, consistent with the City's stated sequence and the 2030 end-of-support constraint.

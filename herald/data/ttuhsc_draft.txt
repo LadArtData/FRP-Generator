@@ -1,0 +1,324 @@
+# Texas Tech University Health Sciences Center
+
+## RFP 739-SL3821039
+## Consulting Services: Enterprise AI Adoption and Enablement
+
+Submitted by iteria
+
+Submitted to: Shawn Olbeter, TTUHSC Purchasing, solicitations@ttuhsc.edu
+Response deadline: 21 September 2026, 4:30 p.m. Central
+Submitted through TechBid
+
+---
+
+# Letter of Transmittal
+
+Shawn Olbeter
+Purchasing Department
+Texas Tech University Health Sciences Center
+Lubbock, Texas
+
+Dear Mr. Olbeter,
+
+iteria is pleased to respond to RFP 739-SL3821039.
+
+We want to state at the outset why we are responding, because it bears on how this proposal should be read.
+
+TTUHSC is not asking a vendor to introduce artificial intelligence. That has already happened. The institution has provisioned enterprise large language models and embedded productivity assistants. It has established an AI Governance and Risk Committee under the President's Cabinet. It issued HSC OP 52.21, Acceptable Use of AI Tools, and it delivers AI Literacy Training through ACME that is certified by the Texas Department of Information Resources.
+
+What the institution's own compliance page states is that approved AI tools meeting institutional privacy and security standards are currently under evaluation, and that at this time no AI tools have been formally approved for use with sensitive or regulated information.
+
+That is not an awareness problem. It is the distance between a policy that governs use and an institution able to put AI to work against protected health information, student records and research data, across six campuses, a 108 county service region, and a Managed Care operation serving roughly 25,000 to 30,000 incarcerated patients. Closing that distance is a governance, data and change management problem before it is a technology problem.
+
+iteria has spent eleven years taking regulated, multi-entity public institutions from manual and fragmented to governed and operational, with the compliance and training structure that makes adoption survive the consultant's departure.
+
+We have not previously delivered a named enterprise AI adoption programme of this scope, and this proposal does not claim otherwise. What we bring is the delivery discipline that determines whether a roadmap becomes an operating capability or a document.
+
+Three commitments, stated here so the evaluation committee can hold us to them.
+
+Every consultant on this engagement is an iteria employee. We do not staff from bench, we do not place subcontractors in client-facing roles, and we do not assign resources to a proposal we are not prepared to field. The Client Manager on this engagement is a member of the iteria executive team.
+
+We will not train on institutional data. Section 5.4.F prohibits the use of institutional data to train, fine-tune or improve any model or third-party dataset. We accept that without exception, and our assessment approach is designed so that no protected data leaves TTUHSC's tenancy.
+
+TTUHSC will own everything we produce, in TTUHSC's own repository, as it is produced. We have seen institutions left without access to their own project record because the implementation partner held it on internal systems. We recommend against that arrangement, including where we are the partner.
+
+We acknowledge the HIPAA Business Associate Agreement at Appendix A and are prepared to execute it. Our VetHUB Subcontracting Plan is provided at Appendix C, and the Addenda Checklist at Appendix D.
+
+Respectfully submitted,
+
+Brian Schell
+President and Chief Executive Officer
+iteria
+630-240-4072 · brian.schell@iteria.us
+
+---
+
+# 1. Understanding of TTUHSC's Mission and AI Enablement Goals
+
+## 1.1 The institution we would be working in
+
+TTUHSC is not one organisation with one adoption curve. It is six schools across campuses at Lubbock, Amarillo, Abilene, Dallas, Mansfield and the Permian Basin, serving 108 counties and 131,000 square miles, roughly half the land mass of Texas. In FY2024 the institution recorded 582,353 clinic visits and served 220,628 patients. It employs approximately 765 full-time faculty and 4,018 full-time staff, and enrolled 5,352 students in Fall 2025.
+
+Managed Care is a distinct operating unit within that, providing healthcare to roughly 25,000 to 30,000 Texas Department of Criminal Justice patients across 23 facilities at 18 locations, with its own budget and a heavily telehealth-based delivery model.
+
+A roadmap that treats Lubbock and a TDCJ telehealth clinic as the same adoption problem will fail in both places.
+
+## 1.2 Three structural facts that shape our approach
+
+**TTUHSC does not operate its own ERP or student system.** Banner, covering student, financial aid, finance, human resources, payroll and budget, is operated by the Texas Tech University System Office of Information Technology, Enterprise Application Services, shared with Texas Tech University, TTUHSC El Paso and System Administration. The Operational Data Store, the Luminis portal, Banner Document Management and Cognos reporting sit in the same shared service.
+
+A significant share of the enterprise data any AI use case would want to reach is therefore governed by an entity TTUHSC does not unilaterally control. A roadmap that ignores this produces recommendations TTUHSC cannot execute. We treat the System relationship as a first-class governance dependency rather than a footnote.
+
+**Clinical data lives in Epic**, on its own governance and integration path, with a vendor AI roadmap that will arrive whether or not TTUHSC plans for it. OP 52.21 anticipates this directly: a vendor update that adds AI capability brings the product into scope on the effective date of that update. That is the most operationally demanding sentence in the policy, and most institutions have no process behind it.
+
+**Governance already exists.** The AI Governance and Risk Committee approves policy, assesses tools and risk, monitors compliance, evaluates vendors and oversees training. Our task is not to design a governance body. It is to give the existing one the operating cadence, decision instruments and evidence base to approve tools at the rate the institution needs, rather than the rate a committee without tooling can manage.
+
+## 1.3 What we believe the real risk is
+
+The failure mode for enterprise AI adoption in an academic health centre is not a poor model. It is a governance queue that cannot clear, so clinicians and researchers work around it. Every month the approved tool list stays empty is a month in which unsanctioned adoption accumulates, in an environment where the data involved is protected health information and the consequence of error is a breach notification.
+
+That reframes the assignment. The measure of this engagement is not the quality of the roadmap document. It is how many use cases are running in production, under governance, with named owners, at the end of the term, and whether the committee can keep approving them after we leave. Our proposed measures and transition plan are written against that standard.
+
+---
+
+# 2. Current-State Assessment (Scope of Work 2.1)
+
+## 2.1 Boundary Confirmation
+
+Every iteria engagement opens with a Boundary Confirmation session, and it is the practice we would most want TTUHSC to hold us to.
+
+Before any assessment activity, we convene executive sponsors, in our expectation the Vice President for Information Technology and Chief Information Officer, the Vice President for Institutional Compliance, the Institutional Privacy Officer, and a clinical and an academic leader. The session produces a signed document stating what is in scope, what is explicitly out, which decisions TTUHSC will make and by when, and what we are not being asked to do.
+
+This is not a kickoff meeting. It is the artefact that prevents the third-month conversation in which the roadmap has quietly acquired a Managed Care workstream nobody budgeted. On a term ending 31 August 2027 there is no room for that conversation.
+
+## 2.2 How we assess
+
+We do not assess by questionnaire. A questionnaire records what people believe the policy to be. A working session shows what actually happens at four o'clock on a Friday when the policy is inconvenient. For an AI readiness assessment, where the entire risk surface is unsanctioned usage, that difference is the assessment.
+
+Four streams run in parallel across Months 1 and 2.
+
+**Data and platform readiness.** What data exists, who governs it, what classification it carries under OP 56.04, and what would have to be true for an AI tool to touch it lawfully. This covers Banner and the Operational Data Store through the System relationship, Epic through clinical informatics, research data, and the departmental systems that always turn out to matter. The output is a data domain map with a governance owner and a classification for each domain.
+
+**Current AI usage, sanctioned and otherwise.** Structured interviews, and where TTUHSC authorises it, tenancy telemetry from the enterprise language models and embedded assistants already provisioned. We are looking for the use cases that already exist, because those are the adoption roadmap, discovered rather than invented.
+
+**Governance throughput.** We instrument the committee itself. How long a tool review takes today, what evidence it requires, where it stalls, and what would have to change for it to clear ten reviews a quarter instead of one. This is the stream most assessments omit and the one that determines whether anything ships.
+
+**Workforce readiness.** Baselined against the DIR-certified AI Literacy Training already delivered through ACME. We are not proposing to duplicate that. We assess the layer above it: role-specific capability for clinicians, researchers, administrators and Managed Care staff.
+
+## 2.3 Assessment deliverables
+
+Current-State Assessment Report with findings by stream and supporting evidence; AI Data Domain and Classification Map recording every domain, its owner, its OP 56.04 classification and its System or TTUHSC governance boundary; Use Case Inventory covering every AI use case found in the institution, sanctioned or otherwise, with a risk and value rating; and a Governance Throughput Baseline recording current review cycle time and the constraints behind it.
+
+---
+
+# 3. Strategic Roadmap for Enterprise AI Adoption (Scope of Work 2.2)
+
+## 3.1 Prioritisation that can be defended to a regent
+
+Every use case is scored on two axes. The first is institutional value, covering clinical outcome, research velocity, administrative burden removed and revenue cycle effect. The second is governance distance, meaning how far the use case sits from a state where OP 52.21 and the Business Associate Agreement permit it today.
+
+The second axis is what makes a roadmap executable, and it is the one generic AI strategy work leaves out.
+
+The output is a sequenced portfolio in four bands.
+
+Band 1 is ready now: non-sensitive data, an existing approved platform, a named owner. These begin in Month 3 and produce the evidence that the programme works.
+
+Band 2 is ready after a governance action. The tool is acceptable; a data processing agreement, a TX-RAMP determination or a classification decision is missing. Each carries a named owner and a target date.
+
+Band 3 is ready after a data action. Governance is satisfied; the data is not accessible, not clean, or sits behind the System boundary.
+
+Band 4 is not yet, documented with the reason, so the institution stops relitigating it.
+
+## 3.2 The System dependency
+
+Roadmap items requiring Banner or Operational Data Store data are flagged as System-dependent and carry a separate engagement track with TTU System Enterprise Application Services. We will not present TTUHSC with a roadmap item it cannot unilaterally execute without saying so on the page.
+
+## 3.3 The vendor update problem
+
+OP 52.21 brings a product into scope on the effective date of an update that adds AI capability. No institution can staff a manual watch on every enterprise vendor.
+
+We propose a Vendor AI Change Register: a standing inventory of enterprise applications, each carrying an AI capability status, a contractual notification obligation where existing agreements allow one, and a quarterly review slot on the committee's calendar. Epic, Banner, ACME and the enterprise language model are the first four entries. This is a small deliverable that converts an unenforceable policy clause into a process.
+
+## 3.4 Roadmap deliverables
+
+Enterprise AI Roadmap covering 24 months in four bands with named owners and dependencies; AI Use Case Portfolio, scored and sequenced, with success measures for each case; Vendor AI Change Register, populated, with the quarterly review process defined; and a System Dependency Register recording items requiring TTU System action.
+
+---
+
+# 4. Governance, Security and Compliance (Scope of Work 2.2 and 2.5)
+
+## 4.1 Extending the existing governance
+
+The AI Governance and Risk Committee exists and has a charter. We propose to give it four instruments it currently lacks.
+
+**A tiered review path.** Not every tool needs the same scrutiny. A summarisation assistant operating on public web content and a model touching protected health information are different risks and should not queue behind one another. Three tiers keyed to OP 56.04 data classifications, each with defined evidence requirements and a target cycle time. This is the single change most likely to clear the approved tool backlog.
+
+**A standard evidence pack.** A fixed set of artefacts every vendor supplies before review rather than during it: TX-RAMP status, data residency, training data commitments, subprocessor list, breach notification terms and model provenance. Committee time then goes to judgement rather than to chasing documents.
+
+**A HIPAA-specific control set.** Where protected health information is in scope: minimum necessary, the Business Associate Agreement chain to any subprocessor, the de-identification standard applied, audit logging and the retention position. Mapped onto the existing HIPAA compliance programme rather than run in parallel to it.
+
+**A decision record.** Every approval and rejection with its reasoning, in a form the next committee can search. This is what stops the same tool being relitigated three times, and it provides the audit trail if a regulator asks.
+
+## 4.2 Texas compliance
+
+Three Texas instruments govern this scope directly, and each of them changes what the governance model has to do.
+
+**The Texas Responsible AI Governance Act, House Bill 149, took effect on 1 January 2026.** It binds governmental entities, and TTUHSC is simultaneously a governmental entity and a healthcare provider, so it is caught twice. The operative obligations for this engagement are the requirement to disclose to a person that they are interacting with an artificial intelligence system, the prohibition on AI-based social scoring, and the restrictions on capturing biometric identifiers without consent. The disclosure requirement is not a policy statement; it is a design constraint on any patient-facing or student-facing use case, and it belongs in the use case playbooks rather than in a compliance appendix. Our tiered review standard carries a TRAIGA determination as a required field on every review, so no tool reaches approval without one.
+
+**Senate Bill 1188 requires provider review of AI-generated content entering the medical record**, to the standard set by the Texas Medical Board. That governs the clinical documentation use cases in our Band 1 portfolio and in the clinical training track at section 5.2. We treat provider attestation as a control on the use case, not as training content.
+
+**Texas Government Code section 2054.5191 is the statutory basis for the AI training TTUHSC already delivers through ACME.** It carries an annual DIR reporting obligation due 31 August and requires the training programme to be recertified each year. This engagement's term ends on 31 August 2027, which is a reporting date. Saying the ACME programme satisfies the obligation is true this year and untrue next year unless someone owns recertification. We therefore add the first DIR annual report and the training recertification to the exit criteria in section 6.2, delivered by TTUHSC staff with iteria observing, so the obligation transfers with the capability rather than lapsing when we leave.
+
+Beyond those three: we will determine the applicable TX-RAMP level for each proposed cloud service and document the certification path or the exception basis. Our pricing and subcontracting responses are structured to Texas Education Code section 51.9335, which governs the best value determination and expressly includes historically underutilised business compliance as a factor. Certifications under NDAA sections 889 and 1260H and 15 CFR 791.4 are executed, and Form 1295 is provided where the agreement value requires it.
+
+## 4.3 Handling of institutional data during the engagement
+
+No protected data leaves TTUHSC's tenancy. Assessment artefacts containing sensitive material remain in TTUHSC-controlled storage. Our consultants work in the institution's environment under its access controls. Institutional data will not be used to train, fine-tune or improve any model, ours or a third party's.
+
+## 4.4 Governance deliverables
+
+AI Governance Operating Model covering tiered review, responsibilities, cadence and escalation; Tiered Review Standard with evidence requirements and target cycle times; Vendor AI Evidence Pack template; HIPAA-Aware AI Control Set mapped to the existing compliance programme; and an AI Decision Register, instantiated, with the first reviews run through it.
+
+---
+
+# 5. Training and Enablement (Scope of Work 2.3)
+
+## 5.1 Built from the institution's own tools
+
+Training material is developed from the tools TTUHSC has actually approved, against workflows TTUHSC actually runs. A prompt engineering class taught on a consumer chatbot teaches staff a workflow the institution's policy forbids.
+
+## 5.2 Role-based delivery above the ACME baseline
+
+| Audience | Focus | Format |
+|---|---|---|
+| Executive and committee | Risk posture, portfolio decisions, what good looks like | Half day, in person, per campus leadership |
+| Clinical | Documentation support, summarisation, what PHI rules mean at the keyboard | Two hours, blended, service line specific |
+| Research | Literature, data preparation, IRB and publication implications | Two hours, blended |
+| Administrative and finance | Workflow automation, drafting and analysis within classification limits | Two hours, blended |
+| Managed Care | Constrained environment patterns, telehealth workflows | Two hours, on site |
+| Train the Trainer | Institutional capability to sustain delivery | Two days |
+
+Train the Trainer is the load-bearing item. A consulting engagement that ends with the vendor holding the training capability has failed. Our target is that TTUHSC delivers its own role-based AI training from Month 7 onward, with iteria observing rather than presenting.
+
+## 5.3 Change management
+
+Named change leads for each campus and each school. A communication plan that runs through existing channels rather than creating new ones. Adoption measured for each use case and reported monthly to the Steering Committee, with a defined intervention when a use case stalls.
+
+## 5.4 Training deliverables
+
+Role-Based Training Curriculum across six tracks, configured to TTUHSC; Responsible AI Workshop Series delivered at each campus; Train the Trainer programme with certification of the internal cohort; Change Impact Assessment and Stakeholder Communication Plan; and an Adoption Measurement Framework with monthly reporting.
+
+---
+
+# 6. Documentation and Transition Support (Scope of Work 2.4)
+
+## 6.1 Documentation that survives the engagement
+
+AI Best Practice Handbook, specific to TTUHSC rather than generic; Use Case Playbooks, one for each Band 1 and Band 2 case, covering workflow, controls, owner, measures and failure modes; a Prompt Pattern Library validated against approved tools and classification rules; and a Governance Runbook explaining how to run a review, with worked examples.
+
+## 6.2 Transition
+
+From Month 7, iteria moves from delivery to observation. The committee runs its own reviews and we comment. TTUHSC trainers deliver and we observe. By the end of the term on 31 August 2027 the exit test is specific: the committee has run its reviews without iteria leading them; internal trainers have delivered every track at least once; Band 1 use cases are in production with named owners and live measures; and the decision register, change register and dependency register are maintained by TTUHSC staff.
+
+## 6.3 Ongoing support
+
+Post-term support is available under separate agreement. We are not proposing it within this response, because a transition plan that assumes the consultant stays is not a transition plan.
+
+---
+
+# 7. Qualifications and Experience of Proposed Personnel
+
+## 7.1 How we staff
+
+All iteria resources are employees of the firm. Consultants are selected for skill set, geographic proximity and cultural fit. We do not staff from bench. Resources are certified or cross-trained across multiple areas, and all staff assigned on site are senior practitioners. All resources report to the Client Manager assigned to the engagement, who is a member of the iteria executive team; the Project Manager is a member of iteria's leadership team.
+
+Named resumes are provided under separate cover.
+
+## 7.2 Relevant experience
+
+iteria was founded in 2015 and is an Oracle Gold Partner. Our delivery record is on the Oracle stack, and we state plainly that none of the systems in this scope are Oracle systems: Banner is Ellucian, the clinical record is Epic, and the enterprise language model is a third-party tenancy. What this engagement asks for is assessment, governance design, training and transition, none of which is platform-specific, and our assessment method does not require administrative access to any of those products. Our public sector and regulated environment record includes the following.
+
+**Fond du Lac County, Wisconsin.** County government of approximately 1,000 staff serving approximately 104,000 residents. Full Oracle Fusion suite. iteria was prime contractor with no subcontractors. The engagement required re-baselining and re-implementation within a compressed window, and was delivered on time and on budget with go-live on 22 December 2024. Reference: Tammy Pinno-Supple, Finance Director, (920) 906-4771. This is our strongest governance-under-pressure reference.
+
+**Outagamie County, Wisconsin.** County government of approximately 1,400 staff serving approximately 190,000 residents. Full Oracle Fusion implementation as prime contractor with no subcontractors, moving the County from entirely manual processes to automated processes with heavy emphasis on change management. Reference: Michelle Uitenbroek, Finance Director, (920) 832-1674.
+
+**Industries for the Blind and Visually Impaired.** A government-funded not-for-profit. The relevant point is not the modules. It is that the project's objective was to increase headcount and expand roles for visually impaired staff, and it did. The organisation's entire customer service department is now staffed by blind or visually impaired employees working in Oracle Order Management. Reference: Nicole Christman, Business Analyst, (414) 778-3057.
+
+**Chicago Transit Authority.** A nine-year relationship from 2015 to 2024 across multiple projects, concluded because the projects were completed.
+
+**Stanford University.** Oracle Fusion Human Capital Management and Payroll. Reference contact available on request.
+
+## 7.3 What we are not claiming
+
+This matters more to an evaluation committee than another page of capability language.
+
+We do not have a completed, named enterprise AI adoption programme of comparable scope to offer as past performance, and we are not going to describe an adjacent engagement as though it were one. We also have no healthcare client, no HIPAA covered entity, and no Texas public institution on our reference list. The committee should have all three facts in front of it now rather than at reference check.
+
+Because an admission without a remedy is just an admission, we attach three conditions to our own offer. Gate 1, the Current-State Assessment, is priced as a discrete phase and TTUHSC may terminate at its acceptance for convenience and without cause. Ten per cent of total fees is held back against the exit criteria in section 6.2, released only when the AI Governance and Risk Committee has run its own reviews without us. And we will name the Client Manager and every functional lead in our response to Appendix B rather than after award, so the committee is scoring people rather than roles.
+
+What we do claim is that the difficult parts of this scope are what iteria has done repeatedly, under time pressure, as prime contractor, with references who will take the call. Those parts are governance design in a regulated environment, multi-entity stakeholder management where we do not control the platform, change management across resistant professional populations, and training that transfers capability rather than creating dependency.
+
+If the committee weighs a named AI programme above that record, we would rather TTUHSC know our position now than discover it at reference check.
+
+---
+
+# 8. Project Management Approach
+
+## 8.1 Governance
+
+| Level | Participants | Frequency |
+|---|---|---|
+| Executive Steering Committee | TTUHSC executive sponsors, iteria Client Manager | Monthly |
+| Project Management Office | TTUHSC Project Manager, iteria Project Manager | Bi-weekly |
+| Working sessions | Workstream leads, both parties | Weekly |
+
+A written status report is issued weekly at minimum, carrying a Project Health Card that rates schedule, resources, budget, risks and issues as No Issues, Caution or Critical, with live risk and issue registers recording owner and mitigation for every entry.
+
+## 8.2 Schedule
+
+Nine months, aligned to a term ending 31 August 2027.
+
+| Phase | Months | Gate |
+|---|---|---|
+| Boundary Confirmation and Assessment | 1 to 2 | Assessment Report accepted |
+| Roadmap and Governance Design | 2 to 4 | Roadmap and operating model approved by the AI Governance and Risk Committee |
+| Band 1 Enablement and Training Build | 4 to 6 | First use cases in production; curriculum accepted |
+| Delivery and Train the Trainer | 6 to 8 | Internal trainers certified |
+| Transition and Exit | 8 to 9 | Exit criteria met |
+
+## 8.3 On-site presence
+
+iteria works on site for the activities where presence changes the outcome: assessment and requirements sessions, workshop delivery, training, and transition. Documentation and build run remote. Travelling resources are on site Monday through Thursday. Coverage across Lubbock, Amarillo, Abilene, Dallas, Mansfield and the Permian Basin is planned by phase rather than assumed uniform.
+
+---
+
+# 9. Pricing
+
+> **PRICING PENDING. DO NOT SUBMIT UNTIL COMPLETE.** The figures on the cost worksheets for this response have not been entered. Owner: Brian Schell. This block is an internal marker and must be deleted once pricing is in.
+
+Pricing is submitted in the form the RFP requires and is structured as follows.
+
+Fixed fee by phase, tied to the five gates above, with payment on gate acceptance rather than elapsed time. Training delivery priced per campus per track, so that TTUHSC can adjust campus coverage without reopening the whole price. Travel at actual cost against a not-to-exceed amount.
+
+Pricing carries 30 per cent of the evaluation weighting under section 4.3.2, second only to Service Specifications at 55 per cent, and ahead of Experience and Reputation at 15 per cent. Our structure is built to be compared cleanly against that weighting.
+
+---
+
+# 10. Administrative Compliance
+
+| Item | Status |
+|---|---|
+| Execution of Offer, Appendix B, signed | Included |
+| VetHUB Subcontracting Plan, Appendix C, signed and complete | Included |
+| Addenda Checklist, Appendix D, signed | Included |
+| Responses to Specifications and Scope questions | This document |
+| HIPAA Business Associate Agreement, Appendix A | Reviewed; prepared to execute |
+| TechBid Bidder Affirmation | Submitted |
+
+## 10.1 VetHUB Subcontracting Plan
+
+The Texas historically underutilised business programme was restructured into VetHUB by emergency rules announced on 2 December 2025. Eligibility is now limited to small businesses at least 51 per cent owned and controlled by a veteran with a service-connected disability rating of 20 per cent or higher who resides in Texas.
+
+iteria does not hold VetHUB certification and does not meet the ownership and control criteria. iteria is therefore a prime contractor submitting a subcontracting plan rather than a certified VetHUB.
+
+Our subcontracting plan documents the good faith effort determination in the form the Comptroller's current rules require. Under Texas Education Code section 51.9335, historically underutilised business compliance is an express best value factor, and we have treated it as a pass or fail administrative item rather than a formality.

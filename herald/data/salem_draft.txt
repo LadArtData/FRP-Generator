@@ -1,0 +1,295 @@
+# Town of Salem, New Hampshire
+
+## RFP 2026-008
+## Software and Implementation Services for Financial Enterprise Resource Planning (ERP) and Tax Collector Software Systems Environment
+
+Submitted by iteria
+
+Submitted to: Gia Faccadio, Purchasing Agent, Town of Salem NH, 33 Geremonty Drive, Salem, NH 03079
+
+Proposal due: Wednesday, 19 August 2026, 10:00 a.m. ET
+
+---
+
+# Tab 1. Company Introduction and Relevant Experience
+
+## 1.1 Who we are
+
+iteria is an Oracle Cloud Fusion implementation and consulting firm founded in 2015. We are a certified member of the Oracle Partner Network and have been an Oracle partner since inception. We provide services solely on the Oracle Corporation suite of applications. We do not implement competing enterprise platforms, and we do not maintain practices in products we would have to learn on a client's project.
+
+Our headquarters is in Cheyenne, Wyoming, with delivery offices in Bangalore and Hyderabad, India, and satellite offices in Wisconsin, Illinois and Texas. Our service lines are implementation, managed services and support, and custom development.
+
+iteria has no liens or judgments against it, has never had a contract terminated for cause, has no pending or past litigation, has never been debarred or suspended, and does not appear on the SAM.gov exclusion list.
+
+## 1.2 What we would bring to Salem
+
+Salem is a town of roughly 30,000 in Rockingham County, running a $56,686,638 operating budget and a $9,129,436 capital budget across fourteen departments with 265 full-time equivalents, on a calendar fiscal year. Those are the numbers the system has to carry, and the second one is the one currently invisible.
+
+The Town is replacing MuniSmart, a Harris product running on premises in a legacy client-server architecture, with data held in flat file structures rather than a relational database. Around it the Town operates ClearGov for operating and personnel budgeting, EasyCIP for capital planning, and a set of manual steps that connect them. The budget is built in ClearGov, exported to Excel, and uploaded into MuniSmart, where new accounts must be reviewed and created by hand before posting. Mid-year amendments are tracked largely outside the system, often informally. Capital spending is carried as ordinary line-item activity in the operating budget, which leaves the Town without visibility into multi-year capital balances.
+
+We have read that description carefully because it tells us what the Town is actually buying. It is not a general ledger. Salem already has one. What the Town lacks is a single system of record in which the budget is developed, approved, posted and amended without an export, a spreadsheet and a manual account build in the middle of the cycle.
+
+That shapes our proposal. We treat the ClearGov to MuniSmart handoff as the defect to eliminate, not as an interface to reproduce.
+
+## 1.3 Comparable engagements
+
+**Fond du Lac County, Wisconsin.** County government of approximately 1,000 staff serving approximately 104,000 residents. Net-new implementation of the Oracle Fusion suite covering Financials, Human Capital Management, Payroll, Projects and Enterprise Asset Management, replacing JD Edwards. Oracle Fusion 24D, software as a service. Project start 1 March 2024, go-live 22 December 2024, nine months. iteria was prime contractor and used no subcontractors.
+
+The engagement required re-baselining. The County faced the challenge of reworking previous solutions and designs; the project was re-baselined, re-implemented and condensed into a very tight timeframe, including redesigning the chart of accounts and properly baselining system capabilities, requirements and overall solution design. It was delivered on budget and on time.
+
+Reference: Tammy Pinno-Supple, Finance Director, (920) 906-4771.
+
+**Outagamie County, Wisconsin.** County government of approximately 1,400 staff serving approximately 190,000 residents. Full Oracle Fusion implementation covering Financials, Human Capital Management, Payroll, Enterprise Asset Management and Project Portfolio Management, replacing both JD Edwards and Tyler Munis. Oracle Fusion 26A, software as a service. iteria is prime contractor; no subcontractors are used. The engagement moves the County from entirely manual processes to automated processes, with heavy emphasis on change management and process streamlining.
+
+Reference: Michelle Uitenbroek, Finance Director, (920) 832-1674.
+
+**Industries for the Blind and Visually Impaired.** Full Oracle Fusion implementation for a government-funded not-for-profit. Where most implementations aim to reduce headcount, this project's objective was to increase it and widen the roles open to visually impaired employees. Following implementation, and through the accessibility capability built into the Oracle applications, the organisation's entire customer service department is staffed by blind or visually impaired employees working in Oracle Order Management.
+
+Reference: Nicole Christman, Business Analyst, (414) 778-3057.
+
+**Chicago Transit Authority.** A public agency relationship spanning 2015 to 2024 across multiple Oracle projects including an E-Business Suite R12 upgrade, with iteria providing client management and internal project management as prime contractor. The relationship concluded because the projects were completed.
+
+## 1.4 Scope of our proposal, stated plainly
+
+The Town has organised this solicitation around thirteen functional areas and has said it will consider proposals covering a subset of functionality.
+
+iteria proposes on the financial and human capital scope: General Ledger and Financial Reporting; Budgeting, Operating and Personnel; Budgeting, Capital; Purchasing, Bid and Contract Management; Accounts Payable; Project Accounting and Grant Management; Fixed Assets; Accounts Receivable, Cash Receipts and Miscellaneous Billing; Human Resources and Personnel Management; Applicant Tracking and Recruitment; Payroll; and Benefits Administration.
+
+**We are not proposing the Tax Collector module.** Oracle Fusion does not provide New Hampshire property tax billing and collection, and we will not represent that it does. The Town's requirements in that area are properly met by a specialist product. We would expect to integrate to whichever tax solution the Town selects, and our response to Attachment B identifies that integration explicitly.
+
+We would rather be excluded from consideration on that basis than be selected on a claim that fails at demonstration.
+
+---
+
+# Tab 2. Software Solution, Data Conversion, Architecture, Security, and Hosting
+
+## 2.1 Proposed solution
+
+Oracle Fusion Cloud Applications, delivered as software as a service. The proposed footprint covers Financials, Human Capital Management, Payroll, Projects and Grants, and Procurement.
+
+Salem's numbers sit comfortably inside the range we deliver. Fifteen to twenty funds and 2,200 accounts against a three-segment chart of accounts; 835 purchase orders and 150 blanket purchase orders a year; approximately 1,300 active vendors and 9,500 to 10,000 invoices; 455 fixed assets against a $25,000 capitalisation threshold with a five-year life, cruisers excepted; 17 grants, 13 donations and 16 active projects; 265 full-time equivalents; and 471 W-2s issued against a weekly payroll of 350 to 400 employees per cycle.
+
+## 2.2 Chart of accounts
+
+Salem runs a three-segment chart of accounts of fund, department and account. Oracle Fusion uses a flexible accounting structure that will accommodate that structure directly, and will also accommodate the additional segmentation the Town will want once capital and grant activity is tracked properly rather than as operating line items.
+
+Chart of accounts design is the first substantive decision of the project and the one with the longest tail. At Fond du Lac County, chart of accounts redesign was an explicit part of the work that recovered a failing implementation. We schedule it in the first six weeks, with the Finance Director as the decision owner.
+
+## 2.3 The budget cycle
+
+This is where we expect the Town to feel the difference.
+
+Today the budget is developed in ClearGov, capital planning runs separately in EasyCIP, personnel budgeting is maintained centrally by Finance at individual position level against pay rates, step increases, benefits and retirement rates, and one-time requests arrive as Word or PDF documents outside the system. Multiple versions are held in ClearGov through the autumn to reflect department requests, Town Manager recommendations, Town Council and Budget Committee actions. Approved figures are then exported to Excel and loaded to MuniSmart, requiring manual review and creation of new accounts before posting.
+
+In the proposed solution, operating, personnel and capital budgeting are developed in the same system that holds the general ledger. Position budgeting is driven from the HR record, so pay rates, steps, benefit elections and retirement contributions are calculated rather than maintained separately. Budget versions are held natively, so department request, Town Manager recommendation, Council action and Budget Committee action are versions of one budget rather than separate spreadsheets. Approved budget posts to the general ledger without an export. Mid-year amendments run through a defined workflow with an audit trail.
+
+Whether the Town retains ClearGov for public budget presentation is a Town decision. If it does, we will build the interface. Our position is that it should not be required to carry the budget into the ledger.
+
+## 2.4 Data conversion
+
+Conversion is the most common cause of overrun in public sector ERP projects, and the reason is almost always the same: nobody agreed early enough who owns cleansing.
+
+Our proposed division of responsibility is that the Town extracts and owns the quality of source data, and iteria owns the mapping, transformation, load and reconciliation. We will provide extract specifications and validation templates in the first phase so that data quality work can begin while configuration is still under way rather than after it.
+
+MuniSmart holds its data in flat file structures rather than a relational database. That is an advantage for extraction, because flat files are straightforward to read, and a risk for interpretation, because referential integrity that a database would enforce may not have been enforced in practice. We plan a data profiling exercise in the first phase specifically to establish that.
+
+Proposed conversion scope, subject to confirmation with the Town during Boundary Confirmation: chart of accounts and balances; open purchase orders; vendor master and 1099 history; open payables; accounts receivable and outstanding invoices; fixed asset register with accumulated depreciation; grant and project master with life-to-date activity; employee master, position and salary history; benefit elections; and accrual balances.
+
+Every conversion runs at least twice before user acceptance testing, and is reconciled to a Town-signed control total each time.
+
+## 2.5 Architecture
+
+Oracle Fusion Cloud Applications is a multi-tenant software as a service platform. There is no Town-side server infrastructure to procure, house or maintain, which removes the single application server and legacy client-server architecture the Town currently operates.
+
+Quarterly updates are applied by Oracle on a published schedule with a defined testing window. We will build a Salem-specific regression playbook so that the Town's testing obligation fits inside that window and can be executed by Town staff rather than by a consultant.
+
+## 2.6 Security
+
+Role-based access control is designed against Salem's actual segregation of duties, not against a generic template. Encryption is applied in transit and at rest. Single sign-on integrates to the Town's identity provider.
+
+## 2.7 Hosting
+
+Production and non-production environments are hosted in Oracle Cloud Infrastructure commercial regions within the contiguous United States, with the primary region us-ashburn-1 and disaster recovery in us-phoenix-1. No Town data is stored or processed outside the continental United States. iteria's delivery offices include locations outside the United States; no personnel outside the continental United States will be granted access to Town production data, and we accept that as a contract term rather than a statement of intent.
+
+## 2.8 Interfaces
+
+Table 8 of the solicitation names fourteen applications. A proposal that discusses three of them and calls the rest an inventory exercise is asking the Town to price its own integration risk. Our position on each, before award:
+
+| Town application | Function | Proposed disposition |
+|---|---|---|
+| Kronos | Time and attendance, payroll feed | Replaced by Oracle Time and Labor, or retained with a bidirectional interface if the Town prefers to defer. Priced both ways. |
+| CrewSense | Public safety scheduling | Retained. Inbound schedule and worked-hours interface to Payroll. Carries the 155 Police and Fire advanced schedulers. |
+| Employee Navigator | Benefits administration | Replaced by Oracle Benefits, or retained with an outbound enrolment and demographic feed. Open enrolment timing governs which. |
+| Hirezon Interview Exchange | Applicant tracking | Replaced by Oracle Recruiting, with candidate history conversion. |
+| Vision CAMA | Assessing | Retained. Inbound valuation extract to Accounts Receivable and to the Town's selected tax solution. |
+| Invoice Cloud | Payment processing | Retained. Inbound payment file and outbound receivable file, daily. |
+| ClerkWorks | Clerk records and licensing | Retained. Outbound revenue posting to the general ledger. |
+| VUEWorks | Asset and work order management | Retained. Outbound cost and asset interface to Fixed Assets and Projects. |
+| OpenGov with Stripe | Online payments | Retained. Inbound settlement file with daily cash reconciliation. |
+| WEX | Fuel cards | Retained. Inbound transaction file to Accounts Payable with cost centre allocation. |
+| Neptune 360 | Utility metering | Retained. Inbound consumption read to billing. |
+| Mailings Unlimited | Print and mail | Retained. Outbound print file for bills and notices. |
+| ClearGov | Budgeting | Replaced by Oracle Planning and Budgeting. This is the handoff the Town identified as its core defect. |
+| EasyCIP | Capital planning | Replaced by Oracle Planning and Budgeting capital planning. |
+
+Each retained interface carries a named owner, a trigger, a data contract, an error path and a reconciliation method, specified during Boundary Confirmation and carried in our fee rather than raised later as a change order. Where we have offered a replace-or-retain choice, Attachment C shows a separate line for each option, so the Town makes that decision on cost and appetite rather than on our convenience.
+
+---
+
+# Tab 3. Implementation Methodology, Key Personnel, Training Plan, and Testing and Quality Assurance Plan
+
+## 3.1 Implementation methodology
+
+iteria follows a defined sequence:
+
+1. Conduct a Boundary Confirmation session covering the Town's near-term and future goals, to frame the implementation approach
+2. Perform Solution Analysis sessions with the business covering requirements
+3. Document and review requirements and the solution with business users
+4. Obtain sign-offs and approvals from the business
+5. On approval of the solution, begin development
+6. Evaluate the data and the roadmap for conversion
+7. Review and design interfaces
+8. Conduct smoke testing
+9. Conduct multiple prototype sessions
+10. Support User Acceptance Testing
+11. Provide Train-the-Trainer training
+12. Develop and provide complete configuration documentation
+13. Review final output with the business and obtain final sign-offs
+
+We do not implement from spreadsheets and questionnaires. We hold detailed conversations and interactive design sessions. A questionnaire captures what staff believe the process to be. A working session reveals what actually happens at the end of a month when the process is inconvenient. For a Town running a weekly payroll across Police and Fire with 155 employees needing advanced scheduling, that difference is the project.
+
+## 3.2 Key personnel
+
+All iteria resources are employees of the firm. We do not staff from bench, and we do not place subcontractors in client-facing roles. Consultants are selected for skill set, geographic proximity and cultural fit. Resources are certified or cross-trained across multiple modules, typically three modules up and three modules down, and all staff assigned on site are senior practitioners.
+
+All iteria resources report to the Client Manager assigned to the engagement, who is a member of the iteria executive team. The Project Manager is a member of iteria's leadership team. Each functional area has a designated lead.
+
+Resumes for proposed personnel are provided in the Attachment A forms in this tab.
+
+## 3.3 Town resource commitment
+
+The Town has not stated an expectation of dedicated staff. Based on comparable engagements, the following is what the project will require, and we state it now so the Town can plan rather than discover it in month six.
+
+| Town role | Estimated hours per month | Individuals |
+|---|---|---|
+| Executive Sponsor | 2 | 1 |
+| Steering Committee | 2 | 5 |
+| Project Manager | 24 | 1 |
+| Functional Area Leads | 60 to 100 at peak | 1 per area |
+| Subject Matter Experts | 40 during testing | 1 per department |
+| Data Conversion Lead | 60 | 1 |
+| System Administrator | 60 | 1 |
+| Training Lead | 40 | 1 |
+
+Peak demand falls in requirements gathering, system integration testing, user acceptance testing and training.
+
+## 3.4 Training plan
+
+Training material is built from the Town's own configured system using screenshots from the Town's environment. Generic courseware teaches staff a system they do not have.
+
+Delivery is Train-the-Trainer supported by classroom sessions, with material-only and one-to-one formats for low-volume functions. This is the structure we used at Fond du Lac County across approximately twenty departments.
+
+Audiences requiring distinct treatment in Salem are Finance, the departments entering budget requests, Police and Fire on scheduling and time entry, and the payroll function on a weekly cycle.
+
+## 3.5 Testing and quality assurance
+
+Testing runs Conference Room Pilot, then System Integration Testing, then User Acceptance Testing, supported by system unit testing, a complete end-to-end cycle, regression testing, and payroll parallel testing.
+
+Payroll parallel testing runs a minimum of one complete weekly cycle, with gross-to-net reconciled to the current system before go-live authorisation is sought. With 471 W-2s and 350 to 400 employees paid weekly, a single mis-set deduction code is visible to the entire workforce within seven days.
+
+Go-live authorisation is a formal go or no-go decision against defined exit criteria, not a date.
+
+---
+
+# Tab 4. Project Schedule
+
+The Town has stated its own dates: implementation activity beginning May 2027, financial modules live May 2028, human resources and payroll live July 2028. We have built to those dates rather than to a duration of our choosing, and we are not proposing to beat them. A schedule that arrives early on a municipal ERP is usually a schedule that has moved work onto Town staff who cannot absorb it.
+
+Two waves, matching the Town's phasing.
+
+| Phase | Dates | Content |
+|---|---|---|
+| Boundary Confirmation and Solution Analysis | May – Jul 2027 | Goals, scope boundary, requirements sessions, chart of accounts design, data profiling, interface inventory, instance strategy |
+| Wave 1 build and Conference Room Pilot | Jul – Nov 2027 | Financials configuration, interface development, first conversion loads, Conference Room Pilot, change management launch |
+| Wave 1 system integration testing | Nov 2027 – Jan 2028 | Two complete end-to-end cycles, defect triage, report development |
+| Wave 1 acceptance and training | Feb – Apr 2028 | Town-led acceptance testing, Train-the-Trainer, end-user training |
+| **Wave 1 go-live: financial modules** | **May 2028** | Cutover at the fiscal boundary, hypercare on site |
+| Wave 2 build and testing | Jan – Apr 2028 | HR, payroll, benefits, applicant tracking configuration and integration; runs in parallel with Wave 1 acceptance |
+| Wave 2 acceptance and payroll parallel | Apr – Jun 2028 | Town-led acceptance testing, minimum two complete weekly payroll cycles processed in parallel |
+| **Wave 2 go-live: human resources and payroll** | **July 2028** | Cutover, hypercare on site, transition to support |
+
+Two points on the sequencing. The Town's fiscal year runs 1 January to 31 December, so a May 2028 financials go-live falls mid-year. That is workable and we have planned for it, but it means the conversion carries a partial-year general ledger and the first year-end close runs on the new system with five months of converted history behind it. We size that explicitly rather than discovering it in December 2028. Second, Wave 2 acceptance ends in June and open enrolment runs mid-October to 31 October, which gives the Town a full quarter of stable payroll before benefits administration takes its first live enrolment.
+
+Go-live is aligned to a fiscal period boundary and to a payroll cycle boundary. Cutover is a multi-day process governed by a Business Continuity Plan covering data extracts and conversion runs, planned downtime, shutdown of legacy applications, redirection of interfaces, final configuration review and the go or no-go decision.
+
+Governance runs an Executive Steering Committee monthly, a project status meeting weekly, and technical working sessions weekly. A written status report is issued weekly at minimum, carrying a Project Health Card that rates schedule, resources, budget, risks and issues as No Issues, Caution or Critical, with live risk and issue registers recording owner, mitigation and status.
+
+We recommend that the Town hold the project repository. We have seen many cases where the implementation partner keeps the project record on internal systems, which leaves the client without control of its own documentation. We recommend against that arrangement including where we are the partner.
+
+---
+
+# Tab 5. References
+
+References are recorded on the Attachment A reference forms in this tab, each carrying the contact, dates, bid price, final negotiated price and final cost including change orders that the form requires.
+
+The engagements offered are Fond du Lac County, Wisconsin; Outagamie County, Wisconsin; Industries for the Blind and Visually Impaired; and Chicago Transit Authority.
+
+Two things the Town should weigh, stated by us rather than found at reference check. None of our references is a New England municipality, and none is a town of Salem's size; our two closest engagements are Wisconsin counties of roughly 1,000 and 1,400 staff against Salem's 265. And the Outagamie County engagement is in flight rather than complete, so it is offered as a current engagement and not as a completed implementation. We would rather the committee discount those references knowingly than discover the gap after scoring.
+
+---
+
+# Tab 6. Cost Narrative
+
+> **PRICING PENDING. DO NOT SUBMIT UNTIL COMPLETE.** The figures on the cost worksheets for this response have not been entered. Owner: Brian Schell. This block is an internal marker and must be deleted once pricing is in.
+
+Our pricing is submitted on the Attachment C worksheets in unmodified Microsoft Excel, with a PDF copy appended. The Town's instruction not to alter the worksheets has been followed; no rows have been added, deleted or reformatted.
+
+Pricing is structured as fixed fees by phase, tied to the gates in Tab 4 and payable on gate acceptance rather than against elapsed time. It covers implementation services by phase and functional area; the Oracle Fusion subscription; data conversion for the scope described in Tab 2; development of each interface named in section 2.8; training development and delivery by audience; and post-implementation support.
+
+Two points the Town should be able to compare cleanly against other bidders. First, the solicitation states that cost may be evaluated on a fully loaded ten-year cost of ownership, so we have priced ten years, with subscription escalation stated explicitly rather than left to renewal. Second, on the contracting model: the Town contracts with Oracle directly for the Fusion subscription under an Oracle Ordering Document, and with iteria for implementation and support services. We have shown the two separately rather than bundling them, because bundling obscures which party the Town's remedy runs against when a quarterly Oracle update breaks a Salem process. Our regression obligation for those updates is stated in Tab 7 and priced here.
+
+Travel is charged at actual cost against a not-to-exceed amount stated on the worksheet.
+
+---
+
+# Tab 7. Sample Contracts and Warranty
+
+iteria's standard Statement of Work and warranty terms are provided in this tab. Invoicing is issued biweekly against work performed.
+
+---
+
+# Tab 8. Exceptions to Project Scope and Contract Terms
+
+The exception recorded in Tab 1 applies: iteria proposes on the financial and human capital scope and does not propose the Tax Collector functional area. Our Attachment B response reflects that scope and identifies the integration to the Town's selected tax solution.
+
+We take three written exceptions to the Town's contract terms. We record them here rather than raising them after award, because the solicitation treats failure to negotiate as grounds to move to the next proposer, and a term we intend to argue about is not a term we have accepted.
+
+**Indemnification.** The clause states that indemnification "shall not be subject to any limitations of remedies or warranties which are contained in this or any other agreement." We cannot accept uncapped indemnity. We propose indemnification capped at the greater of total fees paid under the agreement or our applicable insurance limits, with no cap on claims arising from our gross negligence, wilful misconduct, or breach of confidentiality.
+
+**Software upgrades at no cost.** The clause entitles the Town to all upgraded software versions at no cost. iteria does not publish Oracle's software and does not control its release or pricing. We can commit that Oracle Fusion updates are included in the subscription and applied by Oracle on its published quarterly schedule at no additional licence charge, and we accept responsibility for regression testing each update against the Town's configuration. We cannot warrant Oracle's future pricing.
+
+**Not-to-exceed and invoicing.** The agreement is not-to-exceed. Our fees are therefore fixed by phase against the gates in Tab 4 and invoiced on gate acceptance, not biweekly against elapsed time. Travel is charged at actual cost against a not-to-exceed amount stated in Attachment C. Invoices are mailed in hard copy, net 30, submitted before the twentieth, as the agreement requires.
+
+We accept the remaining terms as written, including the insurance schedule, the requirement that all Town data be stored and processed within the continental United States, the disaster recovery and daily offsite backup obligations, the fifteen-day data return on termination, and the one hundred and eighty day offer validity period.
+
+## Required certifications and forms
+
+The following are executed and included in this tab, each signed by an officer authorised to bind the firm:
+
+| Form | Status |
+|---|---|
+| Signatory Declaration | Signed and included |
+| Non-Collusion Statement | Signed and included |
+| Certified copy of the corporate resolution authorising the signatory | Included, as the Non-Collusion Statement requires of a corporate bidder |
+| Indemnification Agreement | Signed and included, subject to the exception recorded above |
+| No Bid Questionnaire | Not applicable; iteria is submitting a proposal |
+| W-9 | Included |
+| Addenda acknowledgement | All addenda issued to the date of this submission are acknowledged and their signature pages are included |
+
+---
+
+# Tab 9. Functional and Technical Requirements Response
+
+iteria's completed response to Attachment B, Functional and Technical Requirements and Capabilities, is submitted in Microsoft Excel and appended here in PDF.
+
+Each response records actual Oracle Fusion capability in the proposed release. Where a requirement is met through configuration, that is stated. Where it is met by a mechanism different from the one implied by the requirement text, the mechanism is described in the comment field. Where a requirement falls in the Tax Collector area we are not proposing, it is marked accordingly rather than answered.

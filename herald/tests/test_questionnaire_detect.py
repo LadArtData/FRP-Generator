@@ -1,0 +1,207 @@
+"""Regression tests for questionnaire structure detection.
+
+Nashua's Appendix A workbook imported 45 requirements out of 23 functional tabs
+holding roughly 3,000. The narrative then attested that the worksheets had been
+"completed by iteria functional leads". Two independent detector faults caused
+it, and both are pinned here.
+"""
+
+import io
+
+import pytest
+from openpyxl import Workbook, load_workbook
+
+from app.questionnaires import (
+    MATRIX_MARK,
+    MIN_QUESTION_LENGTH,
+    _code_columns,
+    _detect,
+    _looks_like_header,
+    _text,
+)
+
+
+def _count_items(sheet, detected):
+    return sum(
+        1 for row in range(detected["header_row"] + 1, (sheet.max_row or 0) + 1)
+        if len(_text(sheet.cell(row=row, column=detected["question_col"]))) >= MIN_QUESTION_LENGTH
+    )
+
+
+def _nashua_style_sheet(rows=60):
+    """A banner title, a legend block, an X-mark rating strip, then the body."""
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet["A1"] = "CITY OF NASHUA"
+    sheet["A2"] = "Functional Requirements Matrix"
+    sheet["D2"] = "Complete the worksheet by placing an X in the column"
+    sheet["A4"] = "Vendor Name:"
+    sheet["A8"] = "GENERAL LEDGER MANAGEMENT"
+    sheet["D8"] = "RATING RESPONSE"
+    sheet["J8"] = "ADDITIONAL COMMENTS"
+    for column, label in zip("DEFGHI", ["SUP", "MOD", "3RD", "CST", "FUT", "NS"]):
+        sheet[f"{column}10"] = label
+    sheet["C11"] = "System Setup Requirements Section"
+    for offset in range(rows):
+        sheet[f"B{12 + offset}"] = f"GL.{offset + 1}"
+        sheet[f"C{12 + offset}"] = f"The system shall support requirement {offset + 1}"
+    return workbook, sheet
+
+
+def _salem_style_sheet(rows=40):
+    """A rating legend in prose above the real header row."""
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet["A1"] = "Indicator"
+    sheet["B1"] = "Definition"
+    sheet["C1"] = "Instruction"
+    legend = [
+        ("S", "Standard: Feature/Function is included in the base product."),
+        ("F", "Future: Feature/Function will be available in a future release."),
+        ("C", "Customization: Feature/Function is not included."),
+        ("T", "Third Party: Feature/Function is not included."),
+        ("N", "No: Feature/Function cannot be provided."),
+    ]
+    for index, (code, definition) in enumerate(legend, start=2):
+        sheet[f"A{index}"] = code
+        sheet[f"B{index}"] = definition
+    sheet["A7"] = "General Ledger and Financial Reporting"
+    sheet["A8"] = "Req #"
+    sheet["B8"] = "Description of Requirement"
+    sheet["C8"] = "Criticality"
+    sheet["D8"] = "Vendor Response"
+    sheet["E8"] = "Comments"
+    for offset in range(rows):
+        sheet[f"A{9 + offset}"] = f"GL.{offset + 1}"
+        sheet[f"B{9 + offset}"] = f"The system shall support requirement {offset + 1}"
+    return workbook, sheet
+
+
+# ---------------------------------------------------------------------------
+# Fault 1: a banner title outranked the real header, and the body was lost.
+# ---------------------------------------------------------------------------
+
+def test_banner_title_does_not_win_over_the_real_header():
+    workbook, sheet = _nashua_style_sheet(rows=60)
+    detected = _detect(sheet)
+    assert detected is not None
+    # A2 "Functional Requirements Matrix" is keyword-perfect and has nothing
+    # under it. C11 is the column with 60 requirements below it.
+    assert detected["header_row"] == 11
+    assert detected["question_col"] == 3
+
+
+def test_banner_title_regression_full_body_is_extracted():
+    workbook, sheet = _nashua_style_sheet(rows=300)
+    detected = _detect(sheet)
+    assert _count_items(sheet, detected) == 300, "the whole sheet must import"
+
+
+# ---------------------------------------------------------------------------
+# Fault 2: an X-mark rating matrix has no single response column.
+# ---------------------------------------------------------------------------
+
+def test_rating_strip_is_detected_as_code_columns():
+    workbook, sheet = _nashua_style_sheet()
+    detected = _detect(sheet)
+    assert detected["layout"] == "matrix"
+    assert detected["code_columns"] == {
+        "SUP": "D", "MOD": "E", "3RD": "F", "CST": "G", "FUT": "H", "NS": "I",
+    }
+    assert detected["allowed_codes"] == ["SUP", "MOD", "3RD", "CST", "FUT", "NS"]
+
+
+def test_matrix_sheet_exposes_no_single_response_column():
+    """Picking one would put every answer in whichever rating sorted first."""
+    workbook, sheet = _nashua_style_sheet()
+    detected = _detect(sheet)
+    assert detected["response_col"] is None
+
+
+def test_matrix_sheet_still_finds_the_comment_column_above_the_header():
+    workbook, sheet = _nashua_style_sheet()
+    detected = _detect(sheet)
+    assert detected["comment_col"] == 10  # column J, three rows above
+
+
+def test_code_columns_found_when_strip_sits_above_the_header_row():
+    workbook, sheet = _nashua_style_sheet()
+    assert _code_columns(sheet, 11, 20) == {
+        "SUP": 4, "MOD": 5, "3RD": 6, "CST": 7, "FUT": 8, "NS": 9,
+    }
+
+
+# ---------------------------------------------------------------------------
+# The prose-legend fault that a naive body-count fix reintroduces.
+# ---------------------------------------------------------------------------
+
+def test_prose_legend_row_does_not_win_over_the_real_header():
+    """"No: Feature/Function cannot be provided." matches the question keywords
+    and sits above the real header with a higher body count. It is a sentence,
+    and headers are not sentences."""
+    workbook, sheet = _salem_style_sheet()
+    detected = _detect(sheet)
+    assert detected["header_row"] == 8
+    assert detected["question_col"] == 2
+
+
+def test_single_column_layout_keeps_response_and_comment_columns():
+    workbook, sheet = _salem_style_sheet()
+    detected = _detect(sheet)
+    assert detected["layout"] == "single"
+    assert detected["response_col"] == 4   # D, Vendor Response
+    assert detected["comment_col"] == 5    # E, Comments
+    assert detected["code_columns"] == {}
+
+
+@pytest.mark.parametrize("value,expected", [
+    ("Description of Requirement", True),
+    ("Req #", True),
+    ("System Setup Requirements Section", True),
+    ("No: Feature/Function cannot be provided.", False),
+    ("Standard: Feature/Function is included in the base product.", False),
+    ("Is this supported?", False),
+    ("", False),
+    ("x" * 80, False),
+])
+def test_looks_like_header(value, expected):
+    assert _looks_like_header(value) is expected
+
+
+# ---------------------------------------------------------------------------
+# Export: the mark lands in the right column and nowhere else.
+# ---------------------------------------------------------------------------
+
+def _place(sheet, code_columns, row, chosen):
+    from app.questionnaires import _write_cell
+    for code, column in code_columns.items():
+        target = f"{column}{row}"
+        _write_cell(sheet, target, MATRIX_MARK if code == chosen else None)
+
+
+def test_matrix_export_marks_one_column_only():
+    workbook, sheet = _nashua_style_sheet()
+    columns = {"SUP": "D", "MOD": "E", "3RD": "F", "CST": "G", "FUT": "H", "NS": "I"}
+    _place(sheet, columns, 12, "MOD")
+    assert sheet["E12"].value == MATRIX_MARK
+    assert [sheet[f"{c}12"].value for c in "DFGHI"] == [None] * 5
+
+
+def test_matrix_export_clears_a_previous_mark_on_reexport():
+    """More than one mark on a row is scored as a non-response."""
+    workbook, sheet = _nashua_style_sheet()
+    columns = {"SUP": "D", "MOD": "E", "3RD": "F", "CST": "G", "FUT": "H", "NS": "I"}
+    _place(sheet, columns, 12, "SUP")
+    _place(sheet, columns, 12, "CST")
+    marked = [c for c in "DEFGHI" if sheet[f"{c}12"].value == MATRIX_MARK]
+    assert marked == ["G"]
+
+
+def test_matrix_export_survives_round_trip():
+    workbook, sheet = _nashua_style_sheet()
+    columns = {"SUP": "D", "MOD": "E", "3RD": "F", "CST": "G", "FUT": "H", "NS": "I"}
+    _place(sheet, columns, 12, "SUP")
+    buffer = io.BytesIO()
+    workbook.save(buffer)
+    buffer.seek(0)
+    assert load_workbook(buffer).active["D12"].value == MATRIX_MARK

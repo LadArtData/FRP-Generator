@@ -174,24 +174,56 @@ def is_demo_or_blank(opp: dict, *, draft_chars: int | None = None) -> bool:
 
 
 def delete(opp_id: int, actor: str | None = None) -> None:
-    """Remove a bid and its attached documents (not library-only docs)."""
+    """Remove a bid and its attached documents (not library-only docs).
+
+    Four tables point at harald_documents and only harald_chunks cascades, so
+    deleting a document while a requirement or a questionnaire still references
+    it raises ORA-02292 and the whole delete rolls back. The opportunity's own
+    children cascade from harald_opportunities, but the documents are removed
+    before the opportunity row, so at that moment those children are still
+    present and still holding the reference. Every pointer is therefore cleared
+    explicitly, in dependency order, before any document row is removed.
+    """
     get(opp_id)
     with transaction() as conn:
         cur = conn.cursor()
         cur.execute("SELECT doc_id FROM harald_documents WHERE opp_id = :o", {"o": opp_id})
         doc_ids = [row[0] for row in cur.fetchall()]
+
         cur.execute(
             "UPDATE harald_opportunities SET rfp_doc_id = NULL WHERE opp_id = :o",
             {"o": opp_id},
         )
+
         for doc_id in doc_ids:
+            binds = {"d": doc_id}
+            # Another bid may cite this document as its solicitation.
             cur.execute(
                 "UPDATE harald_opportunities SET rfp_doc_id = NULL WHERE rfp_doc_id = :d",
-                {"d": doc_id},
+                binds,
             )
-            cur.execute("DELETE FROM harald_documents WHERE doc_id = :d", {"d": doc_id})
+            # A later version of a document may supersede this one.
+            cur.execute(
+                "UPDATE harald_documents SET supersedes_id = NULL WHERE supersedes_id = :d",
+                binds,
+            )
+            # Requirements keep their text and their bid; they lose only the
+            # pointer to the file they were extracted from.
+            cur.execute(
+                "UPDATE harald_requirements SET source_doc_id = NULL WHERE source_doc_id = :d",
+                binds,
+            )
+            # source_doc_id on a questionnaire is NOT NULL, so the questionnaire
+            # cannot outlive its workbook. Items cascade from the questionnaire.
+            cur.execute(
+                "DELETE FROM harald_questionnaires WHERE source_doc_id = :d", binds,
+            )
+            cur.execute("DELETE FROM harald_documents WHERE doc_id = :d", binds)
+
         cur.execute("DELETE FROM harald_opportunities WHERE opp_id = :o", {"o": opp_id})
-    audit.record(actor, "opportunity.delete", "opportunity", opp_id, {})
+    log.info("deleted opportunity opp_id=%s documents=%s", opp_id, len(doc_ids))
+    audit.record(actor, "opportunity.delete", "opportunity", opp_id,
+                 {"documents_removed": len(doc_ids)})
 
 
 def cleanup_workspace(actor: str | None = None) -> dict:

@@ -1991,6 +1991,8 @@ textarea { min-height: 72px; resize: vertical; font-family: inherit; line-height
             </div>
           </div>
 
+          <div id="rp-attestations" style="display:none;margin-top:22px"></div>
+
           <div style="margin-top:22px;padding:14px 16px;background:var(--ink);color:#fff;border-radius:8px;display:flex;align-items:center;gap:14px">
             <div style="flex:1">
               <div style="font-weight:600;font-size:13px">Export</div>
@@ -2703,6 +2705,36 @@ function _renderAutofillConflicts(conflicts, painText) {
   host.style.display = bits.length ? '' : 'none';
 }
 
+function _renderAttestationConflicts(conflicts) {
+  // Sentences in the draft that this proposal's own attachments contradict.
+  // Shown next to Export because that is the last screen anyone looks at, and
+  // a claim about an attachment is the kind of error that disqualifies a bid
+  // rather than merely weakening it.
+  const host = document.getElementById('rp-attestations');
+  if (!host) return;
+  const list = conflicts || [];
+  if (!list.length) { host.style.display = 'none'; host.innerHTML = ''; return; }
+
+  const rows = list.map(function (c) {
+    return '<div style="padding:10px 12px;border-top:1px solid rgba(0,0,0,.08)">' +
+      '<div style="font-family:\'JetBrains Mono\',monospace;font-size:10.5px;' +
+      'color:#8a5a00;text-transform:uppercase;letter-spacing:.04em">' +
+      escapeHtml(String(c.kind || '').replace(/_/g, ' ')) +
+      (c.filename ? ' &middot; ' + escapeHtml(c.filename) : '') + '</div>' +
+      '<div style="font-size:12.5px;color:var(--ink);margin-top:5px;font-style:italic">&ldquo;' +
+      escapeHtml(c.sentence || '') + '&rdquo;</div>' +
+      '<div style="font-size:11.5px;color:#5a5a5a;margin-top:5px">' +
+      escapeHtml(c.detail || '') + '</div></div>';
+  }).join('');
+
+  host.innerHTML =
+    '<div style="border:1px solid #e0b050;background:#fdf6e3;border-radius:8px;overflow:hidden">' +
+    '<div style="padding:11px 12px;font-weight:600;font-size:12.5px;color:#8a5a00">' +
+    list.length + ' statement' + (list.length === 1 ? '' : 's') +
+    ' in this draft the attachments do not support</div>' + rows + '</div>';
+  host.style.display = '';
+}
+
 function clearTagGroups() {
   document.querySelectorAll('[data-tag-group] .tag-option').forEach(function (label) {
     const cb = label.querySelector('input[type="checkbox"]');
@@ -3082,6 +3114,7 @@ function renderProposal(p) {
   setText('rp-attcount', (p.attachments || []).length);
   setText('rp-updated', (p.updated_at || '').replace('T', ' ').replace('Z', ''));
   setText('rp-narr-h1', p.client_name ? ('Draft · ' + p.client_name) : 'Draft');
+  _renderAttestationConflicts(p.attestation_conflicts);
 
   setText('ptab-att-count', (p.attachments || []).length);
 

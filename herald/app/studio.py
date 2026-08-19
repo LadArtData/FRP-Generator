@@ -18,9 +18,9 @@ import zipfile
 from docx import Document
 from docx.shared import Pt
 
-from . import (audit, documents, engagement, field_mapping, generation,
-               iteria_capabilities, opportunities, packages, pricing_matrix,
-               proposal_docx, questionnaires)
+from . import (attestations, audit, documents, engagement, field_mapping,
+               generation, iteria_capabilities, opportunities, packages,
+               pricing_matrix, proposal_docx, questionnaires)
 from .db import cursor, transaction
 from .errors import NotFound, ValidationFailed
 
@@ -112,8 +112,31 @@ def get_proposal(opp_id: int) -> dict:
             for d in opp["documents"]
         ],
         "questionnaires": questionnaires.list_for_opportunity(opp_id),
+        "attestation_conflicts": attestation_conflicts(opp_id, opp.get("draft_text")),
         "match_data": _match_data(opp),
     }
+
+
+def attestation_conflicts(opp_id: int, draft: str | None = None) -> list[dict]:
+    """Sentences in the draft that the opportunity's own attachments contradict.
+
+    Surfaced on the proposal record so an operator sees it on the screen they
+    check before submitting. Three of four live responses shipped with a
+    statement of fact about an attachment that the attachment disproved; this
+    is the check that makes that state visible instead of invisible.
+
+    Never raises. A proposal must remain readable even if the check itself
+    fails, and a broken guard is not a reason to lose access to a draft.
+    """
+    if not draft:
+        return []
+    try:
+        loaded = [questionnaires.get(entry["q_id"])
+                  for entry in questionnaires.list_for_opportunity(opp_id)]
+        return attestations.check(draft, loaded)
+    except Exception:
+        log.exception("attestation check failed opp_id=%s", opp_id)
+        return []
 
 
 def update_proposal(opp_id: int, payload: dict, actor: str) -> dict:
