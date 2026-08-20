@@ -11,6 +11,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+from urllib.parse import quote
 from contextlib import asynccontextmanager
 
 from fastapi import Body, Depends, FastAPI, File, Form, Header, Query, UploadFile
@@ -175,6 +176,26 @@ def library_stats():
     return documents.library_stats()
 
 
+
+def _attachment(filename: str) -> dict:
+    """Build a Content-Disposition header that survives a non-ASCII filename.
+
+    HTTP header values are latin-1. An agency filename carrying a curly
+    apostrophe, an en dash or an accented character raises
+
+        'latin-1' codec can't encode characters in position 54-55
+
+    inside the ASGI layer, and every download of that document returns 500 --
+    which is what "the download button doesn't work" actually was. RFC 5987
+    gives the escape: a plain ASCII filename for old clients, plus filename*
+    carrying the real UTF-8 name percent-encoded.
+    """
+    name = filename or "download"
+    ascii_name = name.encode("ascii", "replace").decode("ascii").replace('"', "'")
+    return {"Content-Disposition":
+            f"attachment; filename=\"{ascii_name}\"; "
+            f"filename*=UTF-8''{quote(name, safe='')}"}
+
 @app.post("/api/library/upload")
 async def library_upload(file: UploadFile = File(...),
                          deal_status: str = Form("in_progress"),
@@ -200,7 +221,7 @@ def get_doc(doc_id: int):
 def download_doc(doc_id: int):
     blob, filename = documents.get_blob(doc_id)
     return Response(content=blob, media_type="application/octet-stream",
-                    headers={"Content-Disposition": f'attachment; filename="{filename}"'})
+                    headers=_attachment(filename))
 
 
 class Promote(BaseModel):
@@ -475,7 +496,7 @@ def export_questionnaire(q_id: int):
     return Response(
         content=data,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'})
+        headers=_attachment(filename))
 
 
 # ---------------------------------------------------------------------------
@@ -552,7 +573,7 @@ def render_package(package_id: int, user: dict = Depends(contributor)):
 def download_package(package_id: int, kind: str = Query("docx", pattern="^(docx|pdf)$")):
     blob, filename, media = packages.download(package_id, kind)
     return Response(content=blob, media_type=media,
-                    headers={"Content-Disposition": f'attachment; filename="{filename}"'})
+                    headers=_attachment(filename))
 
 
 @app.post("/api/packages/{package_id}/approve")
@@ -631,7 +652,7 @@ def pricing_lock(price_id: int, body: PricingLock, user: dict = Depends(approver
 def pricing_download(price_id: int, user: dict = Depends(approver_role)):
     blob, filename = pricing.download(price_id)
     return Response(content=blob, media_type="application/octet-stream",
-                    headers={"Content-Disposition": f'attachment; filename="{filename}"'})
+                    headers=_attachment(filename))
 
 
 # ---------------------------------------------------------------------------
@@ -771,7 +792,7 @@ def studio_export_docx(opp_id: int):
     return Response(
         content=blob,
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        headers=_attachment(filename),
     )
 
 
@@ -782,7 +803,7 @@ def studio_export_materials(opp_id: int):
     return Response(
         content=blob,
         media_type="application/zip",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        headers=_attachment(filename),
     )
 
 
