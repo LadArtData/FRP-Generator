@@ -412,7 +412,8 @@ def list_for_opportunity(opp_id: int) -> list[dict]:
                       (SELECT COUNT(*) FROM harald_questionnaire_items i
                         WHERE i.q_id = q.q_id AND i.status <> 'todo'),
                       (SELECT COUNT(*) FROM harald_questionnaire_items i
-                        WHERE i.q_id = q.q_id AND i.status = 'needs_review')
+                        WHERE i.q_id = q.q_id AND i.status = 'needs_review'),
+                      q.source_doc_id
                FROM harald_questionnaires q WHERE q.opp_id = :o
                ORDER BY q.created_at DESC""",
             {"o": opp_id},
@@ -420,7 +421,7 @@ def list_for_opportunity(opp_id: int) -> list[dict]:
         return [
             {"q_id": r[0], "filename": r[1], "status": r[2], "item_count": r[3],
              "fill_error": r[4], "created_at": r[5].isoformat() if r[5] else None,
-             "answered": r[6], "needs_review": r[7]}
+             "answered": r[6], "needs_review": r[7], "source_doc_id": r[8]}
             for r in cur.fetchall()
         ]
 
@@ -524,6 +525,9 @@ async def fill(q_id: int, actor: str | None = None, *, redo: bool = False) -> No
     observable rather than indistinguishable from a hang.
     """
     import asyncio
+
+    # Any render held from before this fill is now wrong.
+    _EXPORT_CACHE.pop(q_id, None)
 
     try:
         set_status(q_id, "filling")
@@ -668,7 +672,58 @@ def _write_cell(sheet: Worksheet, coordinate: str, value) -> bool:
     return True
 
 
+# Rendering an answered workbook is an openpyxl load-and-save of the agency's
+# own file. Nashua's Appendix A is 9.4 MB and its packet holds four of them, so
+# a materials.zip download took 176 seconds and looked to the person waiting
+# like a hang. The render is pure: the same questionnaire at the same answer
+# count produces the same bytes, so it only has to happen once per container.
+EXPORT_CACHE_MAX = 12
+_EXPORT_CACHE: dict[int, tuple[tuple, bytes, str]] = {}
+
+
+def _export_version(q_id: int) -> tuple:
+    """Cheap fingerprint of everything the render reads."""
+    with cursor() as cur:
+        cur.execute(
+            """SELECT q.status, q.item_count, q.source_doc_id,
+                      (SELECT COUNT(*) FROM harald_questionnaire_items i
+                        WHERE i.q_id = q.q_id AND i.status <> 'todo'),
+                      (SELECT NVL(MAX(i.qi_id), 0) FROM harald_questionnaire_items i
+                        WHERE i.q_id = q.q_id),
+                      (SELECT NVL(SUM(ORA_HASH(NVL(i.response_code, '-'))), 0)
+                         FROM harald_questionnaire_items i WHERE i.q_id = q.q_id)
+               FROM harald_questionnaires q WHERE q.q_id = :q""",
+            {"q": q_id},
+        )
+        row = cur.fetchone()
+    if not row:
+        raise NotFound(f"Questionnaire {q_id} not found.")
+    return tuple(row)
+
+
 def export(q_id: int) -> tuple[bytes, str]:
+    """Render the answered workbook, reusing the last render when nothing moved."""
+    try:
+        version = _export_version(q_id)
+    except NotFound:
+        raise
+    except Exception:
+        log.exception("questionnaire q_id=%s version probe failed; rendering", q_id)
+        return _render_export(q_id)
+
+    cached = _EXPORT_CACHE.get(q_id)
+    if cached and cached[0] == version:
+        log.info("questionnaire q_id=%s export served from cache", q_id)
+        return cached[1], cached[2]
+
+    blob, filename = _render_export(q_id)
+    _EXPORT_CACHE[q_id] = (version, blob, filename)
+    while len(_EXPORT_CACHE) > EXPORT_CACHE_MAX:
+        _EXPORT_CACHE.pop(next(iter(_EXPORT_CACHE)))
+    return blob, filename
+
+
+def _render_export(q_id: int) -> tuple[bytes, str]:
     """Write answers back into the original workbook. Loading without data_only
     preserves formulas, styles, and data validations, so the exported file is the
     agency's own workbook with iteria's answers in it."""

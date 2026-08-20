@@ -496,6 +496,112 @@ def export_docx(opp_id: int) -> tuple[bytes, str]:
     return buffer.getvalue(), filename
 
 
+INTERNAL_DOC_ROLES = {"reference", "exemplar", "library", "sample"}
+
+
+def _packet_folder(doc: dict) -> str:
+    """Where an attached document belongs in the packet.
+
+    A completed agency form is a deliverable and sat in 03_attachments beside
+    the blank one it was built from, distinguishable only by filename. Forms we
+    filled in go with the other things we filled in.
+    """
+    if str(doc.get("doc_role") or "").strip().lower() == "form":
+        return "02_filled_forms/"
+    return "03_attachments/"
+
+
+def _q_rank(q: dict) -> tuple[int, int]:
+    """Answered rows first, then the later import."""
+    return (int(q.get("answered") or 0), int(q.get("q_id") or 0))
+
+
+def packet_questionnaires(opp_id: int) -> list[dict]:
+    """One filled workbook per agency file.
+
+    Nashua's Appendix A was imported twice. q21 caught 45 rows with the old
+    detector; q41 caught all 3,041. Both exported, so the packet shipped
+    "5260 (1)_iteria_response.xlsx" beside "5260 (1)_iteria_response_2.xlsx"
+    and an evaluator had even odds of opening the near-empty one. Keep the
+    import that actually answered the workbook.
+    """
+    best: dict[object, dict] = {}
+    for q in questionnaires.list_for_opportunity(opp_id):
+        key = q.get("source_doc_id")
+        if key is None:
+            key = ("q", q.get("q_id"))
+        incumbent = best.get(key)
+        if incumbent is None or _q_rank(q) > _q_rank(incumbent):
+            best[key] = q
+    return sorted(best.values(), key=lambda q: int(q.get("q_id") or 0))
+
+
+def _is_internal_doc(doc: dict) -> bool:
+    """True for our own material that is attached to a bid for retrieval only.
+
+    Jefferson County's packet carried "02_WON_PROPOSALS/Outagamie County WI/
+    .../iteria.us Technical Proposal.docx" in 03_attachments. That is a won
+    proposal for another client, attached to the opportunity so the drafter
+    could learn from it. Shipping it to the agency hands them a competitor's
+    solicitation response together with our staffing and approach.
+    """
+    if str(doc.get("promoted_to_lib") or "").strip().upper() == "Y":
+        return True
+    return str(doc.get("doc_role") or "").strip().lower() in INTERNAL_DOC_ROLES
+
+
+PRICING_MARKER = "PRICING PENDING"
+
+
+def _checklist(opp: dict, files: list[str], open_items: list[str]) -> bytes:
+    """What a human still has to do before this packet can be submitted.
+
+    The packet reads as finished the moment it downloads. It is not, and the
+    gaps are not discoverable by scrolling a 3,000-row workbook. They go at
+    the top of the zip, in the first file an evaluator or a colleague opens.
+    """
+    draft = opp.get("draft_text") or ""
+    lines = [
+        f"SUBMISSION CHECKLIST - {opp.get('client_name') or 'proposal'}",
+        f"Proposal ID {opp.get('opp_id')}   status {opp.get('status')}",
+        "",
+        "This packet is generated. Nothing in it has been signed, priced, or",
+        "reviewed by a human. Do not submit until every line below is cleared.",
+        "",
+        "OPEN BEFORE SUBMISSION",
+    ]
+    blockers = []
+    if PRICING_MARKER in draft:
+        blockers.append(
+            "Cost narrative still carries a " + PRICING_MARKER + " block. "
+            "Replace it with real numbers and delete the marker."
+        )
+    blockers.append("Signature pages, transmittal letter and any notarised forms.")
+    blockers.append("Named personnel and resumes for the proposed team.")
+    blockers.append("Client references on the agency's own reference form.")
+    blockers.extend(open_items)
+    lines += [f"  [ ] {item}" for item in blockers]
+    lines += [
+        "",
+        "IN THIS PACKET",
+        "  01_narrative            the proposal document",
+        "  02_filled_spreadsheets  agency workbooks with our responses written in",
+        "  03_attachments          the agency's own solicitation files, unmodified",
+        "  04_packages             assembled agency-format packages, if any",
+        "  05_pricing              working pricing matrix, internal",
+        "",
+        "FILES",
+    ]
+    lines += [f"  {name}" for name in files]
+    lines += [
+        "",
+        "05_pricing is internal working material. Remove it before anything",
+        "in this packet goes to the agency.",
+        "",
+    ]
+    return "\r\n".join(lines).encode("utf-8")
+
+
 def export_materials_zip(opp_id: int) -> tuple[bytes, str]:
     """Zip the Word draft, filled agency Excels, attachments, and package files."""
     opp = opportunities.get(opp_id)
@@ -523,21 +629,35 @@ def export_materials_zip(opp_id: int) -> tuple[bytes, str]:
         docx_bytes, docx_name = export_docx(opp_id)
         archive.writestr(f"01_narrative/{_unique(docx_name)}", docx_bytes)
 
-        for q in questionnaires.list_for_opportunity(opp_id):
+        open_items: list[str] = []
+        for q in packet_questionnaires(opp_id):
             try:
                 xlsx_bytes, xlsx_name = questionnaires.export(q["q_id"])
                 archive.writestr(
                     f"02_filled_spreadsheets/{_unique(xlsx_name)}", xlsx_bytes
                 )
+                if q.get("fill_error"):
+                    open_items.append(
+                        f"{xlsx_name} - not answered by HARALD: {q['fill_error']}"
+                    )
+                elif int(q.get("answered") or 0) < int(q.get("item_count") or 0):
+                    open_items.append(
+                        f"{xlsx_name} - {q['answered']} of {q['item_count']} rows answered"
+                    )
             except Exception:
                 log.exception("materials zip: questionnaire export failed q=%s", q["q_id"])
+                open_items.append(f"{q.get('filename')} - export failed, fill by hand")
 
         for doc in opp.get("documents") or []:
+            if _is_internal_doc(doc):
+                log.info("materials zip: withheld internal doc=%s %s",
+                         doc["doc_id"], doc.get("filename"))
+                continue
             try:
                 blob, filename = documents.get_blob(doc["doc_id"])
                 fallback = "doc_" + str(doc["doc_id"])
                 archive.writestr(
-                    "03_attachments/" + _unique(filename or fallback),
+                    _packet_folder(doc) + _unique(filename or fallback),
                     blob,
                 )
             except Exception:
@@ -574,12 +694,18 @@ def export_materials_zip(opp_id: int) -> tuple[bytes, str]:
         except Exception:
             log.exception("materials zip: pricing matrix failed opp=%s", opp_id)
 
+        archive.writestr(
+            "00_SUBMISSION_CHECKLIST.txt",
+            _checklist(opp, sorted(used_names), open_items),
+        )
+
         manifest = {
             "proposal_id": opp_id,
             "client_name": opp.get("client_name"),
             "status": opp.get("status"),
             "files": sorted(used_names),
+            "open_items": open_items,
         }
         archive.writestr("README.json", json.dumps(manifest, indent=2))
 
-    return buffer.getvalue(), f"{client}_materials.zip"
+    return buffer.getvalue(), f"{client}_submission_packet.zip"
