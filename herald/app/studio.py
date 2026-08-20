@@ -545,9 +545,16 @@ def _is_internal_doc(doc: dict) -> bool:
     could learn from it. Shipping it to the agency hands them a competitor's
     solicitation response together with our staffing and approach.
     """
+    role = str(doc.get("doc_role") or "").strip().lower()
+    # A completed form is a deliverable and outranks any promotion. Jefferson's
+    # filled Attachment A was auto-promoted to the library on upload, which
+    # silently dropped it out of the packet: the one document in there that a
+    # human had to sign was the one that went missing.
+    if role == "form":
+        return False
     if str(doc.get("promoted_to_lib") or "").strip().upper() == "Y":
         return True
-    return str(doc.get("doc_role") or "").strip().lower() in INTERNAL_DOC_ROLES
+    return role in INTERNAL_DOC_ROLES
 
 
 PRICING_MARKER = "PRICING PENDING"
