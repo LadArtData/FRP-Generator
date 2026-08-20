@@ -476,9 +476,12 @@ def get_questionnaire(q_id: int):
 
 
 @app.post("/api/questionnaires/{q_id}/fill")
-async def fill_questionnaire(q_id: int, user: dict = Depends(contributor)):
+async def fill_questionnaire(q_id: int, redo: bool = False,
+                             user: dict = Depends(contributor)):
+    """Answer the workbook. Resumes by default; pass redo=true to rewrite rows
+    that already carry an answer."""
     questionnaires.set_status(q_id, "filling")
-    _spawn(questionnaires.fill(q_id, user["username"]),
+    _spawn(questionnaires.fill(q_id, user["username"], redo=redo),
            label=f"questionnaire_fill:{q_id}")
     return {"status": "filling"}
 

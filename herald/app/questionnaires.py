@@ -510,7 +510,7 @@ def _persist_fill(qi_id: int, result: dict) -> None:
         )
 
 
-async def fill(q_id: int, actor: str | None = None) -> None:
+async def fill(q_id: int, actor: str | None = None, *, redo: bool = False) -> None:
     """Answer every unapproved row, a bounded number at a time.
 
     The comment this docstring replaced said concurrency was bounded inside the
@@ -528,7 +528,21 @@ async def fill(q_id: int, actor: str | None = None) -> None:
     try:
         set_status(q_id, "filling")
         questionnaire = get(q_id)
-        pending = [i for i in questionnaire["items"] if i["status"] != "approved"]
+        # Resume rather than restart. A fill over a real requirements workbook
+        # runs for over an hour, so a container restart part-way through used to
+        # mean redoing every row that already had an answer -- the second run
+        # spent an hour reproducing work before reaching the rows that were
+        # actually missing. Skip rows that already carry an answer unless the
+        # caller asks for a rewrite.
+        pending = [
+            i for i in questionnaire["items"]
+            if i["status"] != "approved"
+            and (redo or not (i.get("response_code") or i.get("response_text")))
+        ]
+        if not pending:
+            set_status(q_id, "filled")
+            log.info("fill q_id=%s nothing to do, every row already answered", q_id)
+            return
         rfp_text, parsed_fields = "", {}
         if questionnaire.get("opp_id"):
             try:
