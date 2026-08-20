@@ -312,6 +312,115 @@ def test_export_recovers_layout_when_sheet_map_is_empty():
     export must not depend on it."""
     import inspect
     from app import questionnaires
-    src = inspect.getsource(questionnaires.export)
+    src = inspect.getsource(questionnaires._render_export)
     assert "data_only=True" in src, "export needs a detection copy"
     assert "_detect(sheet)" in src, "export must re-detect when sheet_map is thin"
+
+
+# ---------------------------------------------------------------------------
+# Export caching. A materials.zip download took 176 seconds because every
+# questionnaire in the packet re-ran an openpyxl load-and-save of the agency's
+# own workbook, one of which is 9.4 MB.
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def cache(monkeypatch):
+    from app import questionnaires
+    questionnaires._EXPORT_CACHE.clear()
+    calls = {"render": 0}
+
+    def fake_render(q_id):
+        calls["render"] += 1
+        return b"xlsx-bytes-%d" % q_id, f"q{q_id}_iteria_response.xlsx"
+
+    monkeypatch.setattr(questionnaires, "_render_export", fake_render)
+    yield questionnaires, calls
+    questionnaires._EXPORT_CACHE.clear()
+
+
+def test_second_export_of_an_unchanged_questionnaire_is_not_rendered(cache, monkeypatch):
+    questionnaires, calls = cache
+    monkeypatch.setattr(questionnaires, "_export_version", lambda q: ("filled", 3041, 5260, 3041, 99, 7))
+    first = questionnaires.export(41)
+    second = questionnaires.export(41)
+    assert first == second
+    assert calls["render"] == 1
+
+
+def test_a_refilled_questionnaire_is_rendered_again(cache, monkeypatch):
+    questionnaires, calls = cache
+    version = {"v": ("filled", 3041, 5260, 3041, 99, 7)}
+    monkeypatch.setattr(questionnaires, "_export_version", lambda q: version["v"])
+    questionnaires.export(41)
+    version["v"] = ("filled", 3041, 5260, 3041, 99, 8)   # a response code changed
+    questionnaires.export(41)
+    assert calls["render"] == 2
+
+
+def test_answer_count_change_invalidates_the_render(cache, monkeypatch):
+    questionnaires, calls = cache
+    version = {"v": ("filling", 3041, 5260, 12, 99, 7)}
+    monkeypatch.setattr(questionnaires, "_export_version", lambda q: version["v"])
+    questionnaires.export(41)
+    version["v"] = ("filled", 3041, 5260, 3041, 99, 7)
+    questionnaires.export(41)
+    assert calls["render"] == 2
+
+
+def test_cache_does_not_grow_without_bound(cache, monkeypatch):
+    questionnaires, calls = cache
+    monkeypatch.setattr(questionnaires, "_export_version", lambda q: ("filled", q))
+    for q_id in range(questionnaires.EXPORT_CACHE_MAX + 5):
+        questionnaires.export(q_id)
+    assert len(questionnaires._EXPORT_CACHE) <= questionnaires.EXPORT_CACHE_MAX
+
+
+def test_two_questionnaires_do_not_share_a_render(cache, monkeypatch):
+    questionnaires, calls = cache
+    monkeypatch.setattr(questionnaires, "_export_version", lambda q: ("filled", q))
+    a, _ = questionnaires.export(41)
+    b, _ = questionnaires.export(21)
+    assert a != b
+
+
+def test_a_broken_version_probe_still_serves_the_file(cache, monkeypatch):
+    """A cache is an optimisation. It must never be the reason a download fails."""
+    questionnaires, calls = cache
+
+    def boom(q_id):
+        raise RuntimeError("ORA-00942")
+
+    monkeypatch.setattr(questionnaires, "_export_version", boom)
+    blob, name = questionnaires.export(41)
+    assert blob and name.endswith(".xlsx")
+    assert calls["render"] == 1
+
+
+def test_missing_questionnaire_still_raises(cache, monkeypatch):
+    from app.errors import NotFound
+    questionnaires, _ = cache
+
+    def missing(q_id):
+        raise NotFound("Questionnaire 999 not found.")
+
+    monkeypatch.setattr(questionnaires, "_export_version", missing)
+    with pytest.raises(NotFound):
+        questionnaires.export(999)
+
+
+def test_fill_drops_the_cached_render():
+    import inspect
+    from app import questionnaires
+    src = inspect.getsource(questionnaires.fill)
+    assert "_EXPORT_CACHE.pop(q_id, None)" in src, (
+        "a refill must not be servable from the pre-fill render"
+    )
+
+
+def test_version_probe_reads_only_counters():
+    """It runs on every download; it must not touch the workbook blob."""
+    import inspect
+    from app import questionnaires
+    src = inspect.getsource(questionnaires._export_version)
+    assert "get_blob" not in src
+    assert "load_workbook" not in src
