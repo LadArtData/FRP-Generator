@@ -482,7 +482,9 @@ def export_docx(opp_id: int) -> tuple[bytes, str]:
         "client": client,
         "solicitation": f"RFP {solicitation}" if solicitation else None,
         "due_date": str(due) if due else None,
-        "firm": "iteria.us, Inc.",
+        # The firm is "iteria". Not "iteria.us, Inc." - that is the domain.
+        "firm": "iteria",
+        "client_name": client,
         "firm_address": "1712 Pioneer Ave, Suite 1983, Cheyenne, WY 82001",
         "firm_contact": "Brian Schell, President & CEO · 630-240-4072 · brian.schell@iteria.us",
         "footer": f"{client}{' · ' + solicitation if solicitation else ''}",

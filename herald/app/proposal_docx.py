@@ -26,6 +26,7 @@ Everything else is a paragraph.
 """
 from __future__ import annotations
 
+import logging
 import re
 from datetime import date
 
@@ -37,14 +38,73 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Inches, Pt, RGBColor
 
-# Black text, serif body, no accent colour anywhere. Coloured headings and
-# heavy bold read as a generated deck; procurement offices expect a document
-# that looks like it came out of a law firm or an engineering practice. This
-# also matches iteria's own drafting rules, which prohibit decorative writing.
-INK = RGBColor(0x00, 0x00, 0x00)
+log = logging.getLogger("harald.proposal_docx")
+
+# iteria's own house style, taken from the proposals in the library rather than
+# invented here. The strongest examples -- West Des Moines and the Development
+# Authority technical response -- run Arial 11pt body with headings in 0F4761 at
+# 20 and 16 point. That is what iteria's submitted work looks like, and matching
+# it matters more than any typographic opinion of mine.
+INK = RGBColor(0x1A, 0x1A, 0x1A)
+ACCENT = RGBColor(0x0F, 0x47, 0x61)
 MUTED = RGBColor(0x44, 0x44, 0x44)
-BODY_FONT = "Times New Roman"
-HEAD_FONT = "Times New Roman"
+BODY_FONT = "Arial"
+HEAD_FONT = "Arial"
+
+# Per-solicitation overrides. A response is formatted to the agency's rules
+# first and the house style second; where an RFP dictates something, it wins.
+#
+#   body_pt        body size, raised where an agency sets a floor
+#   heading_pt     (H1, H2, H3)
+#   accent         False renders headings in ink, for agencies that print
+#                  responses in black and white
+#   duplex         mirrored margins, gutter and alternating headers, for
+#                  agencies that require double-sided printing
+#   gutter_in      binding allowance
+#   section_break  start each top-level section on a new page, for agencies
+#                  that require physical tab dividers
+PROFILES = {
+    # Section V: minimum font size 10, printed double-sided, separated by tabs.
+    "nashua": {"body_pt": 11, "heading_pt": (16, 13, 11), "accent": True,
+               "duplex": True, "gutter_in": 0.5, "section_break": True},
+    # Section 4.1: hard copies in three-ring binders with tab separators.
+    "jefferson": {"body_pt": 11, "heading_pt": (16, 13, 11), "accent": True,
+                  "duplex": False, "gutter_in": 0.5, "section_break": True},
+    # Consolidated single PDF; tabbed structure, no typographic instruction.
+    "salem": {"body_pt": 11, "heading_pt": (16, 13, 11), "accent": True,
+              "duplex": False, "gutter_in": 0.0, "section_break": True},
+    # TechBid electronic submission; continuous document, no binder.
+    "ttuhsc": {"body_pt": 11, "heading_pt": (16, 13, 11), "accent": True,
+               "duplex": False, "gutter_in": 0.0, "section_break": False},
+}
+
+DEFAULT_PROFILE = {"body_pt": 11, "heading_pt": (16, 13, 11), "accent": True,
+                   "duplex": False, "gutter_in": 0.0, "section_break": False}
+
+# What a solicitation is actually called, as opposed to what we named its
+# profile. "ttuhsc" appears nowhere in "Texas Tech University Health Sciences
+# Center", so matching the profile key against the client name found nothing
+# and the response was formatted to no agency's rules at all.
+PROFILE_ALIASES = {
+    "nashua": ("nashua", "0619-093026"),
+    "jefferson": ("jefferson", "sheriff"),
+    "salem": ("salem", "2026-008"),
+    "ttuhsc": ("ttuhsc", "texas tech", "health sciences center", "739-sl"),
+}
+
+
+def resolve_profile(*hints) -> tuple[str, dict]:
+    """Pick the agency formatting rules from whatever identifiers we have.
+
+    Takes client name, solicitation number, title, footer - anything. Returns
+    the profile name alongside it so a caller can log or assert which set of
+    rules a document was actually built to, instead of hoping.
+    """
+    haystack = " ".join(str(hint or "") for hint in hints).lower()
+    for name, needles in PROFILE_ALIASES.items():
+        if any(needle in haystack for needle in needles):
+            return name, PROFILES[name]
+    return "default", DEFAULT_PROFILE
 
 
 # ---------------------------------------------------------------------------
@@ -148,24 +208,49 @@ def _runs(paragraph, text: str, *, bold: bool = False, size: int | None = None,
 # Document furniture
 # ---------------------------------------------------------------------------
 
-def _configure_styles(document: Document) -> None:
+def _configure_styles(document: Document, profile: dict | None = None) -> None:
+    profile = profile or DEFAULT_PROFILE
+    head_colour = ACCENT if profile.get("accent", True) else INK
+
     normal = document.styles["Normal"]
     normal.font.name = BODY_FONT
-    normal.font.size = Pt(11)
+    normal.font.size = Pt(profile.get("body_pt", 11))
     normal.font.color.rgb = INK
     normal.paragraph_format.space_after = Pt(8)
     normal.paragraph_format.line_spacing = 1.15
 
-    for level, size in ((1, 14), (2, 12), (3, 11)):
+    sizes = profile.get("heading_pt", (16, 13, 11))
+    for level, size in enumerate(sizes, start=1):
         style = document.styles[f"Heading {level}"]
         style.font.name = HEAD_FONT
         style.font.size = Pt(size)
         style.font.bold = True
         style.font.italic = (level == 3)
-        style.font.color.rgb = INK
+        style.font.color.rgb = head_colour if level <= 2 else INK
         style.paragraph_format.space_before = Pt(18 if level == 1 else 12)
         style.paragraph_format.space_after = Pt(6)
         style.paragraph_format.keep_with_next = True
+
+
+def _configure_page(document: Document, profile: dict) -> None:
+    """Apply the agency's physical submission rules to the page setup.
+
+    Double-sided is not a print-dialog choice. An agency that requires it needs
+    mirrored margins and a gutter, or the inside margin does not clear the
+    binding and text creeps into the spine on alternate pages.
+    """
+    settings = document.settings.element
+    if profile.get("duplex"):
+        for tag in ("w:mirrorMargins", "w:evenAndOddHeaders"):
+            if settings.find(qn(tag)) is None:
+                settings.append(OxmlElement(tag))
+
+    gutter = profile.get("gutter_in", 0.0)
+    for section in document.sections:
+        if gutter:
+            pg_mar = section._sectPr.find(qn("w:pgMar"))
+            if pg_mar is not None:
+                pg_mar.set(qn("w:gutter"), str(int(gutter * 1440)))
 
 
 def _title_page(document: Document, meta: dict) -> None:
@@ -311,8 +396,10 @@ def _add_table(document: Document, rows: list[list[str]]) -> None:
     document.add_paragraph()
 
 
-def render_body(document: Document, draft: str) -> None:
+def render_body(document: Document, draft: str,
+                section_break: bool = False) -> None:
     """Render the markdown-subset draft into the document."""
+    seen_h1 = False
     lines = (draft or "").splitlines()
     index = 0
     while index < len(lines):
@@ -344,6 +431,12 @@ def render_body(document: Document, draft: str) -> None:
         heading = re.match(r"(#{1,6})\s+(.*)", stripped)
         if heading:
             level = min(len(heading.group(1)), 3)
+            # Agencies that require tab dividers need each top-level section
+            # to start on its own page, or the divider lands mid-paragraph.
+            if (level == 1 and section_break and seen_h1):
+                document.add_page_break()
+            if level == 1:
+                seen_h1 = True
             document.add_heading(heading.group(2).strip(), level=level)
             index += 1
             continue
@@ -402,8 +495,27 @@ def render_body(document: Document, draft: str) -> None:
 # Entry point
 # ---------------------------------------------------------------------------
 
-def build(draft: str, meta: dict) -> Document:
-    """Build the full document: title page, contents, body, page numbers."""
+def build(draft: str, meta: dict, profile: str | dict | None = None) -> Document:
+    """Build the full document: title page, contents, body, page numbers.
+
+    ``profile`` selects the agency formatting rules. Pass a key from PROFILES,
+    a dict, or leave it and the client name is matched against the keys.
+    """
+    if isinstance(profile, str):
+        profile_name = profile.lower()
+        profile = PROFILES.get(profile_name, DEFAULT_PROFILE)
+    elif isinstance(profile, dict):
+        profile_name = "explicit"
+    else:
+        # meta carries "client", not "client_name". Reading the key that was
+        # never set meant every response fell through to the default and all
+        # four proposals came out formatted identically.
+        profile_name, profile = resolve_profile(
+            meta.get("client_name"), meta.get("client"), meta.get("title"),
+            meta.get("solicitation"), meta.get("footer"),
+        )
+    log.info("proposal_docx: building to the %s profile (%s)",
+             profile_name, meta.get("client") or meta.get("title"))
     document = Document()
 
     section = document.sections[0]
@@ -414,12 +526,13 @@ def build(draft: str, meta: dict) -> Document:
     section.top_margin = Inches(1)
     section.bottom_margin = Inches(1)
 
-    _configure_styles(document)
+    _configure_styles(document, profile)
+    _configure_page(document, profile)
     _title_page(document, meta)
     _toc_page(document)
 
     if (draft or "").strip():
-        render_body(document, draft)
+        render_body(document, draft, profile.get("section_break", False))
     else:
         document.add_heading("Draft not yet generated", level=1)
         document.add_paragraph(
