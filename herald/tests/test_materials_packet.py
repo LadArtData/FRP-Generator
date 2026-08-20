@@ -208,3 +208,13 @@ def test_the_blank_and_the_filled_form_do_not_land_side_by_side():
 
 def test_a_filled_form_is_never_withheld_as_internal():
     assert studio._is_internal_doc({"doc_role": "form", "promoted_to_lib": "N"}) is False
+
+
+def test_a_promoted_form_is_still_a_deliverable():
+    """Uploading the filled Attachment A auto-promoted it to the library, and
+    the promotion check then withheld it. The one document needing a signature
+    was the one silently missing from the packet."""
+    doc = {"doc_id": 602, "doc_role": "form", "promoted_to_lib": "Y",
+           "filename": "Jefferson_Attachment_A_iteria_response.docx"}
+    assert studio._is_internal_doc(doc) is False
+    assert studio._packet_folder(doc) == "02_filled_forms/"
