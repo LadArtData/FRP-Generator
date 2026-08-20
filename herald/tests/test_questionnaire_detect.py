@@ -234,3 +234,31 @@ def test_fill_logs_progress():
     from app import questionnaires
     src = inspect.getsource(questionnaires.fill)
     assert "FILL_LOG_EVERY" in src, "a long fill must be distinguishable from a hang"
+
+
+# ---------------------------------------------------------------------------
+# Resume. A container restart mid-fill used to mean redoing every answered row.
+# ---------------------------------------------------------------------------
+
+def test_fill_resumes_instead_of_restarting():
+    import inspect
+    from app import questionnaires
+    src = inspect.getsource(questionnaires.fill)
+    assert "redo or not (i.get(\"response_code\") or i.get(\"response_text\"))" in src, (
+        "a resumed fill must skip rows that already carry an answer"
+    )
+
+
+def test_fill_accepts_a_redo_flag():
+    import inspect
+    from app import questionnaires
+    sig = inspect.signature(questionnaires.fill)
+    assert "redo" in sig.parameters
+    assert sig.parameters["redo"].default is False
+
+
+def test_fill_route_exposes_redo():
+    import inspect
+    from app import main
+    src = inspect.getsource(main.fill_questionnaire)
+    assert "redo" in src
