@@ -598,6 +598,43 @@ async def fill(q_id: int, actor: str | None = None, *, redo: bool = False) -> No
         set_status(q_id, "error", str(exc))
 
 
+# What each rating means, independent of the label an agency prints on it.
+# Left column is the concept; the lists are the spellings seen in real
+# solicitations. Salem and Jefferson use words, Nashua uses three-letter codes.
+_CODE_SENSE = {
+    "delivered":     ["sup", "standard", "s", "yes", "y", "out of the box", "ootb"],
+    "configured":    ["mod", "configuration", "configurable", "c", "config"],
+    "third_party":   ["3rd", "third party", "thirdparty", "t", "partner"],
+    "custom":        ["cst", "customization", "customisation", "modification", "custom"],
+    "future":        ["fut", "future release", "future", "f", "roadmap"],
+    "not_supported": ["ns", "not available", "not supported", "no", "n", "no bid"],
+}
+
+
+def _sense_of(code: str) -> str | None:
+    probe = re.sub(r"[^a-z0-9 ]+", "", (code or "").strip().lower())
+    for sense, spellings in _CODE_SENSE.items():
+        if probe in spellings:
+            return sense
+    return None
+
+
+def _translate_code(code: str, code_columns: dict) -> str | None:
+    """Re-spell a rating in the vocabulary this workbook actually uses.
+
+    A rating carries meaning, not just a label. Dropping an answer because the
+    agency spells "supported out of the box" as SUP rather than Standard turns
+    a scored row into a blank one, and a blank scores zero.
+    """
+    sense = _sense_of(code)
+    if not sense:
+        return None
+    for candidate in code_columns:
+        if _sense_of(candidate) == sense:
+            return candidate
+    return None
+
+
 def _write_cell(sheet: Worksheet, coordinate: str, value) -> bool:
     """Write ``value`` into ``coordinate``, resolving merged ranges.
 
@@ -641,11 +678,41 @@ def export(q_id: int) -> tuple[bytes, str]:
 
     # Per-sheet layout, so a rating matrix can be written the way its own
     # workbook expects rather than as text in a column that does not exist.
+    #
+    # The stored sheet_map is a hint, not the source of truth. Nashua's came
+    # back empty and every rating mark was silently dropped: 3,130 comments
+    # written into column J and not one X in D through I, which is a workbook
+    # that scores zero while looking filled. The workbook is already open here,
+    # so re-detecting costs nothing and cannot go stale.
     layouts = {
         entry.get("sheet"): entry
         for entry in (questionnaire.get("sheet_map") or [])
         if isinstance(entry, dict)
     }
+    if any(not (layouts.get(s.title) or {}).get("code_columns")
+           for s in workbook.worksheets):
+        # Detection must see the same workbook the import saw. import_workbook
+        # loads with data_only=True so formula cells yield their cached value;
+        # export loads without it so formulas survive the round trip. Detecting
+        # on the writable copy finds nothing, because the question column reads
+        # back as "=IF(Systems!B5=..." instead of the requirement text. Two
+        # loads, one to look and one to write.
+        probe = load_workbook(io.BytesIO(blob), data_only=True)
+        for sheet in probe.worksheets:
+            entry = layouts.get(sheet.title) or {}
+            if entry.get("code_columns"):
+                continue
+            detected = _detect(sheet)
+            if detected and detected.get("code_columns"):
+                entry = dict(entry)
+                entry["code_columns"] = detected["code_columns"]
+                entry.setdefault("allowed_codes", detected["allowed_codes"])
+                layouts[sheet.title] = entry
+        probe.close()
+        recovered = sum(1 for v in layouts.values() if v.get("code_columns"))
+        if recovered:
+            log.info("export q_id=%s recovered rating columns on %s sheet(s)",
+                     q_id, recovered)
 
     written = 0
     skipped: list[str] = []
@@ -656,6 +723,20 @@ def export(q_id: int) -> tuple[bytes, str]:
         response_col = item.get("response_col")
         comment_col = item.get("comment_col")
         code_columns = (layouts.get(item["sheet"]) or {}).get("code_columns") or {}
+
+        code = item["response_code"]
+        if code_columns and code and code not in code_columns:
+            # The row carries a code from a different workbook's legend, because
+            # allowed_codes did not reach the model. Salem says "Standard";
+            # Nashua's own legend says "SUP". Same meaning, different agency.
+            # Translate rather than drop the answer on the floor.
+            mapped = _translate_code(code, code_columns)
+            if mapped:
+                item = {**item, "response_code": mapped}
+            else:
+                skipped.append(
+                    f"{item['sheet']}!row{item['row']} (no column for {code!r})")
+                item = {**item, "response_code": ""}
 
         if code_columns and item["response_code"]:
             # An X-mark matrix. The RFP treats more than one mark on a row as a
