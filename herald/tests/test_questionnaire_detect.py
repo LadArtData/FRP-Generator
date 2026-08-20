@@ -262,3 +262,56 @@ def test_fill_route_exposes_redo():
     from app import main
     src = inspect.getsource(main.fill_questionnaire)
     assert "redo" in src
+
+
+# ---------------------------------------------------------------------------
+# Export wrote 3,130 comments and zero rating marks: a workbook that scores
+# zero while looking filled. Two causes, both pinned here.
+# ---------------------------------------------------------------------------
+
+def test_detection_survives_a_workbook_loaded_for_writing():
+    """import loads data_only=True, export does not. Detecting on the writable
+    copy sees formulas instead of requirement text and finds nothing."""
+    import io as _io
+    from openpyxl import load_workbook as _load
+    workbook, sheet = _nashua_style_sheet(rows=40)
+    sheet["C20"] = "=IF(Systems!B20=\"\",\"\",Systems!B20)"
+    buffer = _io.BytesIO()
+    workbook.save(buffer)
+
+    buffer.seek(0)
+    probe = _load(buffer, data_only=True)
+    assert _detect(probe.active)["code_columns"], "detection copy must find the strip"
+
+
+def test_translate_code_maps_between_agency_legends():
+    from app.questionnaires import _translate_code
+    nashua = {"SUP": "D", "MOD": "E", "3RD": "F", "CST": "G", "FUT": "H", "NS": "I"}
+    assert _translate_code("Standard", nashua) == "SUP"
+    assert _translate_code("Configuration", nashua) == "MOD"
+    assert _translate_code("Third Party", nashua) == "3RD"
+    assert _translate_code("Modification", nashua) == "CST"
+    assert _translate_code("Future Release", nashua) == "FUT"
+    assert _translate_code("Not Available", nashua) == "NS"
+    assert _translate_code("No Bid", nashua) == "NS"
+
+
+def test_translate_code_refuses_a_meaning_it_does_not_know():
+    from app.questionnaires import _translate_code
+    assert _translate_code("banana", {"SUP": "D", "NS": "I"}) is None
+
+
+def test_translate_code_is_identity_within_one_legend():
+    from app.questionnaires import _translate_code
+    salem = {"Standard": "D", "Configuration": "E", "Not Available": "F"}
+    assert _translate_code("Standard", salem) == "Standard"
+
+
+def test_export_recovers_layout_when_sheet_map_is_empty():
+    """The stored sheet_map came back empty and every mark was dropped. The
+    export must not depend on it."""
+    import inspect
+    from app import questionnaires
+    src = inspect.getsource(questionnaires.export)
+    assert "data_only=True" in src, "export needs a detection copy"
+    assert "_detect(sheet)" in src, "export must re-detect when sheet_map is thin"
