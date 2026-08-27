@@ -134,6 +134,7 @@ CREATE TABLE harald_documents (
   -- from it. Without this the anti-fabrication rule sits downstream of the
   -- fabrication and cannot see it.
   trust_level     VARCHAR2(20) DEFAULT 'VERIFIED' NOT NULL,
+  style_anchor    CHAR(1)      DEFAULT 'N' NOT NULL,
   promoted_to_lib CHAR(1) DEFAULT 'N' NOT NULL,
   uploaded_by     VARCHAR2(80),
   uploaded_at     TIMESTAMP DEFAULT SYSTIMESTAMP,
@@ -145,7 +146,8 @@ CREATE TABLE harald_documents (
      'attachment','reference','iteria_response')),
   CONSTRAINT harald_doc_outcome_ck CHECK (outcome IN
     ('won','lost','in_progress','test','no_bid')),
-  CONSTRAINT harald_doc_promo_ck CHECK (promoted_to_lib IN ('Y','N'))
+  CONSTRAINT harald_doc_promo_ck CHECK (promoted_to_lib IN ('Y','N')),
+  CONSTRAINT harald_doc_style_anchor_ck CHECK (style_anchor IN ('Y','N'))
 ) LOB (file_blob) STORE AS SECUREFILE (COMPRESS MEDIUM);
 
 ALTER TABLE harald_documents ADD CONSTRAINT harald_doc_supersedes_fk

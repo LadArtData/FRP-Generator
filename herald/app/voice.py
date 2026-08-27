@@ -136,7 +136,7 @@ FORBIDDEN_CHARS = {"\u2014": "em dash", "\u2013": "en dash"}
 # Re-derive these with calibrate_from_anchor() whenever the anchor
 # changes. Do not hand-edit them from memory.
 # ----------------------------------------------------------------------
-RHYTHM = {
+DEFAULT_RHYTHM = {
     "mean_words":          19.1,   # anchor
     "median_words":        17,     # anchor
     "stdev_min":            9.0,   # anchor 11.2, weak floor only
@@ -145,7 +145,10 @@ RHYTHM = {
     "long_over_35_max":     0.20,  # anchor 8%; the losing corpus runs 20-24%
 }
 
-CALIBRATION = {
+# Backward-compatible alias for tests and callers that import RHYTHM directly.
+RHYTHM = DEFAULT_RHYTHM
+
+DEFAULT_CALIBRATION = {
     "source": "City of St. Petersburg RFP-26-078, retrieval_tier=CANONICAL, style_anchor=Y",
     "words": 13400,
     "sentences": 700,
@@ -154,6 +157,17 @@ CALIBRATION = {
              "are taken FROM the anchor. Those are deliberately different "
              "directions."),
 }
+
+CALIBRATION = DEFAULT_CALIBRATION
+
+
+def active_rhythm():
+    """Rhythm thresholds from the style anchor corpus when loaded, else defaults."""
+    try:
+        from . import style_corpus
+        return style_corpus.get_rhythm()
+    except Exception:  # noqa: BLE001
+        return DEFAULT_RHYTHM
 
 # rule of three: three parallel items joined by "and", used for rhythm
 RULE_OF_THREE = re.compile(r"\b[\w'-]+,\s+[\w'-]+,\s+and\s+[\w'-]+\b")
@@ -181,14 +195,21 @@ _HEDGE_RE = [re.compile(h, re.I) for h in HEDGE_STACKS]
 # ----------------------------------------------------------------------
 def render_rules(include_replacements=True):
     """The style block injected into the humanize prompt."""
+    rhythm = active_rhythm()
+    try:
+        from . import style_corpus
+        anchor_block = style_corpus.anchor_excerpt_block()
+    except Exception:  # noqa: BLE001
+        anchor_block = ""
     if include_replacements:
         vocab = "\n".join(f"  {w} -> {r}" for w, r in BANNED.items())
     else:
         vocab = "  " + ", ".join(BANNED)
+    short_pct = int(100 * rhythm.get("short_under_10_min", 0.12))
     return f"""VOCABULARY. Replace every one of these. The replacement is given; use it or cut the sentence down.
 {vocab}
 
-RHYTHM. iteria's own submitted proposals average {RHYTHM['mean_words']} words per sentence with a standard deviation of 24.9, and only 39 percent of sentences land in the 15 to 25 word band. Match that. Some sentences five words. Some over forty. If your paragraph reads at an even pace, it is wrong.
+RHYTHM. iteria's style anchor averages {rhythm['mean_words']} words per sentence; at least {short_pct} percent of sentences should be under ten words and no more than {int(100 * rhythm.get('long_over_35_max', 0.20))} percent over thirty-five. Match that cadence. Some sentences five words. Some over forty. If your paragraph reads at an even pace, it is wrong.
 
 STRUCTURE.
   No three-item parallel lists used for rhythm ("faster, cheaper, and more reliable"). Two items or four, or rewrite.
@@ -198,7 +219,7 @@ STRUCTURE.
 
 CHARACTERS. No em dashes and no en dashes anywhere. Commas, periods, semicolons, parentheses, or split the sentence. Number ranges use "to", as in "12 to 24 months".
 
-FACTS. Do not add any. Do not remove any [BRACKETED] placeholder. Every date, count, duration, dollar figure and named reference must already appear in the material you were given."""
+FACTS. Do not add any. Do not remove any [BRACKETED] placeholder. Every date, count, duration, dollar figure and named reference must already appear in the material you were given.{anchor_block}"""
 
 
 # ----------------------------------------------------------------------
@@ -250,11 +271,12 @@ def score(final, draft=None, source_text="", client_facts_json=""):
             "share_under_10": round(short, 2),
             "share_over_35": round(longs, 2),
         }
+        rhythm = active_rhythm()
         findings["rhythm_flat"] = (
-            band > RHYTHM["band_15_25_max"]
-            or short < RHYTHM["short_under_10_min"]
-            or longs > RHYTHM["long_over_35_max"]
-            or sd < RHYTHM["stdev_min"])
+            band > rhythm["band_15_25_max"]
+            or short < rhythm["short_under_10_min"]
+            or longs > rhythm["long_over_35_max"]
+            or sd < rhythm["stdev_min"])
     else:
         findings["rhythm"] = {}
         findings["rhythm_flat"] = False

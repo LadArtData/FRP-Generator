@@ -20,7 +20,8 @@ from pydantic import BaseModel, Field
 
 from . import (answer_seed, answers, audit, auth, db, documents, embeddings, formats,
                freshness, generation, llm, opportunities, packages, pricing,
-               pricing_matrix, questionnaires, reviews, site_grounding, studio)
+               pricing_matrix, questionnaires, reviews, semantic_cache, site_grounding,
+               studio, style_corpus)
 from .config import cfg
 from .errors import HaraldError, ValidationFailed
 
@@ -37,6 +38,8 @@ WEB = os.path.join(os.path.dirname(os.path.dirname(__file__)), "web")
 async def lifespan(_: FastAPI):
     cfg.validate()
     db.init_pool()
+    await asyncio.to_thread(style_corpus.refresh)
+    await asyncio.to_thread(semantic_cache.init)
     await llm.startup()
     # Load the embedding model off the event loop so startup does not block it.
     await asyncio.get_running_loop().run_in_executor(None, embeddings.model)
@@ -154,6 +157,8 @@ def health():
             },
             "site_grounding": site_grounding.configured(),
             "auto_humanize": cfg.auto_humanize,
+            "semantic_cache": cfg.semantic_cache_enabled,
+            "style_anchor_chunks": len(style_corpus.anchor_excerpts()),
             }
     if database_ok:
         body["library"] = documents.library_stats()

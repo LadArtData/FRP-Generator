@@ -203,6 +203,15 @@ class Config:
     auto_humanize: bool = field(
         default_factory=lambda: _bool("HARALD_AUTO_HUMANIZE", True))
 
+    # Semantic LLM cache (Oracle AI Vector Search via langchain-oracledb)
+    semantic_cache_enabled: bool = field(
+        default_factory=lambda: _bool("HARALD_SEMANTIC_CACHE", True))
+    semantic_cache_table: str = field(
+        default_factory=lambda: os.getenv("HARALD_SEMANTIC_CACHE_TABLE",
+                                          "harald_semantic_cache"))
+    semantic_cache_threshold: float = field(
+        default_factory=lambda: _float("HARALD_SEMANTIC_CACHE_THRESHOLD", 0.08))
+
     # Identity. The database has one shared login, so HARALD holds its own
     # application identity (pick-a-name sign-in). Pricing/final approval are
     # gated by the approver *role* on that name, not by a second passphrase.

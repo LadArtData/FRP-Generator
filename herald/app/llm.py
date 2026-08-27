@@ -99,12 +99,26 @@ def _chat_sync(system: str, user: str, model: str, max_tokens: int,
 
 
 async def complete(system: str, user: str, model: str | None = None,
-                   max_tokens: int = 1500, temperature: float = 0.7) -> str:
+                   max_tokens: int = 1500, temperature: float = 0.7,
+                   *, use_cache: bool = True) -> str:
     """One completion. Retries transient failures; raises UpstreamError when the
     service is genuinely unavailable so callers surface a real error rather than
     silently writing an empty draft."""
     model = model or cfg.draft_model
     last_error = "unknown"
+
+    if use_cache and cfg.semantic_cache_enabled:
+        from . import semantic_cache
+        cached = await asyncio.to_thread(
+            semantic_cache.lookup,
+            system=system,
+            user=user,
+            model=model,
+            max_tokens=max_tokens,
+            temperature=temperature,
+        )
+        if cached:
+            return cached
 
     async with _sem():
         for attempt in range(cfg.llm_max_retries):
@@ -143,6 +157,17 @@ async def complete(system: str, user: str, model: str | None = None,
                 last_error = "empty completion"
                 await _backoff(attempt)
                 continue
+            if use_cache and cfg.semantic_cache_enabled:
+                from . import semantic_cache
+                await asyncio.to_thread(
+                    semantic_cache.store,
+                    system=system,
+                    user=user,
+                    model=model,
+                    max_tokens=max_tokens,
+                    temperature=temperature,
+                    text=text,
+                )
             return text
 
     raise UpstreamError(

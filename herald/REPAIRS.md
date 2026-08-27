@@ -176,3 +176,38 @@ without a token, and that is your call, not mine.
 
 **`app/slots.py` is orphaned** — 17KB imported by nothing. `app/gate.py` is a
 CLI, not on a request path. Neither was reviewed in depth.
+
+## Submission packet (materials.zip)
+
+Found by unzipping all four real packets rather than reading the manifest.
+
+**Jefferson County's packet shipped our Outagamie County proposal.** Doc 59 is
+a won proposal promoted to the library and attached to the Jefferson bid so the
+drafter could retrieve from it. `export_materials_zip` walked every attached
+document, so it went into `03_attachments` and would have been submitted to the
+agency. Library material is now withheld from the packet
+(`_is_internal_doc`, `studio.py`).
+
+**Nashua's packet shipped the same agency workbook twice.** q21 imported
+Appendix A with the old detector and caught 45 of 3,041 rows; q41 imported it
+again after the fix and caught all of them. Both exported, so the packet held
+`5260 (1)_iteria_response.xlsx` and `5260 (1)_iteria_response_2.xlsx` and an
+evaluator had even odds of opening the near-empty one. `packet_questionnaires`
+now keeps one import per source document, the one that answered it.
+
+**A packet download took 176 seconds.** Every questionnaire in the zip re-ran
+an openpyxl load-and-save of the agency's own workbook; one of Nashua's is
+9.4 MB and there were four of them. The render is pure, so `questionnaires.export`
+now memoises it against a counter fingerprint and `fill` drops the entry.
+
+**The packet did not say what was missing.** It downloads clean whether or not
+pricing, signatures, resumes and references are in it. Every packet now opens
+with `00_SUBMISSION_CHECKLIST.txt`, which names the open items, flags any
+workbook HARALD could not answer, and warns that `05_pricing` is internal.
+
+**Completed forms sat beside the blank ones.** Salem's and Jefferson's filled
+Attachment A went into `03_attachments` next to the agency's empty original,
+separated only by filename. Documents with `doc_role='form'` now go to
+`02_filled_forms/`.
+
+Zip is now named `<client>_submission_packet.zip`.

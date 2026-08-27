@@ -18,6 +18,13 @@ from .errors import NotFound, ValidationFailed
 log = logging.getLogger("harald.documents")
 
 
+def _is_style_anchor(filename: str, client_name: str | None) -> str:
+    name = f"{filename or ''} {client_name or ''}".lower()
+    if "stpetersburg" in name.replace(" ", "") or "st. petersburg" in name:
+        return "Y"
+    return "N"
+
+
 # Mirrors the CHECK constraints on harald_documents. Validating here turns a
 # bad value into a 400 with a usable message instead of an ORA-02290 surfacing
 # as a 500 with a raw Oracle string.
@@ -83,19 +90,22 @@ def store(filename: str, data: bytes, *, opp_id: int | None = None,
         supersedes = previous[0] if previous else None
 
         doc_id_var = cur.var(int)
+        style_anchor = _is_style_anchor(filename, client_name)
         cur.execute(
             """INSERT INTO harald_documents
                  (opp_id, filename, doc_class, doc_role, client_name, state, outcome,
                   version, effective_date, supersedes_id, file_blob, size_bytes,
-                  sha256, doc_text, uploaded_by)
+                  sha256, doc_text, style_anchor, uploaded_by)
                VALUES (:b_opp, :b_fn, :b_cls, :b_role, :b_client, :b_state, :b_outcome,
-                       :b_ver, :b_eff, :b_sup, :b_blob, :b_size, :b_sha, :b_text, :b_actor)
+                       :b_ver, :b_eff, :b_sup, :b_blob, :b_size, :b_sha, :b_text,
+                       :b_style, :b_actor)
                RETURNING doc_id INTO :b_out""",
             {"b_opp": opp_id, "b_fn": filename, "b_cls": resolved_class,
              "b_role": doc_role, "b_client": client_name, "b_state": state,
              "b_outcome": outcome, "b_ver": version, "b_eff": effective_date,
              "b_sup": supersedes, "b_blob": data, "b_size": len(data),
-             "b_sha": digest, "b_text": text, "b_actor": actor, "b_out": doc_id_var},
+             "b_sha": digest, "b_text": text, "b_style": style_anchor,
+             "b_actor": actor, "b_out": doc_id_var},
         )
         doc_id = doc_id_var.getvalue()[0]
 

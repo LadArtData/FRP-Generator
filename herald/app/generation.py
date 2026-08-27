@@ -154,7 +154,7 @@ async def humanize(draft: str, client: str) -> str:
         f"writer at iteria. Keep every fact and commitment. Stay concrete about {client}. "
         f"Return only the rewritten passage.\n\nPASSAGE:\n{draft}"
     )
-    return await llm.complete(prompts.HUMANIZE_SYSTEM, user, cfg.polish_model,
+    return await llm.complete(prompts.humanize_system(), user, cfg.polish_model,
                               max_tokens=1400, temperature=0.4)
 
 
@@ -166,7 +166,7 @@ async def polish(draft: str, client: str, source_text: str = "") -> str:
     if not brief:
         return text
     repaired = await llm.complete(
-        prompts.HUMANIZE_SYSTEM,
+        prompts.humanize_system(),
         f"{brief}\n\nCLIENT: {client}\n\nPASSAGE:\n{text}",
         cfg.polish_model,
         max_tokens=1400,
@@ -192,7 +192,7 @@ async def draft_requirement(req_text: str, module: str, client: str,
         "specific to this client. Sound like a senior proposal writer who wins awards — "
         "concrete, human, no AI cadence."
     )
-    text = await llm.complete(prompts.DRAFT_SYSTEM, user, cfg.draft_model, max_tokens=1200)
+    text = await llm.complete(prompts.draft_system(), user, cfg.draft_model, max_tokens=1200)
     if strong:
         answers.mark_used(strong["ans_id"])
     final = text
@@ -440,7 +440,7 @@ async def chat(question: str) -> dict:
         f"GROUNDING MATERIAL (library + Oracle/Iteria site):\n{context}\n\n"
         "Answer now."
     )
-    text = await llm.complete(prompts.CHAT_SYSTEM, user, cfg.draft_model, max_tokens=1200)
+    text = await llm.complete(prompts.chat_system(), user, cfg.draft_model, max_tokens=1200)
     return {"answer": text, "sources": sources}
 
 
@@ -459,7 +459,7 @@ async def draft_section(client: str, title: str, module: str | None, brief: str,
         "Write this section of iteria's proposal now. Two to four tight paragraphs, "
         "specific to this client. Award-quality human voice — no AI cadence."
     )
-    text = await llm.complete(prompts.DRAFT_SYSTEM, user, cfg.draft_model, max_tokens=1400)
+    text = await llm.complete(prompts.draft_system(), user, cfg.draft_model, max_tokens=1400)
     if cfg.auto_humanize and text:
         try:
             return await polish(text, client, source_text=context)
